@@ -1,121 +1,170 @@
-Laravel Stock App (Laravel 12)
+# Ứng dụng Xem Giá Cổ Phiếu
 
 ## Screenshot
 
 ![Screenshot](public/images/Screenshot_1.png)
 
-==================================================
-🛠 TECH STACK
-==================================================
+**Xem dữ liệu lịch sử cổ phiếu với Laravel 12 + Python (vnstock)**  
+_Cập nhật ngày 08/04/2025: Đã thêm tính năng tìm kiếm mã cổ phiếu nhanh (autocomplete)._
 
-- Backend: Laravel 12 (PHP 8.2+)
-- Frontend: Blade + Bootstrap 4 (CDN)
-- Python Integration: vnstock >= v3
-- Database: MySQL
-- Local server: XAMPP 8.2+
+---
 
-==================================================
-🚀 FEATURES
-==================================================
+## Tính năng
 
-- Enter any stock symbol (ex: E1VFVN30, FPT, VCB...)
-- Display historical data:
-    - Date
-    - Open / High / Low / Close price
-    - Volume
-- Save all data to MySQL database
-- Smart check to avoid redundant crawling if data exists
-- Easy Python integration via `get_stock.py`
+- Tìm kiếm và xem dữ liệu lịch sử cổ phiếu (ngày, giá mở/cao/thấp/đóng, khối lượng)
+- Lưu dữ liệu vào MySQL, tránh crawl trùng lặp
+- Tìm kiếm mã cổ phiếu nhanh (autocomplete)
+- Tích hợp Python để lấy dữ liệu từ vnstock
+- Giao diện đẹp, responsive với Bootstrap 4
+- Tự động kiểm tra và cập nhật danh sách mã cổ phiếu mới
 
-==================================================
-⚙️ INSTALLATION GUIDE
-==================================================
+---
 
-1. Clone the project
----------------------
-git clone https://github.com/nhatnguyen94/stock-app.git
-cd stock-app
+## Hướng dẫn cài đặt
 
-2. Install Laravel dependencies
----------------------
-composer install
-cp .env.example .env
-php artisan key:generate
+1. **Clone & cài đặt:**
+    ```bash
+    git clone https://github.com/nhatnguyen94/stock-app.git
+    cd stock-app
+    composer install
+    cp .env.example .env
+    php artisan key:generate
+    ```
 
-3. Setup .env file with MySQL info
----------------------
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=stock_app
-DB_USERNAME=root
-DB_PASSWORD=
+2. **Cấu hình `.env` cho MySQL**  
+   (Điền thông tin DB vào file .env)
 
-4. Create the database in MySQL
----------------------
-Manually create a database named "stock_app" before continuing.
+3. **Tạo database `stock_app` trong MySQL**
 
-5. Run database migration
----------------------
-php artisan migrate
+4. **Chạy migrate:**
+    ```bash
+    php artisan migrate
+    ```
 
-6. Install Python & vnstock library
----------------------
-pip install vnstock
+5. **Cài Python & vnstock:**
+    ```bash
+    pip install vnstock
+    ```
 
-7. Check that python script works
----------------------
-Run: python public/python/get_stock.py E1VFVN30
-Check for expected output.
+6. **Kiểm tra script Python:**
+    ```bash
+    python get_stock.py E1VFVN30
+    ```
 
-8. Start local server
----------------------
-php artisan serve
+7. **Chạy server:**
+    ```bash
+    php artisan serve
+    ```
+    Truy cập: http://127.0.0.1:8000/stock?symbol=FPT
 
-Visit: http://localhost:8000
+---
 
-==================================================
-📁 PROJECT STRUCTURE
-==================================================
+## Cách sử dụng
 
-├── app/
-│   └── Http/
-│       └── Controllers/
-│           └── StockController.php
-├── public/
-│   └── python/
-│       └── get_stock.py
-├── resources/
-│   └── views/
-│       └── stock/
-│           └── stock.blade.php
-├── routes/
-│   └── web.php
-├── database/
-│   └── migrations/
-│       └── create_stocks_and_prices_tables.php
-├── .env
-├── README.txt
+- Truy cập trang chủ, nhập mã cổ phiếu (ví dụ: FPT, VCB, E1VFVN30...)
+- Xem bảng giá lịch sử, biểu đồ, và thông tin chi tiết
+- Tìm kiếm mã cổ phiếu nhanh với autocomplete
 
-==================================================
-📄 SAMPLE USAGE
-==================================================
+---
 
-- Access http://localhost:8000
-- Input stock code (ex: FPT or E1VFVN30)
-- View latest historical prices shown in table
-- Data is pulled once & saved to DB
+## Nhật ký cập nhật
 
-==================================================
-📬 AUTHOR
-==================================================
+- **08/04/2025:** Thêm tính năng autocomplete tìm kiếm mã cổ phiếu, tối ưu giao diện, sửa lỗi encoding Python.
+- **Trước đó:** Tích hợp lấy dữ liệu lịch sử giá, lưu vào DB, kiểm tra trùng lặp, giao diện Bootstrap.
 
-Created by: Sun Nguyen
-Email: nhat.nguyenminh94@gmail.com
+---
+
+## Tác giả
+
+Sun Nguyen  
+Email: nhat.nguyenminh94@gmail.com  
 GitHub: https://github.com/nhatnguyen94/stock-app
 
-==================================================
-📜 LICENSE
-==================================================
+---
+
+MIT License © 2025
+
+---
+
+---
+
+# Laravel Stock App
+
+**A simple Laravel 12 + Python (vnstock) stock data viewer.**  
+_Updated 2025-08-04: Added fast stock symbol search/autocomplete feature._
+
+---
+
+## Features
+
+- Search and view historical stock data (date, open, high, low, close, volume)
+- Save data to MySQL, avoid redundant crawling
+- Fast stock symbol autocomplete
+- Python integration for data crawling (vnstock)
+- Responsive UI with Bootstrap 4
+- Auto-update stock symbol list
+
+---
+
+## Quick Start
+
+1. **Clone & install dependencies:**
+    ```bash
+    git clone https://github.com/nhatnguyen94/stock-app.git
+    cd stock-app
+    composer install
+    cp .env.example .env
+    php artisan key:generate
+    ```
+
+2. **Configure `.env` for MySQL**
+
+3. **Create database `stock_app` in MySQL**
+
+4. **Run migrations:**
+    ```bash
+    php artisan migrate
+    ```
+
+5. **Install Python & vnstock:**
+    ```bash
+    pip install vnstock
+    ```
+
+6. **Test Python script:**
+    ```bash
+    python get_stock.py E1VFVN30
+    ```
+
+7. **Start server:**
+    ```bash
+    php artisan serve
+    ```
+    Visit: http://127.0.0.1:8000/stock?symbol=FPT
+
+---
+
+## Usage
+
+- Access homepage, enter stock code (e.g. FPT, VCB, E1VFVN30...)
+- View historical price table, charts, and details
+- Use fast autocomplete to search stock symbols
+
+---
+
+## Update Log
+
+- **2025-08-04:** Added autocomplete for stock symbol search, UI improvements, fixed Python encoding bug.
+- **Earlier:** Integrated historical price crawling, DB saving, duplicate check, Bootstrap UI.
+
+---
+
+## Author
+
+Sun Nguyen  
+Email: nhat.nguyenminh94@gmail.com  
+GitHub: https://github.com/nhatnguyen94/stock-app
+
+---
 
 MIT License © 2025

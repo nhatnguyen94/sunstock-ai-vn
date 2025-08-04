@@ -5,6 +5,8 @@ use App\Models\Stock;
 use App\Models\StockPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use App\Models\StockSymbol;
 use Carbon\Carbon;
 
 class StockController extends Controller
@@ -72,5 +74,43 @@ class StockController extends Controller
         $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';
 
         return json_decode($jsonStr, true) ?? ['error' => 'Lỗi khi gọi script Python'];
+    }
+
+    public function getStockSymbols(Request $request)
+    {
+        $latest = StockSymbol::orderByDesc('updated_at')->first();
+        $needUpdate = !$latest || now()->diffInHours($latest->updated_at) > 24;
+
+        if ($needUpdate) {
+            $pythonPath = env('PYTHON_PATH', 'python');
+            $scriptPath = base_path('get_stock_list.py');
+            $command = "\"{$pythonPath}\" \"{$scriptPath}\"";
+            exec($command, $output, $returnVar);
+
+            $jsonStart = strpos(implode("\n", $output), '[');
+            $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';
+            $symbols = json_decode($jsonStr, true);
+
+            if (is_array($symbols)) {
+                StockSymbol::truncate();
+                foreach ($symbols as $item) {
+                    StockSymbol::create([
+                        'symbol' => $item['symbol'],
+                        'name' => $item['organ_name'] ?? '',
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+        }
+
+        $query = $request->input('q');
+        $stocks = StockSymbol::when($query, function ($qBuilder) use ($query) {
+                $qBuilder->where('symbol', 'like', "%$query%")
+                        ->orWhere('name', 'like', "%$query%");
+            })
+            ->limit(20)
+            ->get();
+
+        return response()->json($stocks);
     }
 }
