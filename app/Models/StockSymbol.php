@@ -1,4 +1,9 @@
 <?php
+/**
+ * Author: Sun Nguyen
+ * Email: nhat.nguyenminh94@gmail.com
+ * Github: https://github.com/nhatnguyen94
+ */
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
