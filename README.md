@@ -224,4 +224,4 @@ LinkedIn: [Sun Nguyen](https://www.linkedin.com/in/sunnguyen3011/)
 
 ---
 
-MIT License ©
+MIT License © 2025 Sun Nguyen
