@@ -13,16 +13,22 @@ use App\Models\Stock;
 use App\Models\StockPrice;
 use App\Models\StockSymbol;
 use Carbon\Carbon;
+use App\Repositories\ExchangeRateRepositoryInterface;
 
 class StockController extends Controller
 {
     protected $stockRepo;
     protected $stockService;
+    protected $exchangeRateRepo;
 
-    public function __construct(StockRepositoryInterface $stockRepo, StockService $stockService)
-    {
+    public function __construct(
+        StockRepositoryInterface $stockRepo,
+        StockService $stockService,
+        ExchangeRateRepositoryInterface $exchangeRateRepo
+    ) {
         $this->stockRepo = $stockRepo;
         $this->stockService = $stockService;
+        $this->exchangeRateRepo = $exchangeRateRepo;
     }
 
     /**
@@ -34,7 +40,6 @@ class StockController extends Controller
     public function home(Request $request)
     {
         $symbols = ['FPT', 'VNM', 'VCB'];
-        // Kiểm tra và cập nhật giá nếu cần
         foreach ($symbols as $symbol) {
             $stock = Stock::firstOrCreate(['symbol' => $symbol]);
             $latestPrice = StockPrice::where('stock_id', $stock->id)
@@ -44,7 +49,12 @@ class StockController extends Controller
             }
         }
         $featured = $this->stockRepo->getFeaturedStocks($symbols);
-        return view('index', compact('featured'));
+
+        $exchangeRates = $this->exchangeRateRepo->getLatestRates(1);
+
+        $hotIndustries = $this->stockService->fetchHotIndustriesFromPython(30);
+
+        return view('index', compact('featured', 'exchangeRates', 'hotIndustries'));
     }
 
     /**

@@ -43,4 +43,21 @@ class StockService
         $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';
         return json_decode($jsonStr, true) ?? [];
     }
+
+    /**
+     * Call Python script to get hot industries data.
+     *
+     * @return mixed
+     */
+    public function fetchHotIndustriesFromPython($limit = 30)
+    {
+        $pythonPath = env('PYTHON_PATH', 'python');
+        $scriptPath = base_path('py/get_hot_industries.py');
+        $command = "\"{$pythonPath}\" \"{$scriptPath}\" {$limit}";
+        exec($command, $output, $returnVar);
+
+        $jsonStart = strpos(implode("\n", $output), '[');
+        $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';
+        return json_decode($jsonStr, true) ?? [];
+    }
 }

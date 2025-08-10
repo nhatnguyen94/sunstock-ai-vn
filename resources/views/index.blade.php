@@ -89,18 +89,8 @@
 @endsection
 
 @section('content')
-<div class="homepage-header">
-    <div>
-        <span class="homepage-title">VN Stock App</span>
-        <span class="ml-3 text-muted d-none d-md-inline">Tra cứu giá cổ phiếu Việt Nam nhanh chóng, trực quan</span>
-    </div>
-    <nav class="homepage-menu">
-        <a href="{{ url('/') }}">Trang chủ</a>
-        <a href="{{ url('/stock') }}">Tra cứu chi tiết mã cổ phiếu</a>
-    </nav>
-</div>
-
 <div class="main-content">
+    {{-- Tra cứu mã chứng khoán --}}
     <div class="stock-highlight-card mb-4">
         <h4 class="mb-3 text-primary text-center">Tra cứu mã chứng khoán</h4>
         <form method="GET" action="{{ url('/stock') }}" class="form-inline justify-content-center mb-3" autocomplete="off">
@@ -116,6 +106,7 @@
         </div>
     </div>
 
+    {{-- Mã nổi bật --}}
     <div class="featured-row">
         @foreach($featured as $stock)
         <div class="featured-col">
@@ -141,6 +132,65 @@
             </div>
         </div>
         @endforeach
+    </div>
+
+    {{-- Section tỷ giá ngoại tệ --}}
+    <div class="stock-highlight-card mb-4">
+        <h4 class="mb-3 text-info text-center">Tỷ giá ngoại tệ Vietcombank 3 ngày gần nhất</h4>
+        @foreach($exchangeRates as $date => $items)
+            <h6 class="mt-3 text-primary">{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</h6>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-2">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Mã</th>
+                            <th>Tên</th>
+                            <th>Đơn vị tiền tệ</th>
+                            <th>Mua tiền mặt</th>
+                            <th>Mua chuyển khoản</th>
+                            <th>Bán</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($items as $item)
+                        <tr>
+                            <td>{{ $item['currency_code'] }}</td>
+                            <td>{{ $item['currency_name'] }}</td>
+                            <td>1 {{ $item['currency_code'] }} = VNĐ</td>
+                            <td>{{ $item['buy_cash'] }}</td>
+                            <td>{{ $item['buy_transfer'] }}</td>
+                            <td>{{ $item['sell'] }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endforeach
+    </div>
+
+    {{-- Section ngành hot --}}
+    <div class="stock-highlight-card mb-4">
+        <h4 class="mb-3 text-danger text-center">Top {{ count($hotIndustries) }} công ty hot theo ngành</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Mã</th>
+                        <th>Tên công ty</th>
+                        <th>Ngành</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($hotIndustries as $item)
+                    <tr>
+                        <td>{{ $item['symbol'] }}</td>
+                        <td>{{ $item['organ_name'] }}</td>
+                        <td>{{ $item['icb_name3'] }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 @endsection
@@ -178,5 +228,10 @@ document.getElementById('symbol').addEventListener('input', function() {
         console.error('Lỗi lấy danh sách mã:', err);
     });
 });
+
+function convertCurrency() {
+    // Lấy tỷ giá từ bảng exchangeRates hoặc gọi API
+    // Hiển thị kết quả vào #convertResult
+}
 </script>
 @endsection

@@ -14,6 +14,13 @@ use App\Services\StockService;
 
 class StockRepository implements StockRepositoryInterface
 {
+    protected $stockService;
+
+    public function __construct(StockService $stockService)
+    {
+        $this->stockService = $stockService;
+    }
+
     /**
      * Get featured stocks with overview and latest price.
      *
@@ -76,7 +83,7 @@ class StockRepository implements StockRepositoryInterface
     public function updateStockPriceFromPython(string $symbol): void
     {
         $stock = Stock::firstOrCreate(['symbol' => $symbol]);
-        $data = app(StockService::class)->fetchStockDataFromPython($symbol);
+        $data = $this->stockService->fetchStockDataFromPython($symbol);
         if (is_array($data) && !isset($data['error'])) {
             foreach ($data as $item) {
                 $date = Carbon::createFromTimestampMs($item['time'])->toDateString();
@@ -117,7 +124,7 @@ class StockRepository implements StockRepositoryInterface
         $needUpdate = !$latest || now()->diffInHours($latest->updated_at) > 24;
 
         if ($needUpdate) {
-            $symbols = app(StockService::class)->fetchStockListFromPython();
+            $symbols = $this->stockService->fetchStockListFromPython();
             if (is_array($symbols)) {
                 StockSymbol::truncate();
                 foreach ($symbols as $item) {

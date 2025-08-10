@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
             \App\Repositories\StockRepositoryInterface::class,
             \App\Repositories\StockRepository::class
         );
+        $this->app->bind(
+            \App\Repositories\ExchangeRateRepositoryInterface::class,
+            \App\Repositories\ExchangeRateRepository::class
+        );
     }
 
     /**
