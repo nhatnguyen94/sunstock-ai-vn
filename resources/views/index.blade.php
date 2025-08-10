@@ -136,7 +136,7 @@
 
     {{-- Section tỷ giá ngoại tệ --}}
     <div class="stock-highlight-card mb-4">
-        <h4 class="mb-3 text-info text-center">Tỷ giá ngoại tệ Vietcombank 3 ngày gần nhất</h4>
+        <h4 class="mb-3 text-info text-center">Tỷ giá ngoại tệ Vietcombank hôm nay</h4>
         @foreach($exchangeRates as $date => $items)
             <h6 class="mt-3 text-primary">{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</h6>
             <div class="table-responsive">

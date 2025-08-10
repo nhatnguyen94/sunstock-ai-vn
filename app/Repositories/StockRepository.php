@@ -11,6 +11,7 @@ use App\Models\StockPrice;
 use App\Models\StockSymbol;
 use Carbon\Carbon;
 use App\Services\StockService;
+use Illuminate\Support\Facades\Cache;
 
 class StockRepository implements StockRepositoryInterface
 {
@@ -120,21 +121,16 @@ class StockRepository implements StockRepositoryInterface
      */
     public function getOrUpdateSymbols(): void
     {
-        $latest = StockSymbol::orderByDesc('updated_at')->first();
-        $needUpdate = !$latest || now()->diffInHours($latest->updated_at) > 24;
-
-        if ($needUpdate) {
+        $lastUpdate = Cache::get('stock_symbols_last_update');
+        if (!$lastUpdate || now()->diffInHours($lastUpdate) > 24) {
             $symbols = $this->stockService->fetchStockListFromPython();
-            if (is_array($symbols)) {
-                StockSymbol::truncate();
-                foreach ($symbols as $item) {
-                    StockSymbol::create([
-                        'symbol' => $item['symbol'],
-                        'name' => $item['organ_name'] ?? '',
-                        'updated_at' => now(),
-                    ]);
-                }
+            foreach ($symbols as $symbol) {
+                StockSymbol::updateOrCreate(
+                    ['symbol' => $symbol['symbol']],
+                    ['organ_name' => $symbol['organ_name'] ?? null]
+                );
             }
+            Cache::put('stock_symbols_last_update', now(), 86400);
         }
     }
 

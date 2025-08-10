@@ -75,6 +75,7 @@
                         <th>Thấp nhất</th>
                         <th>Đóng cửa</th>
                         <th>Khối lượng</th>
+                        <th>Đơn vị tiền tệ</th>
                     </tr>
                 </thead>
                 <tbody id="priceTableBody">
@@ -218,6 +219,7 @@
                 <td>${item.low}</td>
                 <td>${item.close}</td>
                 <td>${Number(item.volume).toLocaleString()}</td>
+                <td>${item.currency || 'VND'}</td>
             </tr>
         `).join('');
         renderPagination();

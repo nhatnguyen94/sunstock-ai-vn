@@ -14,6 +14,7 @@ use App\Models\StockPrice;
 use App\Models\StockSymbol;
 use Carbon\Carbon;
 use App\Repositories\ExchangeRateRepositoryInterface;
+use Illuminate\Support\Facades\Cache;
 
 class StockController extends Controller
 {
@@ -52,7 +53,9 @@ class StockController extends Controller
 
         $exchangeRates = $this->exchangeRateRepo->getLatestRates(1);
 
-        $hotIndustries = $this->stockService->fetchHotIndustriesFromPython(30);
+        $hotIndustries = Cache::remember('hot_industries', 3600, function() {
+            return $this->stockService->fetchHotIndustriesFromPython(30);
+        });
 
         return view('index', compact('featured', 'exchangeRates', 'hotIndustries'));
     }

@@ -6,6 +6,8 @@
  */
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 class StockService
 {
     /**
@@ -55,6 +57,15 @@ class StockService
         $scriptPath = base_path('py/get_hot_industries.py');
         $command = "\"{$pythonPath}\" \"{$scriptPath}\" {$limit}";
         exec($command, $output, $returnVar);
+
+        if ($returnVar !== 0) {
+            Log::error('Python script error', [
+                'command' => $command,
+                'output' => $output,
+                'returnVar' => $returnVar
+            ]);
+            return [];
+        }
 
         $jsonStart = strpos(implode("\n", $output), '[');
         $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';

@@ -4,6 +4,8 @@ namespace App\Repositories;
 use App\Models\ExchangeRate;
 use App\Services\ExchangeRateService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class ExchangeRateRepository implements ExchangeRateRepositoryInterface
 {
@@ -29,24 +31,19 @@ class ExchangeRateRepository implements ExchangeRateRepositoryInterface
 
     public function updateRatesFromPython(): void
     {
-        $data = $this->exchangeRateService->fetchRatesFromPython();
-        foreach ($data as $dayRates) {
-            if (is_array($dayRates)) {
-                foreach ($dayRates as $item) {
-                    ExchangeRate::updateOrCreate(
-                        [
-                            'currency_code' => $item['currency_code'],
-                            'date' => $item['date']
-                        ],
-                        [
-                            'currency_name' => $item['currency_name'],
-                            'buy_cash' => $item['buy _cash'] ?? null,
-                            'buy_transfer' => $item['buy _transfer'] ?? null,
-                            'sell' => $item['sell'] ?? null,
-                        ]
-                    );
-                }
-            }
+        $rates = $this->exchangeRateService->fetchRatesFromPython();
+        $bulk = [];
+        foreach ($rates as $rate) {
+            $bulk[] = [
+                'date' => $rate['date'],
+                'currency' => $rate['currency'],
+                'buy' => $rate['buy'],
+                'sell' => $rate['sell'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
+        DB::table('exchange_rates')->upsert($bulk, ['date', 'currency'], ['buy', 'sell', 'updated_at']);
+        Cache::put('exchange_rates_last_update', now(), 3600);
     }
 }
