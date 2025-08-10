@@ -19,17 +19,19 @@ Tự động cập nhật dữ liệu, giao diện đẹp, dễ dùng, có autoc
 
 ## 🆕 Nhật ký cập nhật
 
+- **2025-08-10:**  
+  - Refactor lại StockController, StockRepository, và StockService; bổ sung method mới, cải thiện cấu trúc.
+  - Tích hợp lại các script Python để lấy dữ liệu cổ phiếu.
+  - Đã thêm file database mẫu (`stock_app.sql`) để người dùng dễ dàng import và sử dụng.
+
 - **2025-08-09:**  
   - Chuẩn hóa Controller theo SOLID, tách Service/Repository/Interface.
   - Footer đẹp, có icon, thông tin cá nhân.
   - Sửa UI homepage: header gọn, card mã nổi bật đều, responsive tốt.
   - Cập nhật README, bổ sung hướng dẫn, tính năng mới.
-
-- **2025-08-04:**  
+- **Trước đó:**  
   - Thêm autocomplete tìm kiếm mã cổ phiếu.
   - Tối ưu giao diện, sửa lỗi encoding Python.
-
-- **Trước đó:**  
   - Tích hợp crawl giá lịch sử, lưu DB, kiểm tra trùng lặp, giao diện Bootstrap.
 
 ---
@@ -63,22 +65,77 @@ Tự động cập nhật dữ liệu, giao diện đẹp, dễ dùng, có autoc
     php artisan migrate
     ```
 
-5. **Cài Python & vnstock:**
+5. **Thêm database mẫu:**  
+   Đã thêm file `stock_app.sql` chứa dữ liệu mẫu.  
+   Để import vào MySQL, chạy lệnh sau:
+    ```bash
+    mysql -u root -p stock_app < stock_app.sql
+    ```
+   (Thay `root` bằng user của bạn nếu khác)
+
+6. **Cài Python & vnstock:**
     ```bash
     pip install vnstock
     ```
 
-6. **Kiểm tra script Python:**
+7. **Kiểm tra script Python:**
     ```bash
     python get_stock.py FPT
     python get_stock_list.py
     ```
 
-7. **Chạy server:**
+8. **Chạy server:**
     ```bash
     php artisan serve
     ```
     Truy cập: http://127.0.0.1:8000/
+
+---
+
+## ⚡ Quick Start
+
+1. **Clone & install PHP dependencies:**
+    ```bash
+    git clone https://github.com/nhatnguyen94/stock-app.git
+    cd stock-app
+    composer install
+    cp .env.example .env
+    php artisan key:generate
+    ```
+
+2. **Configure MySQL in `.env`**
+
+3. **Create database `stock_app` in MySQL**
+
+4. **Run migrations:**
+    ```bash
+    php artisan migrate
+    ```
+
+5. **Add sample database:**  
+   Sample data file `stock_app.sql` is included.  
+   To import into MySQL, run:
+    ```bash
+    mysql -u root -p stock_app < stock_app.sql
+    ```
+   (Replace `root` with your MySQL user if different)
+
+6. **Install Python & vnstock:**
+    ```bash
+    pip install vnstock
+    ```
+
+7. **Test Python scripts:**
+    ```bash
+    python get_stock.py FPT
+    python get_stock_list.py
+    ```
+
+8. **Start server:**
+    ```bash
+    php artisan serve
+    ```
+    Visit: http://127.0.0.1:8000/
 
 ---
 
@@ -135,17 +192,20 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 
 ## 🆕 Update Log
 
+- **2025-08-10:**  
+  - Refactored StockController, StockRepository, and StockService; added new methods and improved structure.
+  - Reintroduced Python scripts for stock data retrieval.
+  - Added sample database file (`stock_app.sql`) for easy import and usage.
+
 - **2025-08-09:**  
   - Refactored Controller to SOLID, separated Service/Repository/Interface.
   - Improved footer with icons and author info.
   - Homepage UI improved: compact header, even featured cards, better responsive.
   - Updated README, added instructions and new features.
 
-- **2025-08-04:**  
+- **Earlier:**  
   - Added autocomplete for stock symbol search.
   - UI improvements, fixed Python encoding bug.
-
-- **Earlier:**  
   - Integrated historical price crawling, DB saving, duplicate check, Bootstrap UI.
 
 ## 📸 Screenshots
@@ -177,18 +237,26 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
     php artisan migrate
     ```
 
-5. **Install Python & vnstock:**
+5. **Add sample database:**  
+   Sample data file `stock_app.sql` is included.  
+   To import into MySQL, run:
+    ```bash
+    mysql -u root -p stock_app < stock_app.sql
+    ```
+   (Replace `root` with your MySQL user if different)
+
+6. **Install Python & vnstock:**
     ```bash
     pip install vnstock
     ```
 
-6. **Test Python scripts:**
+7. **Test Python scripts:**
     ```bash
     python get_stock.py FPT
     python get_stock_list.py
     ```
 
-7. **Start server:**
+8. **Start server:**
     ```bash
     php artisan serve
     ```

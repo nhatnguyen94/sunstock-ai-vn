@@ -8,10 +8,16 @@ namespace App\Services;
 
 class StockService
 {
+    /**
+     * Call Python script to get historical stock data.
+     *
+     * @param string $symbol
+     * @return mixed
+     */
     public function fetchStockDataFromPython($symbol)
     {
         $pythonPath = env('PYTHON_PATH', 'python');
-        $scriptPath = base_path('get_stock.py');
+        $scriptPath = base_path('py/get_stock.py');
         $command = "\"{$pythonPath}\" \"{$scriptPath}\" {$symbol}";
         exec($command, $output, $returnVar);
 
@@ -21,10 +27,15 @@ class StockService
         return json_decode($jsonStr, true) ?? ['error' => 'Lỗi khi gọi script Python'];
     }
 
+    /**
+     * Call Python script to get stock symbol list.
+     *
+     * @return mixed
+     */
     public function fetchStockListFromPython()
     {
         $pythonPath = env('PYTHON_PATH', 'python');
-        $scriptPath = base_path('get_stock_list.py');
+        $scriptPath = base_path('py/get_stock_list.py');
         $command = "\"{$pythonPath}\" \"{$scriptPath}\"";
         exec($command, $output, $returnVar);
 

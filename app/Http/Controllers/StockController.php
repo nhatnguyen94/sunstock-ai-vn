@@ -9,6 +9,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Repositories\StockRepositoryInterface;
 use App\Services\StockService;
+use App\Models\Stock;
+use App\Models\StockPrice;
+use App\Models\StockSymbol;
 use Carbon\Carbon;
 
 class StockController extends Controller
@@ -22,13 +25,19 @@ class StockController extends Controller
         $this->stockService = $stockService;
     }
 
+    /**
+     * Show homepage with featured stocks.
+     *
+     * @param Request $request
+     * @return \Illuminate\View\View
+     */
     public function home(Request $request)
     {
         $symbols = ['FPT', 'VNM', 'VCB'];
         // Kiểm tra và cập nhật giá nếu cần
         foreach ($symbols as $symbol) {
-            $stock = \App\Models\Stock::firstOrCreate(['symbol' => $symbol]);
-            $latestPrice = \App\Models\StockPrice::where('stock_id', $stock->id)
+            $stock = Stock::firstOrCreate(['symbol' => $symbol]);
+            $latestPrice = StockPrice::where('stock_id', $stock->id)
                 ->orderByDesc('date')->first();
             if (!$latestPrice || Carbon::parse($latestPrice->date)->lt(now()->subDay())) {
                 $this->stockRepo->updateStockPriceFromPython($symbol);
@@ -38,11 +47,17 @@ class StockController extends Controller
         return view('index', compact('featured'));
     }
 
+    /**
+     * Show historical price and overview for a stock symbol.
+     *
+     * @param Request $request
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
         $symbol = strtoupper($request->input('symbol', 'E1VFVN30'));
-        $stock = \App\Models\Stock::firstOrCreate(['symbol' => $symbol]);
-        $latestDate = \App\Models\StockPrice::where('stock_id', $stock->id)->max('date');
+        $stock = Stock::firstOrCreate(['symbol' => $symbol]);
+        $latestDate = StockPrice::where('stock_id', $stock->id)->max('date');
         $now = Carbon::now();
 
         if (!$latestDate || Carbon::parse($latestDate)->lt($now->subDay())) {
@@ -55,6 +70,12 @@ class StockController extends Controller
         return view('stock.stock', compact('symbol', 'data', 'overview'));
     }
 
+    /**
+     * Search and return stock symbols as JSON.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getStockSymbols(Request $request)
     {
         $query = $request->input('q');

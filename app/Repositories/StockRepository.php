@@ -14,6 +14,12 @@ use App\Services\StockService;
 
 class StockRepository implements StockRepositoryInterface
 {
+    /**
+     * Get featured stocks with overview and latest price.
+     *
+     * @param array $symbols
+     * @return mixed
+     */
     public function getFeaturedStocks(array $symbols): array
     {
         $result = [];
@@ -36,6 +42,12 @@ class StockRepository implements StockRepositoryInterface
         return $result;
     }
 
+    /**
+     * Get historical prices for a stock symbol.
+     *
+     * @param string $symbol
+     * @return mixed
+     */
     public function getStockPrice(string $symbol): ?array
     {
         $stock = Stock::firstOrCreate(['symbol' => $symbol]);
@@ -55,6 +67,12 @@ class StockRepository implements StockRepositoryInterface
         return $prices;
     }
 
+    /**
+     * Update stock price from Python script.
+     *
+     * @param string $symbol
+     * @return void
+     */
     public function updateStockPriceFromPython(string $symbol): void
     {
         $stock = Stock::firstOrCreate(['symbol' => $symbol]);
@@ -76,12 +94,23 @@ class StockRepository implements StockRepositoryInterface
         }
     }
 
+    /**
+     * Get overview information for a stock symbol.
+     *
+     * @param string $symbol
+     * @return mixed
+     */
     public function getOverview(string $symbol): ?array
     {
         $overview = StockSymbol::where('symbol', $symbol)->first();
         return $overview ? $overview->toArray() : null;
     }
 
+    /**
+     * Update stock symbol list from Python script if needed.
+     *
+     * @return void
+     */
     public function getOrUpdateSymbols(): void
     {
         $latest = StockSymbol::orderByDesc('updated_at')->first();
@@ -102,6 +131,12 @@ class StockRepository implements StockRepositoryInterface
         }
     }
 
+    /**
+     * Search stock symbols by query string.
+     *
+     * @param string $query
+     * @return mixed
+     */
     public function searchSymbols(string $query): array
     {
         $this->getOrUpdateSymbols();
