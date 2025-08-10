@@ -62,9 +62,9 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 
 ![Screenshot](public/images/Screenshot_5.png)
 ![Screenshot](public/images/Screenshot_6.png)
-![Screenshot](public/images/Screenshot_1.png)
 ![Screenshot](public/images/Screenshot_2.png)
 ![Screenshot](public/images/Screenshot_3.png)
+![Screenshot](public/images/Screenshot_4.png)
 
 ---
 
