@@ -33,17 +33,26 @@ class ExchangeRateRepository implements ExchangeRateRepositoryInterface
     {
         $rates = $this->exchangeRateService->fetchRatesFromPython();
         $bulk = [];
-        foreach ($rates as $rate) {
-            $bulk[] = [
-                'date' => $rate['date'],
-                'currency' => $rate['currency'],
-                'buy' => $rate['buy'],
-                'sell' => $rate['sell'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+        foreach ($rates as $dayRates) {
+            foreach ($dayRates as $rate) {
+                if (isset($rate['error'])) continue;
+                $bulk[] = [
+                    'date' => $rate['date'],
+                    'currency_code' => $rate['currency_code'],
+                    'currency_name' => $rate['currency_name'],
+                    'buy_cash' => $rate['buy _cash'] !== '-' ? $rate['buy _cash'] : null,
+                    'buy_transfer' => $rate['buy _transfer'] !== '-' ? $rate['buy _transfer'] : null,
+                    'sell' => $rate['sell'] !== '-' ? $rate['sell'] : null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
         }
-        DB::table('exchange_rates')->upsert($bulk, ['date', 'currency'], ['buy', 'sell', 'updated_at']);
+        DB::table('exchange_rates')->upsert(
+            $bulk,
+            ['date', 'currency_code'],
+            ['buy_cash', 'buy_transfer', 'sell', 'currency_name', 'updated_at']
+        );
         Cache::put('exchange_rates_last_update', now(), 3600);
     }
 }

@@ -15,6 +15,7 @@ use App\Models\StockSymbol;
 use Carbon\Carbon;
 use App\Repositories\ExchangeRateRepositoryInterface;
 use Illuminate\Support\Facades\Cache;
+use App\Services\AiService;
 
 class StockController extends Controller
 {
@@ -94,5 +95,17 @@ class StockController extends Controller
         $query = $request->input('q');
         $stocks = $this->stockRepo->searchSymbols($query);
         return response()->json($stocks);
+    }
+
+    public function aiChat(Request $request, AiService $aiService)
+    {
+        $question = $request->input('message');
+        $lang = $request->input('lang', 'vi');
+        // Thêm hướng dẫn ngôn ngữ vào prompt
+        $prompt = $lang === 'en'
+            ? "Answer in English: " . $question
+            : "Trả lời bằng tiếng Việt: " . $question;
+        $answer = $aiService->askOllama($prompt, 'mistral');
+        return response()->json(['answer' => $answer]);
     }
 }

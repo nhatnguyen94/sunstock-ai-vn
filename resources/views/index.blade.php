@@ -229,9 +229,6 @@ document.getElementById('symbol').addEventListener('input', function() {
     });
 });
 
-function convertCurrency() {
-    // Lấy tỷ giá từ bảng exchangeRates hoặc gọi API
-    // Hiển thị kết quả vào #convertResult
-}
+
 </script>
 @endsection
