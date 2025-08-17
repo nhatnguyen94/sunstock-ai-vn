@@ -511,6 +511,161 @@
         background: var(--bg-light);
     }
 
+    /* News Section Styles */
+    .news-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .news-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .news-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-xl);
+    }
+
+    .news-image {
+        width: 100%;
+        height: 200px;
+        overflow: hidden;
+        position: relative;
+        background: var(--bg-light);
+    }
+
+    .news-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .news-card:hover .news-image img {
+        transform: scale(1.05);
+    }
+
+    .news-date-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(37, 99, 235, 0.9);
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+    }
+
+    .news-content {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .news-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        line-height: 1.4;
+        margin-bottom: 0.75rem;
+        text-decoration: none;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        transition: color 0.3s ease;
+    }
+
+    .news-title:hover {
+        color: var(--primary-blue);
+        text-decoration: none;
+    }
+
+    .news-description {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        flex-grow: 1;
+        margin-bottom: 1rem;
+    }
+
+    .news-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .news-date {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .news-read-more {
+        background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .news-read-more:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Featured News (First 2 items) */
+    .news-grid .news-card:nth-child(-n+2) {
+        background: linear-gradient(135deg, #fefefe, #f8fafc);
+        border: 2px solid var(--primary-blue);
+        position: relative;
+    }
+
+    .news-grid .news-card:nth-child(-n+2)::before {
+        content: '🔥 Nổi bật';
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0 0 12px 0;
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 2;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
         .hero-title {
@@ -557,6 +712,37 @@
         .search-icon {
             left: 1rem;
             font-size: 1.2rem;
+        }
+
+        /* Responsive Design for News */
+        .news-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .news-image {
+            height: 180px;
+        }
+
+        .news-content {
+            padding: 1.25rem;
+        }
+
+        .news-meta {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .news-read-more {
+            text-align: center;
+            justify-content: center;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .news-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 </style>
@@ -611,8 +797,8 @@
     </div>
 </div>
 
-<!-- Featured Stocks Section -->
 <div class="container">
+    <!-- 1. FEATURED STOCKS - Giữ nguyên vị trí đầu -->
     <section class="featured-section">
         <h2 class="section-title">
             <i class="bi bi-star-fill" style="color: var(--warning-orange); margin-right: 10px;"></i>
@@ -654,12 +840,16 @@
         </div>
     </section>
 
-    <!-- Exchange Rate Section -->
+    <!-- 2. EXCHANGE RATES - Di chuyển lên vị trí thứ 2 -->
     @if(count($exchangeRates) > 0)
     <section class="info-section">
+        <!-- Tỷ giá ngoại tệ hôm nay -->
         <h3>
             <i class="bi bi-currency-exchange" style="color: var(--success-green); margin-right: 10px;"></i>
-            Tỷ giá ngoại tệ Vietcombank
+            Tỷ giá ngoại tệ hôm nay
+            <span style="font-size: 0.7em; color: var(--text-secondary); font-weight: 400;">
+                (Vietcombank)
+            </span>
         </h3>
         
         @foreach($exchangeRates as $date => $items)
@@ -715,12 +905,16 @@
     </section>
     @endif
 
-    <!-- Hot Industries Section -->
+    <!-- 3. HOT INDUSTRIES - Di chuyển lên vị trí thứ 3 -->
     @if(count($hotIndustries) > 0)
     <section class="info-section">
+        <!-- Ngành nghề đang hot -->
         <h3>
             <i class="bi bi-fire" style="color: var(--danger-red); margin-right: 10px;"></i>
-            Top {{ count($hotIndustries) }} công ty nổi bật theo ngành
+            Ngành nghề đang hot
+            <span style="font-size: 0.7em; color: var(--text-secondary); font-weight: 400;">
+                ({{ count($hotIndustries) }} công ty nổi bật)
+            </span>
         </h3>
         
         <div class="hot-table">
@@ -751,6 +945,70 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+    </section>
+    @endif
+
+    <!-- 4. NEWS - Di chuyển xuống cuối, bổ sung thông tin -->
+    @if(isset($news) && count($news) > 0)
+    <section class="info-section">
+        <!-- Tin tức thị trường mới nhất -->
+        <h3>
+            <i class="bi bi-newspaper" style="color: var(--primary-blue); margin-right: 10px;"></i>
+            Tin tức thị trường mới nhất
+            <span style="font-size: 0.7em; color: var(--text-secondary); font-weight: 400;">
+                (Cập nhật từ VnExpress)
+            </span>
+        </h3>
+        
+        <div class="news-grid">
+            @foreach($news as $item)
+            <article class="news-card">
+                @if($item['image'])
+                <div class="news-image">
+                    <img src="{{ $item['image'] }}" alt="{{ $item['title'] }}" loading="lazy">
+                    <div class="news-date-badge">
+                        <i class="bi bi-clock"></i>
+                        {{ $item['pubDate'] }}
+                    </div>
+                </div>
+                @endif
+                
+                <div class="news-content">
+                    <a href="{{ $item['link'] }}" target="_blank" class="news-title">
+                        {{ $item['title'] }}
+                    </a>
+                    
+                    <p class="news-description">
+                        {{ strip_tags($item['description']) }}
+                    </p>
+                    
+                    <div class="news-meta">
+                        <div class="news-date">
+                            <i class="bi bi-calendar3"></i>
+                            {{ $item['pubDate'] }}
+                        </div>
+                        
+                        <a href="{{ $item['link'] }}" target="_blank" class="news-read-more">
+                            Đọc thêm
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </article>
+            @endforeach
+        </div>
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="https://vnexpress.net/kinh-doanh" target="_blank" 
+               style="display: inline-flex; align-items: center; gap: 0.5rem; 
+                      background: var(--light-blue); color: var(--primary-blue); 
+                      padding: 0.75rem 1.5rem; border-radius: 25px; text-decoration: none; 
+                      font-weight: 500; transition: all 0.3s ease;">
+                <i class="bi bi-newspaper"></i>
+                Xem tất cả tin tức
+                <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </section>
     @endif

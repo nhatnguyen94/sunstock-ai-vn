@@ -19,6 +19,7 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 - **Footer cá nhân hóa / Personalized footer**: Hiển thị thông tin tác giả, email, GitHub, LinkedIn ở mọi trang.
 - **Tỷ giá ngoại tệ Vietcombank / Vietcombank exchange rates**: Hiển thị tỷ giá 3 ngày gần nhất.
 - **Top 30 công ty hot theo ngành / Top 30 hot companies by industry**: Bảng các mã nổi bật theo ngành, số lượng linh động.
+- **📰 Tin tức thị trường realtime / Real-time market news**
 - **🔥 Tích hợp AI Model Chat / Integrated AI Model Chat**: Popup chat bubble ở góc phải dưới, hỏi đáp về cổ phiếu, ngành, tỷ giá, tài chính.  
   Hỗ trợ chọn ngôn ngữ (Tiếng Việt/English), đổi model AI (gemma3:1b, mistral...), giao diện đẹp, chuyên nghiệp.
 
@@ -27,52 +28,38 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 ## 🆕 Nhật ký cập nhật / Update Log
 
 - **2025-08-17:**  
-  - Sửa lỗi hiển thị tỷ giá ngoại tệ: xử lý dữ liệu chuỗi từ Python với `parseRate()`, tránh lỗi `number_format()`.  
-    Fixed exchange rate display bug: handle string data from Python with `parseRate()`, avoid `number_format()` error.
-  - Cải thiện UI/UX form tìm kiếm: sửa input bị thu hẹp do Awesomplete, responsive design tốt hơn.  
-    Enhanced search form UI/UX: fixed input shrinking issue from Awesomplete, better responsive design.
-  - Thêm hiển thị tên cổ phiếu trong header và title để user dễ nhận diện.  
-    Added stock name display in header and title for better user recognition.
-  - Tối ưu CSS cho trang tỷ giá ngoại tệ và trang cổ phiếu: button styling, animation, hover effects.  
-    Optimized CSS for exchange rate and stock pages: button styling, animations, hover effects.
-  - Enhanced autocomplete: hiển thị cả mã và tên cổ phiếu trong dropdown, debounce search, loading states.  
-    Enhanced autocomplete: show both symbol and stock name in dropdown, debounced search, loading states.
+  - **Thêm tin tức thị trường VnExpress RSS**: Tích hợp NewsService lấy tin từ RSS VnExpress Kinh Doanh, hiển thị 6 tin mới nhất với grid layout hiện đại.  
+    **Added VnExpress market news RSS**: Integrated NewsService to fetch business news from VnExpress.
+  - **Tối ưu UX homepage**: Sắp xếp lại thứ tự sections (Cổ phiếu nổi bật → Tỷ giá → Ngành hot → Tin tức) để user journey hợp lý hơn.  
+    **Optimized homepage UX**: Reordered sections (Featured Stocks → Exchange Rates → Hot Industries → News) for better user journey.
+  - **News cards với hover effects**: Card design responsive, image hover zoom, featured badge cho 2 tin đầu, date badge overlay.  
+    **News cards with hover effects**: Responsive card design, image hover zoom, featured badge for first 2 news, date badge overlay.
+  - Sửa lỗi hiển thị tỷ giá ngoại tệ: xử lý dữ liệu chuỗi từ Python với `parseRate()`.  
+    Fixed exchange rate display bug: handle string data from Python with `parseRate()`.
+  - Cải thiện UI/UX form tìm kiếm và enhanced autocomplete với debounce search.  
+    Enhanced search form UI/UX and autocomplete with debounced search.
+  - Tối ưu CSS cho các trang với button styling, animations, hover effects.  
+    Optimized CSS for pages with button styling, animations, hover effects.
 
 - **2025-08-16:**  
-  - Tích hợp AI Model Chat (Ollama: gemma3:1b, mistral) vào toàn bộ app, popup chat bubble hiện đại, chọn ngôn ngữ, đổi model dễ dàng.  
-    Integrated AI Model Chat (Ollama: gemma3:1b, mistral) into entire app, modern popup chat bubble, language selection, easy model switching.
-  - Cải thiện UI/UX chat, thêm icon lá cờ, bo tròn, bóng đổ, nút xóa lịch sử chat.  
-    Improved chat UI/UX, added flag icons, rounded corners, shadows, clear chat history button.
-  - Bổ sung hướng dẫn cài đặt và sử dụng AI vào README.  
-    Added AI installation and usage guide to README.
+  - Tích hợp AI Model Chat (Ollama: gemma3:1b, mistral) với popup chat bubble hiện đại, chọn ngôn ngữ, đổi model dễ dàng.  
+    Integrated AI Model Chat (Ollama) with modern popup chat bubble, language selection, easy model switching.
+  - Cải thiện UI/UX chat với flag icons, rounded corners, shadows, clear chat history button.  
+    Improved chat UI/UX with flag icons, rounded corners, shadows, clear chat history button.
 
 - **2025-08-10 đến 2025-08-15:**  
   - Thêm tỷ giá ngoại tệ Vietcombank (3 ngày gần nhất) với trang riêng và tính năng tìm kiếm theo ngày.  
-    Added Vietcombank exchange rates (last 3 days) with dedicated page and date search feature.
-  - Thêm bảng top 30 công ty hot theo ngành, số lượng linh động.  
-    Added top 30 hot companies by industry table, flexible quantity.
-  - Refactor Controller, Repository, Service theo chuẩn SOLID, dùng dependency injection.  
-    Refactored Controller, Repository, Service following SOLID principles, using dependency injection.
-  - Thêm file database mẫu (`stock_app.sql`) để dễ import.  
-    Added sample database file (`stock_app.sql`) for easy import.
-  - Chuẩn hóa Controller theo SOLID, tách Service/Repository/Interface.  
-    Standardized Controller following SOLID, separated Service/Repository/Interface.
-  - Footer đẹp, có icon, thông tin cá nhân.  
-    Beautiful footer with icons and personal information.
-  - Sửa UI homepage: header gọn, card mã nổi bật đều, responsive tốt.  
-    Homepage UI improved: compact header, even featured cards, better responsive.
+    Added Vietcombank exchange rates with dedicated page and date search feature.
+  - Thêm bảng top 30 công ty hot theo ngành, refactor Controller/Service theo chuẩn SOLID.  
+    Added top 30 hot companies by industry, refactored Controller/Service following SOLID principles.
+  - Footer đẹp với thông tin cá nhân, sửa UI homepage responsive tốt hơn.  
+    Beautiful footer with personal info, improved homepage responsive UI.
 
 - **Các phiên bản trước đó / Earlier versions:**  
-  - Thêm autocomplete tìm kiếm mã cổ phiếu với AJAX.  
-    Added autocomplete stock symbol search with AJAX.
-  - Tối ưu giao diện Bootstrap, sửa lỗi encoding Python.  
-    Optimized Bootstrap UI, fixed Python encoding bug.
-  - Tích hợp crawl giá lịch sử từ vnstock, lưu MySQL, kiểm tra trùng lặp.  
-    Integrated historical price crawling from vnstock, MySQL saving, duplicate checking.
-  - Biểu đồ nến/đường với Chart.js, bảng dữ liệu có phân trang.  
-    Candlestick/line charts with Chart.js, paginated data tables.
-  - Kiến trúc Laravel 12 + Python 3, responsive UI.  
-    Laravel 12 + Python 3 architecture, responsive UI.
+  - Tích hợp autocomplete tìm kiếm mã cổ phiếu với AJAX, biểu đồ Chart.js.  
+    Integrated autocomplete stock search with AJAX, Chart.js charts.
+  - Kiến trúc Laravel 12 + Python 3 với vnstock, MySQL, responsive Bootstrap UI.  
+    Laravel 12 + Python 3 architecture with vnstock, MySQL, responsive Bootstrap UI.
 
 ---
 
@@ -80,6 +67,7 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 
 ![Screenshot](public/images/Screenshot_1.png)
 ![Screenshot](public/images/Screenshot_2.png)
+![Screenshot](public/images/Screenshot_5.png)
 ![Screenshot](public/images/Screenshot_3.png)
 ![Screenshot](public/images/Screenshot_4.png)
 ![Screenshot](public/images/Screenshot_7.png)

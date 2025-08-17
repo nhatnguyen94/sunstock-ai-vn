@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use App\Repositories\ExchangeRateRepositoryInterface;
 use Illuminate\Support\Facades\Cache;
 use App\Services\AiService;
+use App\Services\NewsServiceInterface;
 
 class StockController extends Controller
 {
@@ -39,7 +40,7 @@ class StockController extends Controller
      * @param Request $request
      * @return \Illuminate\View\View
      */
-    public function home(Request $request)
+    public function home(Request $request, NewsServiceInterface $newsService)
     {
         $symbols = ['FPT', 'VNM', 'VCB'];
         foreach ($symbols as $symbol) {
@@ -58,7 +59,9 @@ class StockController extends Controller
             return $this->stockService->fetchHotIndustriesFromPython(30);
         });
 
-        return view('index', compact('featured', 'exchangeRates', 'hotIndustries'));
+        $news = $newsService->getLatestNews(4);
+
+        return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news'));
     }
 
     /**
