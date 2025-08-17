@@ -55,9 +55,20 @@ class StockController extends Controller
 
         $exchangeRates = $this->exchangeRateRepo->getLatestRates(1);
 
-        $hotIndustries = Cache::remember('hot_industries', 3600, function() {
+        $hotIndustriesRaw = Cache::remember('hot_industries', 3600, function() {
             return $this->stockService->fetchHotIndustriesFromPython(30);
         });
+
+        // Paginate array manually
+        $page = $request->get('page', 1);
+        $perPage = 10;
+        $hotIndustries = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect($hotIndustriesRaw)->slice(($page - 1) * $perPage, $perPage)->values(),
+            count($hotIndustriesRaw),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         $news = $newsService->getLatestNews(4);
 

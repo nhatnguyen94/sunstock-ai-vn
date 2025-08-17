@@ -666,6 +666,78 @@
         z-index: 2;
     }
 
+    /* Hot Industries Pagination */
+.hot-industries-pagination {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pagination-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.pagination-links .pagination {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.pagination-links .page-link {
+    color: var(--primary-blue);
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.pagination-links .page-link:hover {
+    background: var(--light-blue);
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+    transform: translateY(-1px);
+}
+
+.pagination-links .page-item.active .page-link {
+    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+    border-color: var(--primary-blue);
+    color: white;
+    font-weight: 600;
+}
+
+.pagination-links .page-item.disabled .page-link {
+    color: #6c757d;
+    background-color: #f8f9fa;
+    border-color: var(--border-color);
+    cursor: not-allowed;
+}
+
+/* Responsive pagination */
+@media (max-width: 768px) {
+    .hot-industries-pagination {
+        gap: 1.5rem;
+    }
+    
+    .pagination-links .pagination {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .pagination-links .page-link {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.85rem;
+    }
+}
     /* Responsive Design */
     @media (max-width: 768px) {
         .hero-title {
@@ -803,6 +875,9 @@
         <h2 class="section-title">
             <i class="bi bi-star-fill" style="color: var(--warning-orange); margin-right: 10px;"></i>
             Cổ phiếu nổi bật
+            <span style="display:block; font-size:0.95rem; color:#6b7280; font-weight:400; margin-top:0.5rem;">
+                Giá hiển thị theo đơn vị <b>K = 1.000 VNĐ</b>
+            </span>
         </h2>
         
         <div class="featured-grid">
@@ -816,7 +891,11 @@
                 <h3 class="stock-name">{{ $stock['name'] }}</h3>
                 
                 <div class="stock-price">
-                    {{ $stock['price'] ? number_format($stock['price']) . ' VNĐ' : 'N/A' }}
+                    @if($stock['price'])
+                        {{ number_format($stock['price'], 0, ',', '.') }}K
+                    @else
+                        N/A
+                    @endif
                 </div>
                 
                 @if($stock['change'] !== null)
@@ -906,18 +985,16 @@
     @endif
 
     <!-- 3. HOT INDUSTRIES - Di chuyển lên vị trí thứ 3 -->
-    @if(count($hotIndustries) > 0)
-    <section class="info-section">
-        <!-- Ngành nghề đang hot -->
+    @if($hotIndustries->count() > 0)
+    <section class="info-section" id="hot-industries-section">
         <h3>
             <i class="bi bi-fire" style="color: var(--danger-red); margin-right: 10px;"></i>
             Ngành nghề đang hot
             <span style="font-size: 0.7em; color: var(--text-secondary); font-weight: 400;">
-                ({{ count($hotIndustries) }} công ty nổi bật)
+                ({{ $hotIndustries->total() }} công ty nổi bật, 10/c trang)
             </span>
         </h3>
-        
-        <div class="hot-table">
+        <div class="hot-table" id="hot-industries-table">
             <table class="table table-hover">
                 <thead>
                     <tr>
@@ -945,6 +1022,21 @@
                     @endforeach
                 </tbody>
             </table>
+            
+            <!-- Improved Pagination -->
+            @if($hotIndustries->hasPages())
+            <div class="hot-industries-pagination">
+                <div class="pagination-info">
+                    <span>
+                        Hiển thị {{ $hotIndustries->firstItem() }}-{{ $hotIndustries->lastItem() }} 
+                        trong tổng số {{ $hotIndustries->total() }} công ty
+                    </span>
+                </div>
+                <div class="pagination-links">
+                    {{ $hotIndustries->appends(['#' => 'hot-industries-section'])->links('pagination::bootstrap-4') }}
+                </div>
+            </div>
+            @endif
         </div>
     </section>
     @endif
@@ -1121,6 +1213,40 @@ document.addEventListener('DOMContentLoaded', function() {
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
             symbolInput.focus();
+        }
+    });
+
+    // Scroll to hot industries section when paginate is clicked
+    document.addEventListener('click', function(e) {
+        const paginateLink = e.target.closest('#hot-industries-table .pagination a');
+        if (paginateLink) {
+            // Thêm fragment identifier để scroll về section
+            const url = new URL(paginateLink.href);
+            url.hash = '#hot-industries-section';
+            paginateLink.href = url.toString();
+        }
+    });
+
+    // Add loading effect
+    document.addEventListener('click', function(e) {
+        const paginateLink = e.target.closest('#hot-industries-table .pagination a');
+        if (paginateLink && !paginateLink.closest('.disabled')) {
+            const tableContainer = document.getElementById('hot-industries-table');
+            tableContainer.style.opacity = '0.7';
+            tableContainer.style.pointerEvents = 'none';
+        }
+    });
+
+    // Auto scroll to section if hash exists in URL
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check for hash in URL and scroll to section
+        if (window.location.hash === '#hot-industries-section') {
+            setTimeout(function() {
+                document.getElementById('hot-industries-section').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 100);
         }
     });
 });
