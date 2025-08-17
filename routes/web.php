@@ -13,5 +13,6 @@ Route::get('/stocks-list', [StockController::class, 'getStockSymbols']);
 Route::get('/', [StockController::class, 'home']);
 
 Route::get('/exchange-rate', [ExchangeRateController::class, 'index'])->name('exchange-rate.index');
+Route::get('/exchange-rate/search', [ExchangeRateController::class, 'search'])->name('exchange-rate.search');
 
 Route::post('/ai-chat', [StockController::class, 'aiChat']);

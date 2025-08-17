@@ -2,24 +2,31 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Repositories\ExchangeRateRepositoryInterface;
+use App\Services\ExchangeRateService;
 
 class ExchangeRateController extends Controller
 {
-    protected $repo;
+    protected $service;
 
-    public function __construct(ExchangeRateRepositoryInterface $repo)
+    public function __construct(ExchangeRateService $service)
     {
-        $this->repo = $repo;
+        $this->service = $service;
     }
 
     public function index()
     {
-        $rates = $this->repo->getLatestRates(3);
-        if (empty($rates)) {
-            $this->repo->updateRatesFromPython();
-            $rates = $this->repo->getLatestRates(3);
-        }
+        $rates = $this->service->getLatestRates(3);
         return view('exchange_rate.index', compact('rates'));
+    }
+
+    public function search(Request $request)
+    {
+        $date = $request->input('date');
+        $searchRates = [];
+        if ($date) {
+            $searchRates = $this->service->getRatesByDate($date);
+        }
+        $rates = $this->service->getLatestRates(3);
+        return view('exchange_rate.index', compact('rates', 'searchRates', 'date'));
     }
 }
