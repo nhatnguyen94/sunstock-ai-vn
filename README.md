@@ -20,46 +20,30 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 - **Tỷ giá ngoại tệ Vietcombank / Vietcombank exchange rates**: Hiển thị tỷ giá 3 ngày gần nhất.
 - **Top 30 công ty hot theo ngành / Top 30 hot companies by industry**: Bảng các mã nổi bật theo ngành, số lượng linh động.
 - **📰 Tin tức thị trường realtime / Real-time market news**
-- **🔥 Tích hợp AI Model Chat / Integrated AI Model Chat**: Popup chat bubble ở góc phải dưới, hỏi đáp về cổ phiếu, ngành, tỷ giá, tài chính.  
-  Hỗ trợ chọn ngôn ngữ (Tiếng Việt/English), đổi model AI (gemma3:1b, mistral...), giao diện đẹp, chuyên nghiệp.
+- **🔥 Tích hợp AI Model Chat (OpenRouter) / Integrated AI Model Chat (OpenRouter)**: Popup chat bubble ở góc phải dưới, hỏi đáp về cổ phiếu, ngành, tỷ giá, tài chính.  
+  Hỗ trợ chọn ngôn ngữ (Tiếng Việt/English), đổi model AI (OpenRouter: gemma3:1b, mistral, llama...), giao diện đẹp, chuyên nghiệp.
+  Popup chat bubble at bottom right, ask about stocks, industries, exchange rates, finance.  
+  Supports language selection (Vietnamese/English), easy AI model switching (OpenRouter: gemma3:1b, mistral, llama...), beautiful and professional UI.
 
 ---
 
 ## 🆕 Nhật ký cập nhật / Update Log
 
+- **2025-08-23:**  
+  - Chuyển AI Model Chat từ Ollama sang OpenRouter API: Không cần cài đặt, chỉ cần API key, hỗ trợ nhiều model AI mạnh, dễ đổi model.  
+    Migrated AI Model Chat from Ollama to OpenRouter API: No installation required, just an API key, supports many powerful AI models, easy model switching.
+  - Cập nhật README song ngữ, hướng dẫn tích hợp và đổi model AI.  
+    Updated bilingual README, integration guide, and AI model switching instructions.
+
 - **2025-08-17:**  
-  - **Thêm tin tức thị trường VnExpress RSS**: Tích hợp NewsService lấy tin từ RSS VnExpress Kinh Doanh, hiển thị 6 tin mới nhất với grid layout hiện đại.  
-    **Added VnExpress market news RSS**: Integrated NewsService to fetch business news from VnExpress.
-  - **Tối ưu UX homepage**: Sắp xếp lại thứ tự sections (Cổ phiếu nổi bật → Tỷ giá → Ngành hot → Tin tức) để user journey hợp lý hơn.  
-    **Optimized homepage UX**: Reordered sections (Featured Stocks → Exchange Rates → Hot Industries → News) for better user journey.
-  - **News cards với hover effects**: Card design responsive, image hover zoom, featured badge cho 2 tin đầu, date badge overlay.  
-    **News cards with hover effects**: Responsive card design, image hover zoom, featured badge for first 2 news, date badge overlay.
-  - Sửa lỗi hiển thị tỷ giá ngoại tệ: xử lý dữ liệu chuỗi từ Python với `parseRate()`.  
-    Fixed exchange rate display bug: handle string data from Python with `parseRate()`.
-  - Cải thiện UI/UX form tìm kiếm và enhanced autocomplete với debounce search.  
-    Enhanced search form UI/UX and autocomplete with debounced search.
-  - Tối ưu CSS cho các trang với button styling, animations, hover effects.  
-    Optimized CSS for pages with button styling, animations, hover effects.
-
-- **2025-08-16:**  
-  - Tích hợp AI Model Chat (Ollama: gemma3:1b, mistral) với popup chat bubble hiện đại, chọn ngôn ngữ, đổi model dễ dàng.  
-    Integrated AI Model Chat (Ollama) with modern popup chat bubble, language selection, easy model switching.
-  - Cải thiện UI/UX chat với flag icons, rounded corners, shadows, clear chat history button.  
-    Improved chat UI/UX with flag icons, rounded corners, shadows, clear chat history button.
-
-- **2025-08-10 đến 2025-08-15:**  
-  - Thêm tỷ giá ngoại tệ Vietcombank (3 ngày gần nhất) với trang riêng và tính năng tìm kiếm theo ngày.  
-    Added Vietcombank exchange rates with dedicated page and date search feature.
-  - Thêm bảng top 30 công ty hot theo ngành, refactor Controller/Service theo chuẩn SOLID.  
-    Added top 30 hot companies by industry, refactored Controller/Service following SOLID principles.
-  - Footer đẹp với thông tin cá nhân, sửa UI homepage responsive tốt hơn.  
-    Beautiful footer with personal info, improved homepage responsive UI.
+  - Thêm tin tức thị trường VnExpress RSS, hiển thị 6 tin mới nhất với giao diện hiện đại.  
+    Added VnExpress market news RSS, displaying 6 latest news items with a modern UI.
+  - Tối ưu UX homepage: Sắp xếp lại các section, cải thiện giao diện và hiệu ứng.  
+    Optimized homepage UX: Reordered sections, improved UI and visual effects.
 
 - **Các phiên bản trước đó / Earlier versions:**  
-  - Tích hợp autocomplete tìm kiếm mã cổ phiếu với AJAX, biểu đồ Chart.js.  
-    Integrated autocomplete stock search with AJAX, Chart.js charts.
-  - Kiến trúc Laravel 12 + Python 3 với vnstock, MySQL, responsive Bootstrap UI.  
-    Laravel 12 + Python 3 architecture with vnstock, MySQL, responsive Bootstrap UI.
+  - Tra cứu giá cổ phiếu, biểu đồ, autocomplete tìm kiếm, lưu dữ liệu MySQL, tích hợp Python (vnstock), tỷ giá Vietcombank, top công ty hot theo ngành, giao diện responsive, kiến trúc SOLID, popup AI chat thông minh, footer cá nhân hóa.  
+    Stock price lookup, charts, autocomplete search, MySQL data storage, Python (vnstock) integration, Vietcombank exchange rates, top hot companies by industry, responsive UI, SOLID architecture, smart popup AI chat, personalized footer.
 
 ---
 
@@ -126,31 +110,59 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 
 ---
 
-## 🤖 Hướng dẫn cài đặt & sử dụng AI Model Chat
+## 🤖 Hướng dẫn cài đặt & sử dụng AI Model Chat (OpenRouter API)
 
-### 1. Cài đặt Ollama & Model AI
+### 1. Đăng ký & lấy API key OpenRouter
 
-- Tải Ollama tại [https://ollama.com/download](https://ollama.com/download)
-- Cài xong, mở terminal và chạy:
-    ```bash
-    ollama pull gemma3:1b
-    ollama run gemma3:1b
-    # Hoặc dùng model mạnh hơn:
-    ollama pull mistral
-    ollama run mistral
+- Truy cập [https://openrouter.ai](https://openrouter.ai)
+- Đăng ký tài khoản, vào phần **API Keys** để lấy key miễn phí.
+
+- Thêm vào file `.env`:
     ```
-- Đảm bảo Ollama đang chạy trên `localhost:11434`
+    OPENROUTER_API_KEY=your_openrouter_api_key
+    ```
 
 ### 2. Sử dụng AI Chat trên web
 
 - Nhấn vào icon 💬 ở góc phải dưới để mở popup chat AI.
 - Chọn ngôn ngữ (🇻🇳/🇺🇸), nhập câu hỏi về cổ phiếu, ngành, tỷ giá, tài chính...
 - AI sẽ trả lời bằng tiếng Việt hoặc English theo lựa chọn.
-- Có thể đổi model AI bằng cách sửa tên model trong file `app/Services/AiService.php`:
-    ```php
-    public function askOllama($prompt, $model = 'gemma3:1b')
+- Có thể đổi model AI bằng cách sửa tên model trong file `app/Services/AiService.php`, ví dụ:
     ```
-    hoặc `'mistral'` nếu muốn dùng model mạnh hơn.
+    meta-llama/llama-3-70b-instruct
+    mistralai/mixtral-8x7b-instruct
+    nousresearch/nous-hermes-2-mistral-7b
+    openchat/openchat-3.5-0106
+    ```
+- Tham khảo danh sách model tại: [https://openrouter.ai/models](https://openrouter.ai/models)
+
+---
+
+## 🤖 AI Model Chat Setup Guide (OpenRouter API)
+
+### 1. Register & get OpenRouter API key
+
+- Go to [https://openrouter.ai](https://openrouter.ai)
+- Sign up, get your free API key in the **API Keys** section.
+
+- Add to your `.env` file:
+    ```
+    OPENROUTER_API_KEY=your_openrouter_api_key
+    ```
+
+### 2. Use AI Chat on the web
+
+- Click the 💬 icon at the bottom right to open the AI chat popup.
+- Select language (🇻🇳/🇺🇸), enter your question about stocks, industries, exchange rates, finance...
+- AI will reply in Vietnamese or English as selected.
+- You can change the AI model by editing the model name in `app/Services/AiService.php`, e.g.:
+    ```
+    meta-llama/llama-3-70b-instruct
+    mistralai/mixtral-8x7b-instruct
+    nousresearch/nous-hermes-2-mistral-7b
+    openchat/openchat-3.5-0106
+    ```
+- See all available models at: [https://openrouter.ai/models](https://openrouter.ai/models)
 
 ---
 
@@ -179,7 +191,7 @@ Footer always shows author info.
 - **Laravel 12** (PHP)
 - **Python 3 + vnstock**
 - **Bootstrap 4, Bootstrap Icons**
-- **Ollama AI Model Chat (gemma3:1b, mistral...)**
+- **OpenRouter AI Model Chat**
 - **SOLID: Controller, Service, Repository, Interface**
 - **MySQL**
 
@@ -189,9 +201,9 @@ Footer always shows author info.
 
 **Sun Nguyen**  
 Email: [nhat.nguyenminh94@gmail.com](mailto:nhat.nguyenminh94@gmail.com)  
-GitHub: [nhatnguyen94/stock-app](https://github.com/nhatnguyen94/stock-app)  
+GitHub: [nhatnguyen94/stock-app](https://github.com/nhatnguyen94/sunstock-ai-vn)  
 LinkedIn: [Sun Nguyen](https://www.linkedin.com/in/sunnguyen3011/)
 
 ---
 
-MIT License © 2025 Sun
+MIT License © 2025

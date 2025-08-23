@@ -16,15 +16,15 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(
-            \App\Repositories\StockRepositoryInterface::class,
+            \App\Interfaces\StockRepositoryInterface::class,
             \App\Repositories\StockRepository::class
         );
         $this->app->bind(
-            \App\Repositories\ExchangeRateRepositoryInterface::class,
+            \App\Interfaces\ExchangeRateRepositoryInterface::class,
             \App\Repositories\ExchangeRateRepository::class
         );
         $this->app->bind(
-            \App\Services\NewsServiceInterface::class,
+            \App\Interfaces\NewsServiceInterface::class,
             \App\Services\NewsService::class
         );
     }

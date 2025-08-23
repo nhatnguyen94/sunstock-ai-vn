@@ -7,16 +7,16 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Repositories\StockRepositoryInterface;
+use App\Interfaces\StockRepositoryInterface;
 use App\Services\StockService;
 use App\Models\Stock;
 use App\Models\StockPrice;
 use App\Models\StockSymbol;
 use Carbon\Carbon;
-use App\Repositories\ExchangeRateRepositoryInterface;
+use App\Interfaces\ExchangeRateRepositoryInterface;
 use Illuminate\Support\Facades\Cache;
 use App\Services\AiService;
-use App\Services\NewsServiceInterface;
+use App\Interfaces\NewsServiceInterface;
 
 class StockController extends Controller
 {
@@ -115,11 +115,7 @@ class StockController extends Controller
     {
         $question = $request->input('message');
         $lang = $request->input('lang', 'vi');
-        // Thêm hướng dẫn ngôn ngữ vào prompt
-        $prompt = $lang === 'en'
-            ? "Answer in English: " . $question
-            : "Trả lời bằng tiếng Việt: " . $question;
-        $answer = $aiService->askOllama($prompt, 'mistral');
+        $answer = $aiService->ask($question, $lang);
         return response()->json(['answer' => $answer]);
     }
 }

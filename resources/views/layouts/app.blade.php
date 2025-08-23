@@ -636,10 +636,11 @@
             
             let box = document.getElementById('aiChatMessages');
             box.innerHTML += `<div style="margin-bottom:12px;text-align:right;">
-                <span style="background:var(--primary-blue);color:white;border-radius:18px 18px 6px 18px;padding:10px 15px;display:inline-block;max-width:85%;font-weight:500;">
-                    ${msg}
-                </span>
-            </div>`;
+    <span style="background:var(--primary-blue);color:white;border-radius:18px 18px 6px 18px;padding:10px 15px;display:inline-block;max-width:90%;font-weight:500;">
+        <i class="bi bi-person-circle" style="color:#fbbf24;margin-right:8px;"></i>
+        <b>Sun User:</b> ${msg}
+    </span>
+</div>`;
             
             document.getElementById('aiChatInput').value = '';
             
@@ -658,10 +659,11 @@
             }).then(res => res.json()).then(data => {
                 document.getElementById('aiLoading').remove();
                 box.innerHTML += `<div style="margin-bottom:12px;">
-                    <span style="background:var(--light-blue);border-radius:18px 18px 18px 6px;padding:10px 15px;display:inline-block;max-width:85%;font-weight:500;">
-                        <i class="bi bi-robot" style="color:var(--primary-blue);margin-right:8px;"></i>${data.answer}
-                    </span>
-                </div>`;
+        <span style="background:var(--light-blue);border-radius:18px 18px 18px 6px;padding:10px 15px;display:inline-block;max-width:85%;font-weight:500;">
+            <i class="bi bi-robot" style="color:var(--primary-blue);margin-right:8px;"></i>
+            <b>Sun Stock AI Bot:</b> ${data.answer}
+        </span>
+    </div>`;
                 box.scrollTop = box.scrollHeight;
             }).catch(err => {
                 document.getElementById('aiLoading').remove();

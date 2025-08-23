@@ -2,6 +2,7 @@
 namespace App\Repositories;
 
 use App\Models\ExchangeRate;
+use App\Interfaces\ExchangeRateRepositoryInterface;
 
 class ExchangeRateRepository implements ExchangeRateRepositoryInterface
 {

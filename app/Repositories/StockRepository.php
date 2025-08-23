@@ -12,6 +12,7 @@ use App\Models\StockSymbol;
 use Carbon\Carbon;
 use App\Services\StockService;
 use Illuminate\Support\Facades\Cache;
+use App\Interfaces\StockRepositoryInterface;
 
 class StockRepository implements StockRepositoryInterface
 {

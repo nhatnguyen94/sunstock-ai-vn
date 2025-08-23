@@ -1,7 +1,7 @@
 <?php
 namespace App\Services;
 
-use App\Repositories\ExchangeRateRepositoryInterface;
+use App\Interfaces\ExchangeRateRepositoryInterface;
 
 class ExchangeRateService
 {

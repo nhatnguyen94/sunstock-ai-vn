@@ -6,14 +6,24 @@ use Illuminate\Support\Facades\Http;
 
 class AiService
 {
-    public function askOllama($prompt, $model = 'mistral')
+    public function ask($prompt, $lang = 'vi', $model = 'openai/gpt-oss-20b:free')
     {
-        $response = Http::timeout(180)->post('http://localhost:11434/api/generate', [
+        $apiKey = env('OPENROUTER_API_KEY');
+        $referer = config('app.url', 'http://127.0.0.1:8000');
+        $systemPrompt = $lang === 'en'
+            ? "You are a financial assistant for Vietnamese stocks. Answer concisely and accurately in English."
+            : "Bạn là trợ lý tài chính chuyên về chứng khoán Việt Nam. Trả lời ngắn gọn, chính xác, bằng tiếng Việt.";
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+            'HTTP-Referer' => $referer,
+            'X-Title' => 'Sun Stock AI'
+        ])->post('https://openrouter.ai/api/v1/chat/completions', [
             'model' => $model,
-            'prompt' => $prompt,
-            'stream' => false,
-            // 'options' => ['num_predict' => 128]
+            'messages' => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $prompt]
+            ]
         ]);
-        return $response->json('response');
+        return $response->json('choices.0.message.content');
     }
-    }
+}
