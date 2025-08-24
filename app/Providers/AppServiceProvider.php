@@ -7,6 +7,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Interfaces\UserProfileRepositoryInterface;
+use App\Repositories\UserProfileRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
             \App\Interfaces\NewsServiceInterface::class,
             \App\Services\NewsService::class
         );
+        $this->app->bind(UserProfileRepositoryInterface::class, UserProfileRepository::class);
     }
 
     /**

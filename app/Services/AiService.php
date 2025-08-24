@@ -26,4 +26,10 @@ class AiService
         ]);
         return $response->json('choices.0.message.content');
     }
+
+    public function predictMarket($prompt, $user = null)
+    {
+        // Có thể tuỳ chỉnh prompt theo user nếu muốn
+        return $this->ask($prompt, 'vi');
+    }
 }

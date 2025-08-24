@@ -217,7 +217,8 @@
 
         /* Cards */
         .custom-card {
-            background: white;
+            background: white !important;
+            color: var(--text-primary) !important;
             border-radius: 16px;
             box-shadow: var(--shadow-md);
             border: 1px solid var(--border-color);
@@ -539,6 +540,32 @@
                             Tỷ giá
                         </a>
                     </li>
+                    @guest
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('login') }}">
+                                <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('register') }}">
+                                <i class="bi bi-person-plus"></i> Đăng ký
+                            </a>
+                        </li>
+                    @else
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" data-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i> {{ Auth::user()->profile->username ?? Auth::user()->email }}
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button class="dropdown-item" type="submit">
+                                        <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                    @endguest
                 </ul>
             </div>
         </div>

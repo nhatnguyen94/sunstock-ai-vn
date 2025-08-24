@@ -919,6 +919,22 @@
         </div>
     </section>
 
+    <!-- AI Prediction Button - New Section (Moved up) -->
+    <div class="container text-center my-4">
+        <button id="aiPredictBtn" class="btn btn-primary-custom" style="font-size:1.1rem; padding:1rem 2.5rem; border-radius:20px; box-shadow:var(--shadow-lg); display:inline-flex; align-items:center; gap:10px;">
+            <i class="bi bi-robot" style="font-size:1.5rem;"></i>
+            AI Dự đoán thị trường tuần này
+        </button>
+        <div id="aiPredictResult" style="margin-top:2rem; display:none;">
+            <div class="custom-card" style="padding:2rem;">
+                <div id="aiPredictLoading" style="display:none;">
+                    <span class="loading"></span> Đang lấy dự đoán từ AI...
+                </div>
+                <div id="aiPredictContent"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- 2. EXCHANGE RATES - Di chuyển lên vị trí thứ 2 -->
     @if(count($exchangeRates) > 0)
     <section class="info-section">
@@ -1250,5 +1266,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+</script>
+@section('scripts')
+@parent
+<script>
+let aiPredictClicked = false;
+document.getElementById('aiPredictBtn').onclick = function() {
+    if (aiPredictClicked && !@json(Auth::check())) return; // Chỉ cho nhấn 1 lần nếu chưa đăng nhập
+    aiPredictClicked = true;
+
+    document.getElementById('aiPredictResult').style.display = 'block';
+    document.getElementById('aiPredictLoading').style.display = 'block';
+    document.getElementById('aiPredictContent').innerHTML = '';
+
+    fetch('/ai-predict', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({})
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('aiPredictLoading').style.display = 'none';
+        document.getElementById('aiPredictContent').innerHTML = `<div style="font-size:1.1rem; color:var(--primary-blue); font-weight:500;">
+            <i class="bi bi-stars" style="color:#fbbf24;"></i> ${data.result}
+        </div>`;
+    })
+    .catch(() => {
+        document.getElementById('aiPredictLoading').style.display = 'none';
+        document.getElementById('aiPredictContent').innerHTML = `<div style="color:var(--danger-red); font-weight:500;">
+            <i class="bi bi-exclamation-triangle"></i> Lỗi lấy dự đoán AI!
+        </div>`;
+    });
+};
 </script>
 @endsection

@@ -10,6 +10,8 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 
 ## 🚀 Tính năng nổi bật / Key Features
 
+- **Đăng ký & đăng nhập / Register & Login**: Quản lý tài khoản người dùng, bảo mật, xác thực.
+- **AI dự đoán thị trường tuần này / AI weekly market prediction**: Nút AI trên trang chủ, dự đoán xu hướng thị trường tuần này, giới hạn cho khách chưa đăng nhập.
 - **Tra cứu giá lịch sử cổ phiếu / View historical stock prices**: Bảng giá, biểu đồ nến/đường, khối lượng giao dịch.
 - **Tìm kiếm mã cổ phiếu nhanh / Fast stock symbol search**: Autocomplete, cập nhật danh sách mã tự động từ Python.
 - **Lưu dữ liệu vào MySQL / Save data to MySQL**: Tránh crawl trùng lặp, chỉ cập nhật khi cần.
@@ -28,7 +30,11 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 ---
 
 ## 🆕 Nhật ký cập nhật / Update Log
-
+- **2025-08-25:**  
+  - Thêm tính năng đăng ký, đăng nhập cho người dùng.  
+    Added user registration and login feature.
+  - Thêm nút AI dự đoán thị trường tuần này trên trang chủ, chỉ cho khách chưa đăng nhập xem 1 lần, thành viên đăng nhập dùng không giới hạn.  
+    Added AI weekly market prediction button on homepage, guests can view once, logged-in users unlimited.
 - **2025-08-23:**  
   - Chuyển AI Model Chat từ Ollama sang OpenRouter API: Không cần cài đặt, chỉ cần API key, hỗ trợ nhiều model AI mạnh, dễ đổi model.  
     Migrated AI Model Chat from Ollama to OpenRouter API: No installation required, just an API key, supports many powerful AI models, easy model switching.
@@ -57,6 +63,7 @@ Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
 ![Screenshot](public/images/Screenshot_6.png)
 ![Screenshot](public/images/Screenshot_7.png)
 ![Screenshot](public/images/Screenshot_8.png)
+![Screenshot](public/images/Screenshot_9.png)
 
 ---
 
