@@ -923,13 +923,13 @@
             @if(isset($searchRates) && count($searchRates) > 0)
                 <!-- Search Results -->
                 <h2 class="section-title">Kết quả tìm kiếm</h2>
-                
+                @foreach($searchRates as $rateDate=> $items)
                 <div class="date-header slide-up">
                     <h4 class="date-title">
                         <i class="bi bi-calendar-check"></i>
-                        {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
+                        {{ \Carbon\Carbon::parse($rateDate)->format('d/m/Y') }}
                         <span class="date-badge">
-                            {{ \Carbon\Carbon::parse($date)->diffForHumans() }}
+                            {{ \Carbon\Carbon::parse($rateDate)->diffForHumans() }}
                         </span>
                     </h4>
                 </div>
@@ -948,7 +948,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($searchRates as $item)
+                                @foreach($items as $item)
                                 <tr>
                                     <td>
                                         <span class="currency-code">{{ $item['currency_code'] }}</span>
@@ -975,11 +975,12 @@
                                         </span>
                                     </td>
                                 </tr>
-                                @endforeach
+                                 @endforeach
                             </tbody>
                         </table>
                     </div>
                 </div>
+                @endforeach
 
             @elseif(isset($searchRates))
                 <!-- No Search Results -->

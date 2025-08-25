@@ -16,22 +16,23 @@ use Carbon\Carbon;
 use App\Interfaces\ExchangeRateRepositoryInterface;
 use Illuminate\Support\Facades\Cache;
 use App\Services\AiService;
+use App\Services\ExchangeRateService;
 use App\Interfaces\NewsServiceInterface;
 
 class StockController extends Controller
 {
     protected $stockRepo;
     protected $stockService;
-    protected $exchangeRateRepo;
+    protected $exchangeService;
 
     public function __construct(
         StockRepositoryInterface $stockRepo,
         StockService $stockService,
-        ExchangeRateRepositoryInterface $exchangeRateRepo
+        ExchangeRateService $exchangeService
     ) {
         $this->stockRepo = $stockRepo;
         $this->stockService = $stockService;
-        $this->exchangeRateRepo = $exchangeRateRepo;
+        $this->exchangeService = $exchangeService;
     }
 
     /**
@@ -53,7 +54,10 @@ class StockController extends Controller
         }
         $featured = $this->stockRepo->getFeaturedStocks($symbols);
 
-        $exchangeRates = $this->exchangeRateRepo->getLatestRates(1);
+        $exchangeRates = $this->exchangeService->getRatesByDate(Carbon::now()->format('Y-m-d'));
+        if (!empty($exchangeRates) && isset($exchangeRates[0]['currency_code'])) {
+            $exchangeRates = [Carbon::now()->format('Y-m-d') => $exchangeRates];
+        }
 
         $hotIndustriesRaw = Cache::remember('hot_industries', 3600, function() {
             return $this->stockService->fetchHotIndustriesFromPython(30);
