@@ -4,15 +4,15 @@
  * Email: nhat.nguyenminh94@gmail.com
  * Github: https://github.com/nhatnguyen94
  */
-namespace App\Repositories;
+namespace App\Frontend\Repositories;
 
 use App\Models\Stock;
 use App\Models\StockPrice;
 use App\Models\StockSymbol;
 use Carbon\Carbon;
-use App\Services\StockService;
+use App\Frontend\Services\StockService;
 use Illuminate\Support\Facades\Cache;
-use App\Interfaces\StockRepositoryInterface;
+use App\Frontend\Interfaces\StockRepositoryInterface;
 
 class StockRepository implements StockRepositoryInterface
 {

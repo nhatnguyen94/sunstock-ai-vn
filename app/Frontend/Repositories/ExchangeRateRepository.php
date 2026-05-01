@@ -1,8 +1,8 @@
 <?php
-namespace App\Repositories;
+namespace App\Frontend\Repositories;
 
 use App\Models\ExchangeRate;
-use App\Interfaces\ExchangeRateRepositoryInterface;
+use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
 
 class ExchangeRateRepository implements ExchangeRateRepositoryInterface
 {

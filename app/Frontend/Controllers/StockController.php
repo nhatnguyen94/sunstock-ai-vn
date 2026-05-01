@@ -4,20 +4,20 @@
  * Email: nhat.nguyenminh94@gmail.com
  * Github: https://github.com/nhatnguyen94
  */
-namespace App\Http\Controllers;
+namespace App\Frontend\Controllers;
 
 use Illuminate\Http\Request;
-use App\Interfaces\StockRepositoryInterface;
-use App\Services\StockService;
+use App\Frontend\Interfaces\StockRepositoryInterface;
+use App\Frontend\Services\StockService;
 use App\Models\Stock;
 use App\Models\StockPrice;
 use App\Models\StockSymbol;
 use Carbon\Carbon;
-use App\Interfaces\ExchangeRateRepositoryInterface;
+use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
 use Illuminate\Support\Facades\Cache;
-use App\Services\AiService;
-use App\Services\ExchangeRateService;
-use App\Interfaces\NewsServiceInterface;
+use App\Frontend\Services\AiService;
+use App\Frontend\Services\ExchangeRateService;
+use App\Frontend\Interfaces\NewsServiceInterface;
 
 class StockController extends Controller
 {

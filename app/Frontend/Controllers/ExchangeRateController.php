@@ -1,8 +1,8 @@
 <?php
-namespace App\Http\Controllers;
+namespace App\Frontend\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\ExchangeRateService;
+use App\Frontend\Services\ExchangeRateService;
 
 class ExchangeRateController extends Controller
 {

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Frontend\Repositories;
 
-use App\Interfaces\UserProfileRepositoryInterface;
+use App\Frontend\Interfaces\UserProfileRepositoryInterface;
 use App\Models\UserProfile;
 
 class UserProfileRepository implements UserProfileRepositoryInterface

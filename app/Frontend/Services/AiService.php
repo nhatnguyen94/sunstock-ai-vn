@@ -1,6 +1,6 @@
 <?php
 // app/Services/AiService.php
-namespace App\Services;
+namespace App\Frontend\Services;
 
 use Illuminate\Support\Facades\Http;
 

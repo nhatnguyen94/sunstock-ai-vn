@@ -1,9 +1,9 @@
 <?php
-namespace App\Http\Controllers;
+namespace App\Frontend\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Services\AiService;
+use App\Frontend\Services\AiService;
 
 class AiController extends Controller
 {

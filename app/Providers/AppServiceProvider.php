@@ -7,8 +7,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Interfaces\UserProfileRepositoryInterface;
-use App\Repositories\UserProfileRepository;
+use App\Frontend\Interfaces\UserProfileRepositoryInterface;
+use App\Frontend\Repositories\UserProfileRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,18 +18,21 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(
-            \App\Interfaces\StockRepositoryInterface::class,
-            \App\Repositories\StockRepository::class
+            \App\Frontend\Interfaces\StockRepositoryInterface::class,
+            \App\Frontend\Repositories\StockRepository::class
         );
         $this->app->bind(
-            \App\Interfaces\ExchangeRateRepositoryInterface::class,
-            \App\Repositories\ExchangeRateRepository::class
+            \App\Frontend\Interfaces\ExchangeRateRepositoryInterface::class,
+            \App\Frontend\Repositories\ExchangeRateRepository::class
         );
         $this->app->bind(
-            \App\Interfaces\NewsServiceInterface::class,
-            \App\Services\NewsService::class
+            \App\Frontend\Interfaces\NewsServiceInterface::class,
+            \App\Frontend\Services\NewsService::class
         );
-        $this->app->bind(UserProfileRepositoryInterface::class, UserProfileRepository::class);
+        $this->app->bind(
+            \App\Frontend\Interfaces\UserProfileRepositoryInterface::class, 
+            \App\Frontend\Repositories\UserProfileRepository::class
+        );
     }
 
     /**

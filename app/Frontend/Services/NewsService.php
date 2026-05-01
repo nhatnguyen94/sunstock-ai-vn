@@ -1,6 +1,6 @@
 <?php
-namespace App\Services;
-use App\Interfaces\NewsServiceInterface;
+namespace App\Frontend\Services;
+use App\Frontend\Interfaces\NewsServiceInterface;
 
 class NewsService implements NewsServiceInterface
 {

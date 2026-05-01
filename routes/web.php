@@ -1,10 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\StockController;
-use App\Http\Controllers\ExchangeRateController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\AiController;
+use App\Frontend\Controllers\StockController;
+use App\Frontend\Controllers\ExchangeRateController;
+use App\Frontend\Controllers\AuthController;
+use App\Frontend\Controllers\AiController;
 use App\Backend\Controllers\DashboardController;
 
 Route::post('/search', [StockController::class, 'search'])->name('stock.search');

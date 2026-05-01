@@ -4,7 +4,7 @@
  * Email: nhat.nguyenminh94@gmail.com
  * Github: https://github.com/nhatnguyen94
  */
-namespace App\Interfaces;
+namespace App\Frontend\Interfaces;
 
 interface StockRepositoryInterface
 {
