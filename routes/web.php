@@ -5,6 +5,7 @@ use App\Http\Controllers\StockController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AiController;
+use App\Backend\Controllers\DashboardController;
 
 Route::post('/search', [StockController::class, 'search'])->name('stock.search');
 
@@ -25,3 +26,14 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::prefix('admin')->group(function () {
+    Route::get('/login', [\App\Backend\Controllers\AdminAuthController::class, 'showLoginForm'])->name('admin.login');
+    Route::post('/login', [\App\Backend\Controllers\AdminAuthController::class, 'login'])->name('admin.login.post');
+    Route::post('/logout', [\App\Backend\Controllers\AdminAuthController::class, 'logout'])->name('admin.logout');
+
+    Route::middleware(['auth:web', 'permission:access_backend'])->group(function () {
+        Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
+        // Các route backend khác
+    });
+});
