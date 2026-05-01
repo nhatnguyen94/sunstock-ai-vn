@@ -1,19 +1,22 @@
 <?php
+
 /**
  * Author: Sun Nguyen
  * Email: nhat.nguyenminh94@gmail.com
  * Github: https://github.com/nhatnguyen94
  */
+
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -56,5 +59,21 @@ class User extends Authenticatable
     public function profile()
     {
         return $this->hasOne(UserProfile::class);
+    }
+
+    /**
+     * Get the user's portfolios.
+     */
+    public function portfolios()
+    {
+        return $this->hasMany(Portfolio::class);
+    }
+
+    /**
+     * Get the user's active portfolios.
+     */
+    public function activePortfolios()
+    {
+        return $this->hasMany(Portfolio::class)->where('is_active', true);
     }
 }

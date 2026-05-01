@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Backend\Controllers;
 
 use Illuminate\Http\Request;
@@ -29,6 +30,7 @@ class AdminAuthController extends Controller
     public function logout()
     {
         Auth::logout();
+
         return redirect()->route('admin.login');
     }
 }

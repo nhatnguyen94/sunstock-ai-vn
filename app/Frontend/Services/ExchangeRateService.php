@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Frontend\Services;
 
 use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
@@ -24,6 +25,7 @@ class ExchangeRateService
                 }
             }
         }
+
         return $rates;
     }
 
@@ -40,6 +42,7 @@ class ExchangeRateService
             }
             $rates = $this->repo->getRatesByDate($date); // Lấy lại từ DB cho chắc chắn
         }
+
         return $rates;
     }
 
@@ -60,12 +63,15 @@ class ExchangeRateService
             foreach ($data as $day) {
                 $result[$day['date']] = $day['rates'];
             }
+
             return $result;
         } elseif (is_array($data) && isset($data[0]['currency_code'])) {
             // Trường hợp lấy 1 ngày
             $date = is_numeric($daysOrDate) ? now()->format('Y-m-d') : $daysOrDate;
+
             return [$date => $data];
         }
+
         return [];
     }
 }

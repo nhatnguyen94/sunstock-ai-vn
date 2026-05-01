@@ -1,9 +1,10 @@
 <?php
+
 namespace App\Frontend\Controllers;
 
+use App\Frontend\Services\AiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Frontend\Services\AiService;
 
 class AiController extends Controller
 {
@@ -11,8 +12,9 @@ class AiController extends Controller
     {
         // Nếu chưa đăng nhập, chỉ cho phép 1 lần (có thể kiểm tra bằng session hoặc cookie nếu muốn chặt chẽ hơn)
         // Ở đây chỉ demo, luôn trả về kết quả
-        $prompt = "Dự đoán thị trường chứng khoán Việt Nam tuần này.";
+        $prompt = 'Dự đoán thị trường chứng khoán Việt Nam tuần này.';
         $result = $aiService->predictMarket($prompt, Auth::user());
+
         return response()->json(['result' => $result]);
     }
 }

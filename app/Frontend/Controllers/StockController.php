@@ -1,28 +1,33 @@
 <?php
+
 /**
  * Author: Sun Nguyen
  * Email: nhat.nguyenminh94@gmail.com
  * Github: https://github.com/nhatnguyen94
  */
+
 namespace App\Frontend\Controllers;
 
-use Illuminate\Http\Request;
+use App\Frontend\Interfaces\NewsServiceInterface;
 use App\Frontend\Interfaces\StockRepositoryInterface;
+use App\Frontend\Services\AiService;
+use App\Frontend\Services\ExchangeRateService;
 use App\Frontend\Services\StockService;
 use App\Models\Stock;
 use App\Models\StockPrice;
-use App\Models\StockSymbol;
 use Carbon\Carbon;
-use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
-use App\Frontend\Services\AiService;
-use App\Frontend\Services\ExchangeRateService;
-use App\Frontend\Interfaces\NewsServiceInterface;
+use Illuminate\View\View;
 
 class StockController extends Controller
 {
     protected $stockRepo;
+
     protected $stockService;
+
     protected $exchangeService;
 
     public function __construct(
@@ -38,8 +43,7 @@ class StockController extends Controller
     /**
      * Show homepage with featured stocks.
      *
-     * @param Request $request
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function home(Request $request, NewsServiceInterface $newsService)
     {
@@ -48,25 +52,25 @@ class StockController extends Controller
             $stock = Stock::firstOrCreate(['symbol' => $symbol]);
             $latestPrice = StockPrice::where('stock_id', $stock->id)
                 ->orderByDesc('date')->first();
-            if (!$latestPrice || Carbon::parse($latestPrice->date)->lt(now()->subDay())) {
+            if (! $latestPrice || Carbon::parse($latestPrice->date)->lt(now()->subDay())) {
                 $this->stockRepo->updateStockPriceFromPython($symbol);
             }
         }
         $featured = $this->stockRepo->getFeaturedStocks($symbols);
 
         $exchangeRates = $this->exchangeService->getRatesByDate(Carbon::now()->format('Y-m-d'));
-        if (!empty($exchangeRates) && isset($exchangeRates[0]['currency_code'])) {
+        if (! empty($exchangeRates) && isset($exchangeRates[0]['currency_code'])) {
             $exchangeRates = [Carbon::now()->format('Y-m-d') => $exchangeRates];
         }
 
-        $hotIndustriesRaw = Cache::remember('hot_industries', 3600, function() {
+        $hotIndustriesRaw = Cache::remember('hot_industries', 3600, function () {
             return $this->stockService->fetchHotIndustriesFromPython(30);
         });
 
         // Paginate array manually
         $page = $request->get('page', 1);
         $perPage = 10;
-        $hotIndustries = new \Illuminate\Pagination\LengthAwarePaginator(
+        $hotIndustries = new LengthAwarePaginator(
             collect($hotIndustriesRaw)->slice(($page - 1) * $perPage, $perPage)->values(),
             count($hotIndustriesRaw),
             $perPage,
@@ -82,8 +86,7 @@ class StockController extends Controller
     /**
      * Show historical price and overview for a stock symbol.
      *
-     * @param Request $request
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function index(Request $request)
     {
@@ -92,7 +95,7 @@ class StockController extends Controller
         $latestDate = StockPrice::where('stock_id', $stock->id)->max('date');
         $now = Carbon::now();
 
-        if (!$latestDate || Carbon::parse($latestDate)->lt($now->subDay())) {
+        if (! $latestDate || Carbon::parse($latestDate)->lt($now->subDay())) {
             $this->stockRepo->updateStockPriceFromPython($symbol);
         }
 
@@ -105,13 +108,13 @@ class StockController extends Controller
     /**
      * Search and return stock symbols as JSON.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function getStockSymbols(Request $request)
     {
         $query = $request->input('q');
         $stocks = $this->stockRepo->searchSymbols($query);
+
         return response()->json($stocks);
     }
 
@@ -120,6 +123,7 @@ class StockController extends Controller
         $question = $request->input('message');
         $lang = $request->input('lang', 'vi');
         $answer = $aiService->ask($question, $lang);
+
         return response()->json(['answer' => $answer]);
     }
 }

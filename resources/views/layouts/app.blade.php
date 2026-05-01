@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sun Stock AI – Vietnam's Smart Stock App</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
@@ -534,12 +535,21 @@
                             Tra cứu cổ phiếu
                         </a>
                     </li>
+                    @auth
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->is('portfolio*') ? 'active' : '' }}" href="{{ route('portfolio.index') }}">
+                                <i class="bi bi-briefcase"></i>
+                                Danh mục đầu tư
+                            </a>
+                        </li>
+                    @endauth
                     <li class="nav-item">
                         <a class="nav-link {{ request()->is('exchange-rate*') ? 'active' : '' }}" href="{{ url('/exchange-rate') }}">
                             <i class="bi bi-currency-exchange"></i>
                             Tỷ giá
                         </a>
                     </li>
+                    
                     @guest
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('login') }}">
@@ -554,9 +564,13 @@
                     @else
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" data-toggle="dropdown">
-                                <i class="bi bi-person-circle"></i> {{ Auth::user()->profile->username ?? Auth::user()->email }}
+                                <i class="bi bi-person-circle"></i> {{ Auth::user()->profile->username ?? Auth::user()->name }}
                             </a>
                             <div class="dropdown-menu dropdown-menu-right">
+                                <a class="dropdown-item" href="{{ route('profile.show') }}">
+                                    <i class="bi bi-person"></i> Thông tin cá nhân
+                                </a>
+                                <div class="dropdown-divider"></div>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button class="dropdown-item" type="submit">

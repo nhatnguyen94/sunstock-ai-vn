@@ -1,8 +1,9 @@
 <?php
+
 namespace App\Frontend\Repositories;
 
-use App\Models\ExchangeRate;
 use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
+use App\Models\ExchangeRate;
 
 class ExchangeRateRepository implements ExchangeRateRepositoryInterface
 {
@@ -31,13 +32,14 @@ class ExchangeRateRepository implements ExchangeRateRepositoryInterface
     {
         // Chuẩn hóa key cho đúng với model
         $data = [
-            'currency_code'   => $item['currency_code'] ?? null,
-            'currency_name'   => $item['currency_name'] ?? null,
-            'buy_cash'        => $item['buy_cash'] ?? $item['buy _cash'] ?? null,
-            'buy_transfer'    => $item['buy_transfer'] ?? $item['buy _transfer'] ?? null,
-            'sell'            => $item['sell'] ?? null,
-            'date'            => $item['date'] ?? null,
+            'currency_code' => $item['currency_code'] ?? null,
+            'currency_name' => $item['currency_name'] ?? null,
+            'buy_cash' => $item['buy_cash'] ?? $item['buy _cash'] ?? null,
+            'buy_transfer' => $item['buy_transfer'] ?? $item['buy _transfer'] ?? null,
+            'sell' => $item['sell'] ?? null,
+            'date' => $item['date'] ?? null,
         ];
+
         // Lưu hoặc cập nhật theo mã và ngày
         return ExchangeRate::updateOrCreate(
             [

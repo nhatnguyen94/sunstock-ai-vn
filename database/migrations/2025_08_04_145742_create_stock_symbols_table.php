@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-            Schema::create('stock_symbols', function (Blueprint $table) {
+        Schema::create('stock_symbols', function (Blueprint $table) {
             $table->id();
             $table->string('symbol')->unique();
             $table->string('name')->nullable();

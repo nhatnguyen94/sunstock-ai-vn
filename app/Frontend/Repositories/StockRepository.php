@@ -1,18 +1,20 @@
 <?php
+
 /**
  * Author: Sun Nguyen
  * Email: nhat.nguyenminh94@gmail.com
  * Github: https://github.com/nhatnguyen94
  */
+
 namespace App\Frontend\Repositories;
 
+use App\Frontend\Interfaces\StockRepositoryInterface;
+use App\Frontend\Services\StockService;
 use App\Models\Stock;
 use App\Models\StockPrice;
 use App\Models\StockSymbol;
 use Carbon\Carbon;
-use App\Frontend\Services\StockService;
 use Illuminate\Support\Facades\Cache;
-use App\Frontend\Interfaces\StockRepositoryInterface;
 
 class StockRepository implements StockRepositoryInterface
 {
@@ -26,7 +28,6 @@ class StockRepository implements StockRepositoryInterface
     /**
      * Get featured stocks with overview and latest price.
      *
-     * @param array $symbols
      * @return mixed
      */
     public function getFeaturedStocks(array $symbols): array
@@ -43,18 +44,18 @@ class StockRepository implements StockRepositoryInterface
                 'symbol' => $symbol,
                 'name' => $overview->name ?? $symbol,
                 'price' => $latestPrice->close ?? null,
-                'change' => $latestPrice ? (($latestPrice->close - $latestPrice->open) / max($latestPrice->open,1) * 100) : null,
+                'change' => $latestPrice ? (($latestPrice->close - $latestPrice->open) / max($latestPrice->open, 1) * 100) : null,
                 'exchange' => $overview->exchange ?? '',
                 'industry' => $overview->industry ?? '',
             ];
         }
+
         return $result;
     }
 
     /**
      * Get historical prices for a stock symbol.
      *
-     * @param string $symbol
      * @return mixed
      */
     public function getStockPrice(string $symbol): ?array
@@ -73,20 +74,18 @@ class StockRepository implements StockRepositoryInterface
                     'volume' => $item->volume,
                 ];
             })->toArray();
+
         return $prices;
     }
 
     /**
      * Update stock price from Python script.
-     *
-     * @param string $symbol
-     * @return void
      */
     public function updateStockPriceFromPython(string $symbol): void
     {
         $stock = Stock::firstOrCreate(['symbol' => $symbol]);
         $data = $this->stockService->fetchStockDataFromPython($symbol);
-        if (is_array($data) && !isset($data['error'])) {
+        if (is_array($data) && ! isset($data['error'])) {
             foreach ($data as $item) {
                 $date = Carbon::createFromTimestampMs($item['time'])->toDateString();
                 StockPrice::updateOrCreate(
@@ -106,24 +105,22 @@ class StockRepository implements StockRepositoryInterface
     /**
      * Get overview information for a stock symbol.
      *
-     * @param string $symbol
      * @return mixed
      */
     public function getOverview(string $symbol): ?array
     {
         $overview = StockSymbol::where('symbol', $symbol)->first();
+
         return $overview ? $overview->toArray() : null;
     }
 
     /**
      * Update stock symbol list from Python script if needed.
-     *
-     * @return void
      */
     public function getOrUpdateSymbols(): void
     {
         $lastUpdate = Cache::get('stock_symbols_last_update');
-        if (!$lastUpdate || now()->diffInHours($lastUpdate) > 24) {
+        if (! $lastUpdate || now()->diffInHours($lastUpdate) > 24) {
             $symbols = $this->stockService->fetchStockListFromPython();
             foreach ($symbols as $symbol) {
                 StockSymbol::updateOrCreate(
@@ -138,16 +135,16 @@ class StockRepository implements StockRepositoryInterface
     /**
      * Search stock symbols by query string.
      *
-     * @param string $query
      * @return mixed
      */
     public function searchSymbols(string $query): array
     {
         $this->getOrUpdateSymbols();
+
         return StockSymbol::when($query, function ($qBuilder) use ($query) {
-                $qBuilder->where('symbol', 'like', "%$query%")
-                        ->orWhere('name', 'like', "%$query%");
-            })
+            $qBuilder->where('symbol', 'like', "%$query%")
+                ->orWhere('name', 'like', "%$query%");
+        })
             ->limit(20)
             ->get()
             ->toArray();

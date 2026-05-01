@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Author: Sun Nguyen
  * Email: nhat.nguyenminh94@gmail.com
  * Github: https://github.com/nhatnguyen94
  */
+
 namespace App\Frontend\Services;
 
 use Illuminate\Support\Facades\Log;
@@ -13,7 +15,7 @@ class StockService
     /**
      * Call Python script to get historical stock data.
      *
-     * @param string $symbol
+     * @param  string  $symbol
      * @return mixed
      */
     public function fetchStockDataFromPython($symbol)
@@ -43,6 +45,7 @@ class StockService
 
         $jsonStart = strpos(implode("\n", $output), '[');
         $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';
+
         return json_decode($jsonStr, true) ?? [];
     }
 
@@ -62,13 +65,15 @@ class StockService
             Log::error('Python script error', [
                 'command' => $command,
                 'output' => $output,
-                'returnVar' => $returnVar
+                'returnVar' => $returnVar,
             ]);
+
             return [];
         }
 
         $jsonStart = strpos(implode("\n", $output), '[');
         $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';
+
         return json_decode($jsonStr, true) ?? [];
     }
 }

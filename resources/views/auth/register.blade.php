@@ -7,7 +7,7 @@
                 <div class="card-header-custom text-center">
                     <h3 class="card-title">
                         <i class="bi bi-person-plus" style="color:var(--primary-blue);"></i>
-                        Đăng ký / Register
+                        Đăng ký
                     </h3>
                 </div>
                 <div class="card-body-custom" style="padding:2rem; color:var(--text-primary); background:white;">
@@ -41,7 +41,7 @@
                         <div class="form-group mt-3">
                             <label style="font-weight:500; color:var(--text-primary);">
                                 <i class="bi bi-phone" style="margin-right:8px; color:var(--primary-blue);"></i>
-                                Số điện thoại / Mobile
+                                Số điện thoại
                             </label>
                             <input type="text" name="mobile" class="form-control search-input"
                                    style="background:white; color:var(--text-primary); padding:1rem 1rem 1rem 2.5rem; border-radius:12px; border:2px solid var(--border-color);"
@@ -53,7 +53,7 @@
                                 <div class="form-group mt-3">
                                     <label style="font-weight:500; color:var(--text-primary);">
                                         <i class="bi bi-lock" style="margin-right:8px; color:var(--primary-blue);"></i>
-                                        Mật khẩu / Password
+                                        Mật khẩu
                                     </label>
                                     <input type="password" name="password" class="form-control search-input" required
                                            style="background:white; color:var(--text-primary); padding:1rem 1rem 1rem 2.5rem; border-radius:12px; border:2px solid var(--border-color);">
@@ -83,7 +83,7 @@
                         <button type="submit" class="btn btn-primary-custom w-100 mt-4" 
                                 style="padding:1.25rem; font-size:1.1rem;">
                             <i class="bi bi-person-plus"></i>
-                            Đăng ký / Register
+                            Đăng ký
                         </button>
                         
                         <div class="mt-4 text-center">
@@ -94,7 +94,7 @@
                                onmouseover="this.style.background='var(--light-blue)'"
                                onmouseout="this.style.background='transparent'">
                                 <i class="bi bi-box-arrow-in-right"></i>
-                                Đã có tài khoản? Đăng nhập / Login
+                                Đã có tài khoản? Đăng nhập
                             </a>
                         </div>
                     </form>

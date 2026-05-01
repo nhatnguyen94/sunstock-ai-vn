@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Frontend\Services;
+
 use App\Frontend\Interfaces\NewsServiceInterface;
 
 class NewsService implements NewsServiceInterface
@@ -11,17 +13,21 @@ class NewsService implements NewsServiceInterface
         $news = [];
         $xmlString = $this->getRssContent($this->rssUrl);
 
-        if (!$xmlString) return [];
+        if (! $xmlString) {
+            return [];
+        }
 
         $rss = @simplexml_load_string($xmlString);
         foreach ($rss->channel->item as $item) {
-            if (count($news) >= $limit) break;
+            if (count($news) >= $limit) {
+                break;
+            }
             $news[] = [
-                'title' => (string)$item->title,
-                'link' => (string)$item->link,
-                'pubDate' => date('d/m/Y H:i', strtotime((string)$item->pubDate)),
-                'description' => (string)$item->description,
-                'image' => isset($item->enclosure) && $item->enclosure->attributes() ? (string)$item->enclosure->attributes()->url : null,
+                'title' => (string) $item->title,
+                'link' => (string) $item->link,
+                'pubDate' => date('d/m/Y H:i', strtotime((string) $item->pubDate)),
+                'description' => (string) $item->description,
+                'image' => isset($item->enclosure) && $item->enclosure->attributes() ? (string) $item->enclosure->attributes()->url : null,
             ];
         }
 
@@ -40,6 +46,7 @@ class NewsService implements NewsServiceInterface
         if ($err) {
             return null;
         }
+
         return $data;
     }
 }
