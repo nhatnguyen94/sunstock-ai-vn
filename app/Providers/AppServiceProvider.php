@@ -18,6 +18,8 @@ use App\Frontend\Repositories\PortfolioRepository;
 use App\Frontend\Repositories\StockRepository;
 use App\Frontend\Repositories\UserProfileRepository;
 use App\Frontend\Services\NewsService;
+use App\Models\Role;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -54,6 +56,33 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Định nghĩa Gates cho phân quyền
+        $this->defineGates();
+    }
+
+    /**
+     * Định nghĩa các Gates cho hệ thống phân quyền
+     */
+    private function defineGates(): void
+    {
+        // Gate manage-users: chỉ Admin mới có quyền quản lý users
+        Gate::define('manage-users', function ($user) {
+            return $user->hasRole(Role::ADMIN);
+        });
+
+        // Gate manage-features: Admin và AdminSupport có quyền quản lý tính năng
+        Gate::define('manage-features', function ($user) {
+            return $user->hasAnyRole([Role::ADMIN, Role::ADMIN_SUPPORT]);
+        });
+
+        // Gate view-timeline: Admin, Webadmin, AdminSupport đều có quyền xem timeline
+        Gate::define('view-timeline', function ($user) {
+            return $user->hasAnyRole([Role::ADMIN, Role::WEBADMIN, Role::ADMIN_SUPPORT]);
+        });
+
+        // Gate access-backend: kiểm tra quyền truy cập backend chung
+        Gate::define('access-backend', function ($user) {
+            return $user->canAccessBackend();
+        });
     }
 }

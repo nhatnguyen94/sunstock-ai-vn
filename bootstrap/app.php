@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Đăng ký middleware AdminAccess với alias 'admin'
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\AdminAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

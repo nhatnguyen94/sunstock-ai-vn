@@ -2,6 +2,11 @@
 
 use App\Backend\Controllers\AdminAuthController;
 use App\Backend\Controllers\DashboardController;
+use App\Backend\Controllers\NewsController;
+use App\Backend\Controllers\PortfolioController as AdminPortfolioController;
+use App\Backend\Controllers\StockController as AdminStockController;
+use App\Backend\Controllers\TimelineController;
+use App\Backend\Controllers\UserController;
 use App\Frontend\Controllers\AiController;
 use App\Frontend\Controllers\AuthController;
 use App\Frontend\Controllers\ExchangeRateController;
@@ -16,7 +21,7 @@ Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
 
 Route::get('/stocks-list', [StockController::class, 'getStockSymbols']);
 
-Route::get('/', [StockController::class, 'home']);
+Route::get('/', [StockController::class, 'home'])->name('home');
 
 Route::get('/exchange-rate', [ExchangeRateController::class, 'index'])->name('exchange-rate.index');
 Route::get('/exchange-rate/search', [ExchangeRateController::class, 'search'])->name('exchange-rate.search');
@@ -56,13 +61,40 @@ Route::middleware('auth')->group(function () {
     Route::get('/portfolio/{id}/rebalance-suggestions', [PortfolioController::class, 'getRebalanceSuggestions'])->name('portfolio.rebalance-suggestions');
 });
 
-Route::prefix('admin')->group(function () {
-    Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
-    Route::post('/login', [AdminAuthController::class, 'login'])->name('admin.login.post');
-    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
-
-    Route::middleware(['auth:web', 'permission:access_backend'])->group(function () {
-        Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
-        // Các route backend khác
+// Admin routes
+Route::prefix('admin')->name('admin.')->group(function () {
+    // Admin Authentication (không cần middleware)
+    Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
+    
+    // Admin routes (cần middleware 'admin' để kiểm tra quyền truy cập backend)
+    Route::middleware(['auth:web', 'admin'])->group(function () {
+        // Dashboard
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        
+        // Timeline - Admin, Webadmin, AdminSupport
+        Route::get('/timeline', [TimelineController::class, 'index'])->name('timeline');
+        Route::get('/timeline/stats', [TimelineController::class, 'stats'])->name('timeline.stats');
+        
+        // Users Management - Chỉ Admin
+        Route::resource('users', UserController::class);
+        
+        // Stock Management - Admin và AdminSupport
+        Route::resource('stocks', AdminStockController::class);
+        Route::post('/stocks/update-prices', [AdminStockController::class, 'updatePrices'])->name('stocks.update-prices');
+        
+        // News Management - Admin và AdminSupport
+        Route::get('/news', [NewsController::class, 'index'])->name('news.index');
+        Route::post('/news/update-rss', [NewsController::class, 'updateRss'])->name('news.update-rss');
+        
+        // Portfolio Management - Admin và AdminSupport
+        Route::get('/portfolios', [AdminPortfolioController::class, 'index'])->name('portfolios.index');
+        Route::get('/portfolios/{portfolio}', [AdminPortfolioController::class, 'show'])->name('portfolios.show');
+        Route::patch('/portfolios/{portfolio}/toggle-status', [AdminPortfolioController::class, 'toggleStatus'])->name('portfolios.toggle-status');
+        Route::delete('/portfolios/{portfolio}', [AdminPortfolioController::class, 'destroy'])->name('portfolios.destroy');
+        Route::get('/portfolios-stats', [AdminPortfolioController::class, 'stats'])->name('portfolios.stats');
+        
+        // Admin Logout
+        Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });
 });

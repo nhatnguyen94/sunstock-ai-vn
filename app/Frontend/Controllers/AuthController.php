@@ -2,6 +2,7 @@
 
 namespace App\Frontend\Controllers;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Http\Request;
@@ -78,6 +79,9 @@ class AuthController extends Controller
                 'username' => $request->username,
                 'mobile' => $request->mobile,
             ]);
+
+            // Tự động gán role 'user' cho tài khoản mới
+            $user->assignRole(Role::USER);
 
             Auth::login($user);
 

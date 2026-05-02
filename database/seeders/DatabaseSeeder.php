@@ -13,6 +13,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Chạy RoleSeeder trước
+        $this->call([
+            RoleSeeder::class,
+            AdminUserSeeder::class,  // Thêm AdminUserSeeder
+        ]);
+
         // User::factory(10)->create();
 
         User::factory()->create([
