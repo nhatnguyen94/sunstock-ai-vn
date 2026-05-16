@@ -1,60 +1,69 @@
-# Sun Stock AI – Vietnam’s Smart Stock App
 
-Ứng dụng web giúp tra cứu giá cổ phiếu Việt Nam, sử dụng **Laravel 12 (PHP)** và **Python**.  
-Tự động cập nhật dữ liệu, giao diện đẹp, dễ dùng, có autocomplete tìm mã cổ phiếu.
+# Sun Stock AI – Vietnam Stock Platform
 
-A web application for viewing Vietnamese stock prices, built with **Laravel 12 (PHP)** and **Python**.  
-Auto-update data, beautiful responsive UI, fast autocomplete for stock symbols.
+**Sun Stock AI** là nền tảng web quản lý & tra cứu cổ phiếu Việt Nam, xây dựng trên kiến trúc tách biệt Frontend/Backend chuẩn Laravel 12 và Python, tích hợp AI, quản lý danh mục đầu tư, tỷ giá, tin tức, RBAC, bảo mật hiện đại.
 
 ---
 
-## 🚀 Tính năng nổi bật / Key Features
+## 🏗️ Kiến trúc & Công nghệ
+- **Laravel 12 (PHP)**: Backend, Frontend tách biệt, chuẩn SOLID, Repository/Service/Interface rõ ràng.
+- **Python**: Lấy dữ liệu giá, danh sách mã, tỷ giá, ngành hot.
+- **MySQL**: Lưu trữ dữ liệu cổ phiếu, người dùng, danh mục, tỷ giá.
+- **AI (OpenRouter)**: Dự đoán thị trường, chat tài chính, gợi ý cân bằng danh mục.
+- **RBAC**: Quản lý phân quyền, đăng nhập riêng cho admin và user.
+- **Giao diện Blade + Bootstrap**: Responsive, hiện đại, dễ mở rộng.
 
-- **Đăng ký & đăng nhập / Register & Login**: Quản lý tài khoản người dùng, bảo mật, xác thực.
-- **AI dự đoán thị trường tuần này / AI weekly market prediction**: Nút AI trên trang chủ, dự đoán xu hướng thị trường tuần này, giới hạn cho khách chưa đăng nhập.
-- **Tra cứu giá lịch sử cổ phiếu / View historical stock prices**: Bảng giá, biểu đồ nến/đường, khối lượng giao dịch.
-- **Tìm kiếm mã cổ phiếu nhanh / Fast stock symbol search**: Autocomplete, cập nhật danh sách mã tự động từ Python.
-- **Lưu dữ liệu vào MySQL / Save data to MySQL**: Tránh crawl trùng lặp, chỉ cập nhật khi cần.
-- **Tích hợp Python / Python integration**: Lấy dữ liệu từ vnstock, cập nhật cả giá và danh sách mã.
-- **Giao diện responsive / Responsive UI**: Đẹp, dễ dùng trên mọi thiết bị, Bootstrap 4 + icon.
-- **Kiến trúc chuẩn SOLID / SOLID architecture**: Controller, Service, Repository, Interface rõ ràng, dễ mở rộng.
-- **Footer cá nhân hóa / Personalized footer**: Hiển thị thông tin tác giả, email, GitHub, LinkedIn ở mọi trang.
-- **Tỷ giá ngoại tệ Vietcombank / Vietcombank exchange rates**: Hiển thị tỷ giá 3 ngày gần nhất.
-- **Top 30 công ty hot theo ngành / Top 30 hot companies by industry**: Bảng các mã nổi bật theo ngành, số lượng linh động.
-- **📰 Tin tức thị trường realtime / Real-time market news**
-- **🔥 Tích hợp AI Model Chat (OpenRouter) / Integrated AI Model Chat (OpenRouter)**: Popup chat bubble ở góc phải dưới, hỏi đáp về cổ phiếu, ngành, tỷ giá, tài chính.  
-  Hỗ trợ chọn ngôn ngữ (Tiếng Việt/English), đổi model AI (OpenRouter: gemma3:1b, mistral, llama...), giao diện đẹp, chuyên nghiệp.
-  Popup chat bubble at bottom right, ask about stocks, industries, exchange rates, finance.  
-  Supports language selection (Vietnamese/English), easy AI model switching (OpenRouter: gemma3:1b, mistral, llama...), beautiful and professional UI.
+## 📂 Sơ đồ thư mục chính
 
----
+```
+app/
+  Frontend/Controllers, Services, Repositories, Interfaces
+  Backend/Controllers, Services, Repositories, Interfaces
+  Models/ (dùng chung)
+routes/web.php
+py/ (Python scripts)
+resources/views/ (Blade UI)
+docs/ (Tài liệu phát triển)
+```
 
-## 🆕 Nhật ký cập nhật / Update Log
-- **2025-08-25:**  
-  - Thêm tính năng đăng ký, đăng nhập cho người dùng.  
-    Added user registration and login feature.
-  - Thêm nút AI dự đoán thị trường tuần này trên trang chủ, chỉ cho khách chưa đăng nhập xem 1 lần, thành viên đăng nhập dùng không giới hạn.  
-    Added AI weekly market prediction button on homepage, guests can view once, logged-in users unlimited.
-- **2025-08-23:**  
-  - Chuyển AI Model Chat từ Ollama sang OpenRouter API: Không cần cài đặt, chỉ cần API key, hỗ trợ nhiều model AI mạnh, dễ đổi model.  
-    Migrated AI Model Chat from Ollama to OpenRouter API: No installation required, just an API key, supports many powerful AI models, easy model switching.
-  - Cập nhật README song ngữ, hướng dẫn tích hợp và đổi model AI.  
-    Updated bilingual README, integration guide, and AI model switching instructions.
+## 🚀 Tính năng nổi bật
+- Đăng ký, đăng nhập, xác thực, bảo mật.
+- Quản lý danh mục đầu tư (Portfolio) – thêm/xóa cổ phiếu, thống kê, cảnh báo giá.
+- Xem giá cổ phiếu, biểu đồ, lịch sử, top ngành hot.
+- Tìm kiếm mã nhanh, autocomplete, cập nhật tự động từ Python.
+- Tỷ giá ngoại tệ Vietcombank, cập nhật 3 ngày gần nhất.
+- Tin tức thị trường realtime (VnExpress RSS).
+- AI dự đoán thị trường, chat tài chính, gợi ý cân bằng danh mục.
+- RBAC: Phân quyền, đăng nhập riêng admin/user.
+- Giao diện đẹp, responsive, tối ưu UX.
 
-- **2025-08-17:**  
-  - Thêm tin tức thị trường VnExpress RSS, hiển thị 6 tin mới nhất với giao diện hiện đại.  
-    Added VnExpress market news RSS, displaying 6 latest news items with a modern UI.
-  - Tối ưu UX homepage: Sắp xếp lại các section, cải thiện giao diện và hiệu ứng.  
-    Optimized homepage UX: Reordered sections, improved UI and visual effects.
+## ⚙️ Quy tắc phát triển & đóng góp
+- Tách biệt hoàn toàn Frontend/Backend (namespace App\Frontend\*, App\Backend\*).
+- Models dùng chung (App\Models).
+- Bắt buộc dùng Repository/Service/Interface, binding qua AppServiceProvider.
+- Ghi chú, cập nhật tài liệu tại docs/ khi thêm/chỉnh sửa tính năng.
+- Xem chi tiết tại [docs/GUIDELINES.md](docs/GUIDELINES.md).
 
-- **Các phiên bản trước đó / Earlier versions:**  
-  - Tra cứu giá cổ phiếu, biểu đồ, autocomplete tìm kiếm, lưu dữ liệu MySQL, tích hợp Python (vnstock), tỷ giá Vietcombank, top công ty hot theo ngành, giao diện responsive, kiến trúc SOLID, popup AI chat thông minh, footer cá nhân hóa.  
-    Stock price lookup, charts, autocomplete search, MySQL data storage, Python (vnstock) integration, Vietcombank exchange rates, top hot companies by industry, responsive UI, SOLID architecture, smart popup AI chat, personalized footer.
+## 🆕 Nhật ký cập nhật (Update Log)
+Xem chi tiết tại [docs/HISTORY.md](docs/HISTORY.md). Một số cập nhật gần nhất:
 
----
+- **2026-05-16:** Cải tiến search, bổ sung ETF, tối ưu pipeline backend, fix UI/UX.
+- **2026-05-01:** Xóa toàn bộ controller/service/repo/interface cũ, chuẩn hóa kiến trúc.
+- **2025-08-25:** Thêm đăng ký/đăng nhập, AI dự đoán thị trường, xác thực email.
+- **2025-08-23:** Chuyển AI chat sang OpenRouter, hỗ trợ nhiều model AI mạnh.
+- **2025-08-17:** Thêm tin tức thị trường, tối ưu giao diện homepage.
 
-## 📸 Ảnh màn hình / Screenshots
+## 👨‍💻 Hướng dẫn cài đặt nhanh
+1. Clone repo, cài đặt PHP 8.2+, Composer, MySQL, Python 3.10+.
+2. `composer install` – cài đặt PHP dependencies.
+3. `cp .env.example .env` và cấu hình DB, OpenRouter API key.
+4. `php artisan migrate --seed` – tạo bảng và dữ liệu mẫu.
+5. `npm install && npm run build` – build frontend.
+6. Cài Python packages: `pip install -r py/requirements.txt`.
+7. Chạy các script Python để cập nhật dữ liệu.
+8. Khởi động server: `php artisan serve`.
 
+## 📸 Ảnh màn hình
 ![Screenshot](public/images/Screenshot_1.png)
 ![Screenshot](public/images/Screenshot_2.png)
 ![Screenshot](public/images/Screenshot_5.png)

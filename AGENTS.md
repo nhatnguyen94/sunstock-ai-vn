@@ -14,11 +14,12 @@
 ## 📚 Detailed Documentation
 To keep this guide manageable, it has been split into the following sections:
 
-1. **[Project Structure & Architecture](file:///c:/xampp/htdocs/stock-app/docs/STRUCTURE.md)**
+
+1. **[Project Structure & Architecture](docs/STRUCTURE.md)**
    - Detailed directory map, namespaces, and core components.
-2. **[AI Development & Behavioral Guidelines](file:///c:/xampp/htdocs/stock-app/docs/GUIDELINES.md)**
+2. **[AI Development & Behavioral Guidelines](docs/GUIDELINES.md)**
    - Mandatory rules for coding, checklists, and surgical change policies.
-3. **[Feature Update History](file:///c:/xampp/htdocs/stock-app/docs/HISTORY.md)**
+3. **[Feature Update History](docs/HISTORY.md)**
    - Log of all major features implemented and fixes made.
 
 ## ⚡ Quick Start & Final Checklist
