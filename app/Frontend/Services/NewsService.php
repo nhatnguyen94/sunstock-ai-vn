@@ -17,7 +17,10 @@ class NewsService implements NewsServiceInterface
             return [];
         }
 
-        $rss = @simplexml_load_string($xmlString);
+        $rss = @simplexml_load_string($xmlString, 'SimpleXMLElement', LIBXML_NONET | LIBXML_NOCDATA);
+        if (!$rss || !isset($rss->channel->item)) {
+            return [];
+        }
         foreach ($rss->channel->item as $item) {
             if (count($news) >= $limit) {
                 break;
@@ -40,6 +43,10 @@ class NewsService implements NewsServiceInterface
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; SunStockAI/1.0)');
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
         $data = curl_exec($ch);
         $err = curl_error($ch);
         curl_close($ch);

@@ -10,7 +10,7 @@ class AiService
 {
     public function ask($prompt, $lang = 'vi', $model = 'openai/gpt-oss-20b:free')
     {
-        $apiKey = env('OPENROUTER_API_KEY');
+        $apiKey = config('services.openrouter.key');
         $referer = config('app.url', 'http://127.0.0.1:8000');
         $systemPrompt = $lang === 'en'
             ? 'You are a financial assistant for Vietnamese stocks. Answer concisely and accurately in English.'

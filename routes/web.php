@@ -9,6 +9,7 @@ use App\Backend\Controllers\TimelineController;
 use App\Backend\Controllers\UserController;
 use App\Frontend\Controllers\AiController;
 use App\Frontend\Controllers\AuthController;
+use App\Frontend\Controllers\EmailVerificationController;
 use App\Frontend\Controllers\ExchangeRateController;
 use App\Frontend\Controllers\PortfolioController;
 use App\Frontend\Controllers\ProfileController;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Route;
 Route::post('/search', [StockController::class, 'search'])->name('stock.search');
 
 Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
+Route::get('/stock/compare', [StockController::class, 'compare'])->name('stock.compare');
+Route::get('/stock/compare-data', [StockController::class, 'compareData'])->name('stock.compare-data');
 
 Route::get('/stocks-list', [StockController::class, 'getStockSymbols']);
 
@@ -26,17 +29,30 @@ Route::get('/', [StockController::class, 'home'])->name('home');
 Route::get('/exchange-rate', [ExchangeRateController::class, 'index'])->name('exchange-rate.index');
 Route::get('/exchange-rate/search', [ExchangeRateController::class, 'search'])->name('exchange-rate.search');
 
-Route::post('/ai-chat', [StockController::class, 'aiChat']);
-Route::post('/ai-predict', [AiController::class, 'predict']);
+Route::middleware('throttle:10,1')->group(function () {
+    Route::post('/ai-chat', [StockController::class, 'aiChat']);
+    Route::post('/ai-predict', [AiController::class, 'predict']);
+});
 
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
-Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
-Route::post('/register', [AuthController::class, 'register']);
+Route::middleware('throttle:5,1')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
+    Route::post('/register', [AuthController::class, 'register']);
+});
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Profile routes (requires authentication)
+// Email Verification routes
 Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:3,1')
+        ->name('verification.send');
+});
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])->middleware(['auth', 'signed'])->name('verification.verify');
+
+// Profile routes (requires authentication and verified email)
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -64,8 +80,10 @@ Route::middleware('auth')->group(function () {
 // Admin routes
 Route::prefix('admin')->name('admin.')->group(function () {
     // Admin Authentication (không cần middleware)
-    Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
+    Route::middleware('throttle:5,1')->group(function () {
+        Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
+    });
     
     // Admin routes (cần middleware 'admin' để kiểm tra quyền truy cập backend)
     Route::middleware(['auth:web', 'admin'])->group(function () {
@@ -78,6 +96,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         
         // Users Management - Chỉ Admin
         Route::resource('users', UserController::class);
+        
+        // User Email Verification Management - Chỉ Admin
+        Route::post('/users/{user}/verify', [EmailVerificationController::class, 'adminVerify'])->name('users.verify');
+        Route::post('/users/{user}/unverify', [EmailVerificationController::class, 'adminUnverify'])->name('users.unverify');
         
         // Stock Management - Admin và AdminSupport
         Route::resource('stocks', AdminStockController::class);

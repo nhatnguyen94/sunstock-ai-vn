@@ -1,7 +1,12 @@
 import sys
+import io
 import json
 import logging
 from datetime import datetime, timedelta
+
+# Fix encoding issue on Windows
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 from vnstock import Vnstock
 
 # Suppress all logs below WARNING level

@@ -30,6 +30,16 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials, $request->filled('remember'))) {
+            $user = Auth::user();
+            
+            // Kiểm tra email verification
+            if (!$user->hasVerifiedEmail()) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'Bạn cần xác thực email trước khi đăng nhập. Kiểm tra hòm thư để xác thực tài khoản.',
+                ])->onlyInput('email');
+            }
+            
             $request->session()->regenerate();
 
             return redirect()->intended('/')->with('success', 'Đăng nhập thành công!');
@@ -71,7 +81,7 @@ class AuthController extends Controller
                 'name' => $request->username,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'email_verified_at' => now(),
+                // Không set email_verified_at - để null để yêu cầu verification
             ]);
 
             UserProfile::create([
@@ -83,9 +93,11 @@ class AuthController extends Controller
             // Tự động gán role 'user' cho tài khoản mới
             $user->assignRole(Role::USER);
 
-            Auth::login($user);
+            // Gửi email xác thực
+            $user->sendEmailVerificationNotification();
 
-            return redirect('/')->with('success', 'Đăng ký thành công! Chào mừng bạn đến với Stock App.');
+            // Không tự động đăng nhập - yêu cầu xác thực email trước
+            return redirect()->route('login')->with('success', 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập.');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.'])
                 ->withInput($request->except('password', 'password_confirmation'));

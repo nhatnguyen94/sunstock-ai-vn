@@ -66,6 +66,7 @@
                     <tr>
                         <th>User</th>
                         <th>Email</th>
+                        <th>Xác thực</th>
                         <th>Role</th>
                         <th>Ngày tạo</th>
                         <th class="w-1">Actions</th>
@@ -86,11 +87,40 @@
                             </div>
                         </td>
                         <td>
-                            {{ $user->email }}
+                            <div class="font-weight-medium">{{ $user->email }}</div>
+                        </td>
+                        <td>
                             @if($user->email_verified_at)
                                 <span class="badge bg-success-lt">Verified</span>
+                                <div class="small text-muted">{{ $user->email_verified_at->format('d/m/Y H:i') }}</div>
+                                @if($user->id !== auth()->id())
+                                    <form action="{{ route('admin.users.unverify', $user) }}" method="POST" class="d-inline mt-1">
+                                        @csrf
+                                        <button type="submit" class="btn btn-xs btn-warning" 
+                                                onclick="return confirm('Hủy xác thực email cho {{ $user->email }}? User sẽ cần verify lại.')" 
+                                                title="Hủy xác thực">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-xs" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                                <line x1="6" y1="6" x2="18" y2="18"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                @endif
                             @else
                                 <span class="badge bg-warning-lt">Unverified</span>
+                                <form action="{{ route('admin.users.verify', $user) }}" method="POST" class="d-inline mt-1">
+                                    @csrf
+                                    <button type="submit" class="btn btn-xs btn-success" 
+                                            onclick="return confirm('Xác thực thủ công email cho {{ $user->email }}?')" 
+                                            title="Xác thực thủ công">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-xs" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M5 12l5 5l10 -10"/>
+                                        </svg>
+                                        Verify
+                                    </button>
+                                </form>
                             @endif
                         </td>
                         <td>

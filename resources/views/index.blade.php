@@ -832,6 +832,11 @@
             <p class="hero-subtitle">
                 Tra cứu thông tin cổ phiếu Việt Nam thông minh với AI
             </p>
+            <div class="mb-4">
+                <a href="{{ url('/stock/compare') }}" class="btn-primary-custom" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); backdrop-filter: blur(10px);">
+                    <i class="bi bi-bar-chart-steps"></i> So sánh cổ phiếu
+                </a>
+            </div>
         </div>
     </div>
 </section>
@@ -1133,13 +1138,33 @@ document.addEventListener('DOMContentLoaded', function() {
         minChars: 1,
         maxItems: 15,
         autoFirst: true,
-        list: []
+        list: [],
+        replace: function(suggestion) {
+            this.input.value = suggestion.value;
+        }
+    });
+
+    // Auto submit form when an item is selected from dropdown
+    symbolInput.addEventListener('awesomplete-selectcomplete', function(e) {
+        const searchForm = document.querySelector('.search-form-wrapper');
+        const searchBtn = searchForm.querySelector('.search-btn');
+        const btnText = searchBtn.querySelector('.btn-text');
+        const btnIcon = searchBtn.querySelector('i');
+        
+        searchBtn.disabled = true;
+        btnIcon.className = 'loading';
+        btnText.textContent = 'Đang tìm...';
+        
+        searchForm.submit();
     });
 
     let searchTimeout;
 
     // Search suggestions with debounce
-    symbolInput.addEventListener('input', function() {
+    symbolInput.addEventListener('input', function(e) {
+        // Don't trigger search if the input was updated by selection
+        if (e.isTrusted === false) return;
+        
         const val = this.value.trim();
         const notFoundMsg = document.getElementById('notFoundMsg');
         

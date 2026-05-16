@@ -139,7 +139,10 @@ class StockRepository implements StockRepositoryInterface
      */
     public function searchSymbols(string $query): array
     {
-        $this->getOrUpdateSymbols();
+        // Only update symbols if DB is completely empty
+        if (StockSymbol::count() === 0) {
+            $this->getOrUpdateSymbols();
+        }
 
         return StockSymbol::when($query, function ($qBuilder) use ($query) {
             $qBuilder->where('symbol', 'like', "%$query%")

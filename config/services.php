@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'openrouter' => [
+        'key' => env('OPENROUTER_API_KEY'),
+    ],
+
+    'python' => [
+        'path' => env('PYTHON_PATH', 'python'),
+    ],
+
 ];

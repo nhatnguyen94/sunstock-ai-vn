@@ -13,6 +13,14 @@ use Illuminate\Support\Facades\Log;
 class StockService
 {
     /**
+     * Validate stock symbol to prevent command injection.
+     */
+    private function validateSymbol(string $symbol): bool
+    {
+        return (bool) preg_match('/^[A-Za-z0-9]{1,20}$/', $symbol);
+    }
+
+    /**
      * Call Python script to get historical stock data.
      *
      * @param  string  $symbol
@@ -20,13 +28,23 @@ class StockService
      */
     public function fetchStockDataFromPython($symbol)
     {
-        $pythonPath = env('PYTHON_PATH', 'python');
+        if (!$this->validateSymbol($symbol)) {
+            return ['error' => 'Mã cổ phiếu không hợp lệ.'];
+        }
+
+        $pythonPath = config('services.python.path', 'python');
         $scriptPath = base_path('py/get_stock.py');
-        $command = "\"{$pythonPath}\" \"{$scriptPath}\" {$symbol}";
+        $command = escapeshellarg($pythonPath) . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($symbol);
         exec($command, $output, $returnVar);
 
-        $jsonStart = strpos(implode("\n", $output), '[');
-        $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';
+        // Find the JSON string (usually the last line containing '[')
+        $jsonStr = '';
+        for ($i = count($output) - 1; $i >= 0; $i--) {
+            if (strpos(trim($output[$i]), '[') === 0 || strpos(trim($output[$i]), '{') === 0) {
+                $jsonStr = trim($output[$i]);
+                break;
+            }
+        }
 
         return json_decode($jsonStr, true) ?? ['error' => 'Lỗi khi gọi script Python'];
     }
@@ -38,13 +56,18 @@ class StockService
      */
     public function fetchStockListFromPython()
     {
-        $pythonPath = env('PYTHON_PATH', 'python');
+        $pythonPath = config('services.python.path', 'python');
         $scriptPath = base_path('py/get_stock_list.py');
-        $command = "\"{$pythonPath}\" \"{$scriptPath}\"";
+        $command = escapeshellarg($pythonPath) . ' ' . escapeshellarg($scriptPath);
         exec($command, $output, $returnVar);
 
-        $jsonStart = strpos(implode("\n", $output), '[');
-        $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';
+        $jsonStr = '';
+        for ($i = count($output) - 1; $i >= 0; $i--) {
+            if (strpos(trim($output[$i]), '[') === 0 || strpos(trim($output[$i]), '{') === 0) {
+                $jsonStr = trim($output[$i]);
+                break;
+            }
+        }
 
         return json_decode($jsonStr, true) ?? [];
     }
@@ -56,14 +79,18 @@ class StockService
      */
     public function fetchHotIndustriesFromPython($limit = 30)
     {
-        $pythonPath = env('PYTHON_PATH', 'python');
+        $limit = (int) $limit;
+        if ($limit < 1 || $limit > 100) {
+            $limit = 30;
+        }
+
+        $pythonPath = config('services.python.path', 'python');
         $scriptPath = base_path('py/get_hot_industries.py');
-        $command = "\"{$pythonPath}\" \"{$scriptPath}\" {$limit}";
+        $command = escapeshellarg($pythonPath) . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg((string) $limit);
         exec($command, $output, $returnVar);
 
         if ($returnVar !== 0) {
             Log::error('Python script error', [
-                'command' => $command,
                 'output' => $output,
                 'returnVar' => $returnVar,
             ]);
@@ -71,8 +98,13 @@ class StockService
             return [];
         }
 
-        $jsonStart = strpos(implode("\n", $output), '[');
-        $jsonStr = $jsonStart !== false ? substr(implode("\n", $output), $jsonStart) : '';
+        $jsonStr = '';
+        for ($i = count($output) - 1; $i >= 0; $i--) {
+            if (strpos(trim($output[$i]), '[') === 0 || strpos(trim($output[$i]), '{') === 0) {
+                $jsonStr = trim($output[$i]);
+                break;
+            }
+        }
 
         return json_decode($jsonStr, true) ?? [];
     }
