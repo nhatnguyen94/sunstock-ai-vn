@@ -14,7 +14,7 @@ class StockSymbol extends Model
 {
     protected $table = 'stock_symbols';
 
-    protected $fillable = ['symbol', 'name', 'updated_at'];
+    protected $fillable = ['symbol', 'name', 'updated_at', 'created_at'];
 
-    public $timestamps = false;
+    public $timestamps = true;
 }

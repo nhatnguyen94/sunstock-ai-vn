@@ -4,32 +4,70 @@
 > **MANDATORY**: Every AI agent MUST read this file AND all linked documents in the `docs/` folder before starting any task. This ensures consistency with the project's unique architecture and strict development rules.
 
 ## 📋 Quick Reference
-- **Project Type**: Laravel Stock Application 
+- **Project Type**: Laravel 12 Stock Application
 - **Architecture**: Strict Frontend/Backend Separation
 - **Frontend Namespace**: `App\Frontend\{Controllers|Services|Repositories|Interfaces}`
 - **Backend Namespace**: `App\Backend\{Controllers|Services|Repositories|Interfaces}`
 - **Shared Models**: `App\Models`
+- **Middleware**: `AdminAccess` (alias: `admin`) in `bootstrap/app.php`
+- **RBAC**: Role constants in `App\Models\Role`, Gates in `AppServiceProvider::boot()`
 - **Critical Rule**: NEVER use default Laravel folders like `app/Http/Controllers`, `app/Services`, etc.
 
 ## 📚 Detailed Documentation
 To keep this guide manageable, it has been split into the following sections:
 
-
 1. **[Project Structure & Architecture](docs/STRUCTURE.md)**
-   - Detailed directory map, namespaces, and core components.
+   - Detailed directory map, namespaces, and all components (controllers, services, models, views, commands, jobs, middleware, python scripts).
+
 2. **[AI Development & Behavioral Guidelines](docs/GUIDELINES.md)**
-   - Mandatory rules for coding, checklists, and surgical change policies.
+   - Mandatory rules for coding, checklists, RBAC patterns, known gotchas, and surgical change policies.
+
 3. **[Feature Update History](docs/HISTORY.md)**
    - Log of all major features implemented and fixes made.
 
-## ⚡ Quick Start & Final Checklist
-- [ ] **Read** `docs/STRUCTURE.md` and `docs/GUIDELINES.md` before starting.
-- [ ] **Use** `App\Frontend\*` or `App\Backend\*` namespaces ONLY.
-- [ ] **Register** new services/repositories in `AppServiceProvider.php`.
-- [ ] **MANDATORY FINAL STEP**: Before finishing, you MUST:
-    - [x] Update `docs/HISTORY.md` with a detailed log of your changes.
-    - [x] Update `docs/STRUCTURE.md` if you added/removed files or changed architecture.
-    - [x] Update `docs/GUIDELINES.md` if you established new patterns or rules.
+4. **[Quick Start Guide](docs/QUICKSTART.md)**
+   - Setup, environment, migration, seed, artisan commands for new developers and AI agents.
+
+5. **[Routes Map](docs/ROUTES_MAP.md)**
+   - Complete route → controller → action mapping table for fast lookup.
+
+6. **[DI Bindings & Gates](docs/BINDINGS.md)**
+   - All Interface→Implementation bindings and Gate definitions in AppServiceProvider.
+
+7. **[Python Integration Guide](docs/PYTHON_INTEGRATION.md)**
+   - How to call Python scripts from Laravel Services, error handling, adding new scripts.
+
+8. **[RBAC & Permissions](docs/RBAC.md)**
+   - Role constants, Gate definitions, middleware, permission matrix.
 
 ---
-**This file is the entry point for all AI interactions. Do not bypass the rules defined in the linked documents.**
+
+## 🤖 VNStock AI Agent References
+
+This project also integrates external VNStock AI agent documentation.
+
+### Reference Location
+- `docs/vnstock-agent/`
+- `docs/vnstock-agent/AGENTS.md`
+
+### VNStock Modules Available
+- `vnstock`
+- `vnstock_chart`
+- `vnstock_ezchart`
+- `vnstock_news`
+- `vnstock_pipeline`
+- `vnstock_ta`
+- `vnstock-data`
+
+### Usage Rules
+- VNStock guides are considered **supplemental references only**
+- Project-specific architecture rules in this repository ALWAYS take priority
+- AI agents MUST NOT override existing Laravel structure based on VNStock examples
+- Keep Python-related stock processing isolated under the `py/` directory when possible
+
+### Recommended Flow
+```text
+Controller
+→ Service
+→ Python Executor
+→ vnstock

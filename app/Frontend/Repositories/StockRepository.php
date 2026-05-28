@@ -81,26 +81,50 @@ class StockRepository implements StockRepositoryInterface
     /**
      * Update stock price from Python script.
      */
-    public function updateStockPriceFromPython(string $symbol): void
-    {
-        $stock = Stock::firstOrCreate(['symbol' => $symbol]);
-        $data = $this->stockService->fetchStockDataFromPython($symbol);
-        if (is_array($data) && ! isset($data['error'])) {
-            foreach ($data as $item) {
-                $date = Carbon::createFromTimestampMs($item['time'])->toDateString();
-                StockPrice::updateOrCreate(
-                    ['stock_id' => $stock->id, 'date' => $date],
-                    [
-                        'open' => $item['open'],
-                        'high' => $item['high'],
-                        'low' => $item['low'],
-                        'close' => $item['close'],
-                        'volume' => $item['volume'],
-                    ]
-                );
-            }
+    // public function updateStockPriceFromPython(string $symbol): void
+    // {
+    //     $stock = Stock::firstOrCreate(['symbol' => $symbol]);
+    //     $data = $this->stockService->fetchStockDataFromPython($symbol);
+    //     if (is_array($data) && ! isset($data['error'])) {
+    //         foreach ($data as $item) {
+    //             $date = Carbon::createFromTimestampMs($item['time'])->toDateString();
+    //             StockPrice::updateOrCreate(
+    //                 ['stock_id' => $stock->id, 'date' => $date],
+    //                 [
+    //                     'open' => $item['open'],
+    //                     'high' => $item['high'],
+    //                     'low' => $item['low'],
+    //                     'close' => $item['close'],
+    //                     'volume' => $item['volume'],
+    //                 ]
+    //             );
+    //         }
+    //     }
+    // }
+public function updateStockPriceFromPython(string $symbol): void
+{
+    $stock = Stock::firstOrCreate(['symbol' => $symbol]);
+    $data = $this->stockService->fetchStockDataFromPython($symbol);
+
+    // Script mới trả về dạng ["data" => [symbol => [...]], "errors" => ...]
+    $prices = $data['data'][$symbol] ?? [];
+    if (!empty($prices)) {
+        foreach ($prices as $item) {
+            $date = $item['date'] ?? null;
+            if (!$date) continue;
+            StockPrice::updateOrCreate(
+                ['stock_id' => $stock->id, 'date' => $date],
+                [
+                    'open' => $item['open'],
+                    'high' => $item['high'],
+                    'low' => $item['low'],
+                    'close' => $item['close'],
+                    'volume' => $item['volume'],
+                ]
+            );
         }
     }
+}
 
     /**
      * Get overview information for a stock symbol.

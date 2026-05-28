@@ -47,7 +47,7 @@ class StockController extends Controller
      */
     public function home(Request $request, NewsServiceInterface $newsService)
     {
-        $symbols = ['FPT', 'VNM', 'VCB'];
+        $symbols = ['FPT', 'VNM', 'ACB'];
 
         // Cache featured stocks data for 10 minutes
         $featured = Cache::remember('featured_stocks', 600, function () use ($symbols) {
@@ -55,9 +55,10 @@ class StockController extends Controller
                 $stock = Stock::firstOrCreate(['symbol' => $symbol]);
                 $latestPrice = StockPrice::where('stock_id', $stock->id)
                     ->orderByDesc('date')->first();
-                if (! $latestPrice || Carbon::parse($latestPrice->date)->lt(now()->subDay())) {
-                    $this->stockRepo->updateStockPriceFromPython($symbol);
-                }
+                // if (! $latestPrice || Carbon::parse($latestPrice->date)->lt(Carbon::today())) {
+                //     // Chỉ update nếu chưa có giá của ngày hôm nay
+                //     $this->stockRepo->updateStockPriceFromPython($symbol);
+                // }
             }
             return $this->stockRepo->getFeaturedStocks($symbols);
         });
@@ -109,7 +110,7 @@ class StockController extends Controller
         $cacheKey = "stock_updated_{$symbol}";
         if (! Cache::has($cacheKey)) {
             $latestDate = StockPrice::where('stock_id', $stock->id)->max('date');
-            if (! $latestDate || Carbon::parse($latestDate)->lt(now()->subDay())) {
+            if (! $latestDate || Carbon::parse($latestDate)->lt(Carbon::today())) {
                 $this->stockRepo->updateStockPriceFromPython($symbol);
             }
             Cache::put($cacheKey, true, 3600);
@@ -166,7 +167,7 @@ class StockController extends Controller
             $cacheKey = "stock_updated_{$symbol}";
             if (!Cache::has($cacheKey)) {
                 $latestDate = StockPrice::where('stock_id', $stock->id)->max('date');
-                if (!$latestDate || Carbon::parse($latestDate)->lt(now()->subDay())) {
+                if (!$latestDate || Carbon::parse($latestDate)->lt(Carbon::today())) {
                     $this->stockRepo->updateStockPriceFromPython($symbol);
                 }
                 Cache::put($cacheKey, true, 3600);
