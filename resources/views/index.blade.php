@@ -822,20 +822,58 @@
 
 @section('content')
 <!-- Hero Search Section -->
-<section class="hero-search">
+<section class="hero-search" style="position:relative; overflow:hidden;">
+    <!-- Animated background shapes -->
+    <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+        <div style="position:absolute;top:-30%;right:-10%;width:500px;height:500px;border-radius:50%;background:rgba(255,255,255,0.04);"></div>
+        <div style="position:absolute;bottom:-20%;left:-5%;width:350px;height:350px;border-radius:50%;background:rgba(255,255,255,0.03);"></div>
+        <div style="position:absolute;top:20%;left:8%;width:3px;height:80px;background:rgba(251,191,36,0.4);border-radius:2px;"></div>
+        <div style="position:absolute;top:40%;right:12%;width:3px;height:50px;background:rgba(52,211,153,0.3);border-radius:2px;"></div>
+    </div>
     <div class="container">
         <div class="hero-content">
+            <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:30px;padding:6px 18px;margin-bottom:1.5rem;font-size:0.85rem;font-weight:600;backdrop-filter:blur(10px);">
+                <span style="width:8px;height:8px;border-radius:50%;background:#34d399;animation:pulse-ring 1.5s ease-out infinite;display:inline-block;"></span>
+                Dữ liệu cập nhật tự động mỗi ngày
+            </div>
             <h1 class="hero-title">
                 <i class="bi bi-graph-up-arrow" style="color: #fbbf24;"></i>
                 Sun Stock AI
             </h1>
             <p class="hero-subtitle">
-                Tra cứu thông tin cổ phiếu Việt Nam thông minh với AI
+                Phân tích cổ phiếu Việt Nam thông minh &amp; Tỷ giá realtime với AI
             </p>
-            <div class="mb-4">
-                <a href="{{ url('/stock/compare') }}" class="btn-primary-custom" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); backdrop-filter: blur(10px);">
+            <div class="d-flex flex-wrap justify-content-center gap-3 mb-4" style="gap:12px;">
+                <a href="{{ url('/stock/compare') }}" class="btn-primary-custom" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);backdrop-filter:blur(10px);">
                     <i class="bi bi-bar-chart-steps"></i> So sánh cổ phiếu
                 </a>
+                @guest
+                <a href="{{ route('register') }}" style="background:#fbbf24;color:#1e3a5f;border-radius:10px;padding:0.875rem 2rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all 0.2s;">
+                    <i class="bi bi-person-plus"></i> Đăng ký miễn phí
+                </a>
+                @endguest
+            </div>
+            <!-- Hero stats row -->
+            <div class="d-flex flex-wrap justify-content-center" style="gap:2rem;margin-top:0.5rem;">
+                <div style="color:rgba(255,255,255,0.9);text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:800;line-height:1;">700+</div>
+                    <div style="font-size:0.78rem;opacity:0.7;margin-top:2px;">Mã cổ phiếu</div>
+                </div>
+                <div style="width:1px;background:rgba(255,255,255,0.2);height:40px;align-self:center;"></div>
+                <div style="color:rgba(255,255,255,0.9);text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:800;line-height:1;">20+</div>
+                    <div style="font-size:0.78rem;opacity:0.7;margin-top:2px;">Ngoại tệ</div>
+                </div>
+                <div style="width:1px;background:rgba(255,255,255,0.2);height:40px;align-self:center;"></div>
+                <div style="color:rgba(255,255,255,0.9);text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:800;line-height:1;">AI</div>
+                    <div style="font-size:0.78rem;opacity:0.7;margin-top:2px;">Phân tích</div>
+                </div>
+                <div style="width:1px;background:rgba(255,255,255,0.2);height:40px;align-self:center;"></div>
+                <div style="color:rgba(255,255,255,0.9);text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:800;line-height:1;">Free</div>
+                    <div style="font-size:0.78rem;opacity:0.7;margin-top:2px;">Hoàn toàn miễn phí</div>
+                </div>
             </div>
         </div>
     </div>
@@ -843,13 +881,13 @@
 
 <!-- Search Card -->
 <div class="container">
-    <div class="search-card">
+    <div class="search-card" data-aos="fade-up" data-aos-delay="100">
         <form method="GET" action="{{ url('/stock') }}" class="search-form-wrapper" autocomplete="off">
             <div class="search-input-group">
                 <div class="search-input-container">
                     <i class="bi bi-search search-icon"></i>
                     <input type="text" id="symbol" name="symbol" class="search-input" 
-                           placeholder="Nhập mã cổ phiếu: FPT, VNM, VCB, VNINDEX..." required autocomplete="off">
+                           placeholder="Nhập mã cổ phiếu: FPT, VNM, VCB… hoặc tên công ty" required autocomplete="off">
                 </div>
                 <button type="submit" class="search-btn">
                     <i class="bi bi-search"></i>
@@ -857,6 +895,9 @@
                 </button>
             </div>
         </form>
+        <p style="text-align:center;color:var(--text-secondary);font-size:0.82rem;margin:0.75rem 0 0.5rem;">
+            <i class="bi bi-keyboard"></i> Phím tắt: <kbd style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:2px 6px;">Ctrl+K</kbd> để focus ô tìm kiếm
+        </p>
         
         <div id="notFoundMsg" class="error-message">
             <i class="bi bi-exclamation-triangle"></i>
@@ -870,13 +911,16 @@
                     {{ $stock['symbol'] }}
                 </a>
             @endforeach
+            <a href="{{ url('/stock?symbol=VCB') }}" class="tag">VCB</a>
+            <a href="{{ url('/stock?symbol=TCB') }}" class="tag">TCB</a>
+            <a href="{{ url('/stock?symbol=HPG') }}" class="tag">HPG</a>
         </div>
     </div>
 </div>
 
 <div class="container">
-    <!-- 1. FEATURED STOCKS - Giữ nguyên vị trí đầu -->
-    <section class="featured-section">
+    <!-- 1. FEATURED STOCKS -->
+    <section class="featured-section" data-aos="fade-up">
         <h2 class="section-title">
             <i class="bi bi-star-fill" style="color: var(--warning-orange); margin-right: 10px;"></i>
             Cổ phiếu nổi bật
@@ -886,8 +930,8 @@
         </h2>
         
         <div class="featured-grid">
-            @foreach($featured as $stock)
-            <div class="stock-card">
+            @foreach($featured as $i => $stock)
+            <div class="stock-card" data-aos="fade-up" data-aos-delay="{{ $i * 100 }}">
                 <div class="stock-header">
                     <span class="stock-symbol">{{ $stock['symbol'] }}</span>
                     <span class="stock-exchange">{{ $stock['exchange'] }}</span>
@@ -905,7 +949,7 @@
                 
                 @if($stock['change'] !== null)
                 <div class="stock-change {{ $stock['change'] >= 0 ? 'positive' : 'negative' }}">
-                    <i class="bi {{ $stock['change'] >= 0 ? 'bi-arrow-up' : 'bi-arrow-down' }}"></i>
+                    <i class="bi {{ $stock['change'] >= 0 ? 'bi-arrow-up-circle-fill' : 'bi-arrow-down-circle-fill' }}"></i>
                     {{ $stock['change'] >= 0 ? '+' : '' }}{{ number_format($stock['change'], 2) }}%
                 </div>
                 @endif
@@ -924,11 +968,45 @@
         </div>
     </section>
 
-    <!-- AI Prediction Button - New Section (Moved up) -->
-    <div class="container text-center my-4">
-        <button id="aiPredictBtn" class="btn btn-primary-custom" style="font-size:1.1rem; padding:1rem 2.5rem; border-radius:20px; box-shadow:var(--shadow-lg); display:inline-flex; align-items:center; gap:10px;">
-            <i class="bi bi-robot" style="font-size:1.5rem;"></i>
+    <!-- FEATURES HIGHLIGHT SECTION -->
+    <section style="margin:0 0 3rem;" data-aos="fade-up">
+        <h2 style="text-align:center;font-size:1.8rem;font-weight:700;color:var(--text-primary);margin-bottom:0.5rem;">
+            Tại sao chọn <span style="background:linear-gradient(135deg,var(--primary-blue),var(--secondary-blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Sun Stock AI</span>?
+        </h2>
+        <p style="text-align:center;color:var(--text-secondary);margin-bottom:2.5rem;">Công cụ phân tích cổ phiếu toàn diện, hoàn toàn miễn phí</p>
+        <div class="row g-3">
+            @php
+            $features = [
+                ['icon'=>'bi-graph-up-arrow','color'=>'#2563eb','bg'=>'#eff6ff','title'=>'Biểu đồ giá lịch sử','desc'=>'Xem biểu đồ nến, đường giá với dữ liệu lịch sử lên đến nhiều năm'],
+                ['icon'=>'bi-cpu','color'=>'#7c3aed','bg'=>'#f5f3ff','title'=>'Phân tích AI','desc'=>'Hỏi AI về bất kỳ cổ phiếu nào, nhận phân tích và dự đoán thông minh'],
+                ['icon'=>'bi-currency-exchange','color'=>'#059669','bg'=>'#ecfdf5','title'=>'Tỷ giá realtime','desc'=>'Tỷ giá Vietcombank cập nhật hàng ngày, hỗ trợ 20+ ngoại tệ'],
+                ['icon'=>'bi-intersect','color'=>'#dc2626','bg'=>'#fef2f2','title'=>'So sánh cổ phiếu','desc'=>'So sánh hiệu suất của nhiều cổ phiếu cùng lúc trên cùng một biểu đồ'],
+                ['icon'=>'bi-fire','color'=>'#ea580c','bg'=>'#fff7ed','title'=>'Ngành hot','desc'=>'Theo dõi các ngành nghề đang nổi bật: Ngân hàng, BĐS, Công nghệ'],
+                ['icon'=>'bi-briefcase','color'=>'#0891b2','bg'=>'#ecfeff','title'=>'Danh mục cá nhân','desc'=>'Quản lý danh mục đầu tư, theo dõi lãi/lỗ và target price (cần đăng ký)'],
+            ];
+            @endphp
+            @foreach($features as $j => $f)
+            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="{{ $j * 80 }}">
+                <div style="background:white;border-radius:16px;padding:1.75rem;border:1px solid var(--border-color);height:100%;display:flex;gap:1rem;align-items:flex-start;transition:all 0.3s ease;box-shadow:var(--shadow-sm);" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'">
+                    <div style="width:50px;height:50px;border-radius:14px;background:{{ $f['bg'] }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="bi {{ $f['icon'] }}" style="font-size:1.4rem;color:{{ $f['color'] }};"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;color:var(--text-primary);margin-bottom:0.4rem;">{{ $f['title'] }}</div>
+                        <div style="font-size:0.875rem;color:var(--text-secondary);line-height:1.5;">{{ $f['desc'] }}</div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </section>
+
+    <!-- AI Prediction Button -->
+    <div class="text-center my-4" data-aos="zoom-in">
+        <button id="aiPredictBtn" class="btn btn-primary-custom" style="font-size:1.05rem;padding:1rem 2.5rem;border-radius:20px;box-shadow:0 8px 30px rgba(37,99,235,0.3);display:inline-flex;align-items:center;gap:10px;">
+            <i class="bi bi-robot" style="font-size:1.4rem;"></i>
             AI Dự đoán thị trường tuần này
+            <span style="background:rgba(255,255,255,0.2);border-radius:20px;padding:2px 8px;font-size:0.75rem;">BETA</span>
         </button>
         <div id="aiPredictResult" style="margin-top:2rem; display:none;">
             <div class="custom-card" style="padding:2rem;">
@@ -940,10 +1018,9 @@
         </div>
     </div>
 
-    <!-- 2. EXCHANGE RATES - Di chuyển lên vị trí thứ 2 -->
+    <!-- 2. EXCHANGE RATES -->
     @if(count($exchangeRates) > 0)
-    <section class="info-section">
-        <!-- Tỷ giá ngoại tệ hôm nay -->
+    <section class="info-section" data-aos="fade-up">
         <h3>
             <i class="bi bi-currency-exchange" style="color: var(--success-green); margin-right: 10px;"></i>
             Tỷ giá ngoại tệ hôm nay
@@ -1005,9 +1082,9 @@
     </section>
     @endif
 
-    <!-- 3. HOT INDUSTRIES - Di chuyển lên vị trí thứ 3 -->
+    <!-- 3. HOT INDUSTRIES -->
     @if($hotIndustries->count() > 0)
-    <section class="info-section" id="hot-industries-section">
+    <section class="info-section" id="hot-industries-section" data-aos="fade-up">
         <h3>
             <i class="bi bi-fire" style="color: var(--danger-red); margin-right: 10px;"></i>
             Ngành nghề đang hot
@@ -1044,7 +1121,6 @@
                 </tbody>
             </table>
             
-            <!-- Improved Pagination -->
             @if($hotIndustries->hasPages())
             <div class="hot-industries-pagination">
                 <div class="pagination-info">
@@ -1062,10 +1138,34 @@
     </section>
     @endif
 
-    <!-- 4. NEWS - Di chuyển xuống cuối, bổ sung thông tin -->
+    <!-- CTA Banner for guests -->
+    @guest
+    <section data-aos="zoom-in" style="margin-bottom:3rem;">
+        <div style="background:linear-gradient(135deg,var(--primary-blue),#7c3aed);border-radius:20px;padding:3rem 2rem;text-align:center;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:-20px;right:-20px;width:150px;height:150px;background:rgba(255,255,255,0.05);border-radius:50%;"></div>
+            <div style="position:absolute;bottom:-30px;left:-10px;width:100px;height:100px;background:rgba(255,255,255,0.04);border-radius:50%;"></div>
+            <h3 style="color:white;font-size:1.8rem;font-weight:800;margin-bottom:0.75rem;position:relative;">
+                <i class="bi bi-briefcase" style="color:#fbbf24;"></i>
+                Quản lý danh mục đầu tư
+            </h3>
+            <p style="color:rgba(255,255,255,0.85);font-size:1.05rem;max-width:550px;margin:0 auto 2rem;position:relative;line-height:1.7;">
+                Đăng ký tài khoản miễn phí để theo dõi danh mục cổ phiếu cá nhân, tính toán lãi/lỗ tự động và nhận cảnh báo giá mục tiêu.
+            </p>
+            <div class="d-flex flex-wrap justify-content-center" style="gap:12px;position:relative;">
+                <a href="{{ route('register') }}" style="background:#fbbf24;color:#1e3a5f;border-radius:12px;padding:0.875rem 2rem;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;gap:8px;font-size:1rem;transition:all 0.2s;">
+                    <i class="bi bi-person-plus-fill"></i> Tạo tài khoản miễn phí
+                </a>
+                <a href="{{ route('login') }}" style="background:rgba(255,255,255,0.15);color:white;border:2px solid rgba(255,255,255,0.4);border-radius:12px;padding:0.875rem 2rem;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;font-size:1rem;transition:all 0.2s;">
+                    <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
+                </a>
+            </div>
+        </div>
+    </section>
+    @endguest
+
+    <!-- 4. NEWS -->
     @if(isset($news) && count($news) > 0)
-    <section class="info-section">
-        <!-- Tin tức thị trường mới nhất -->
+    <section class="info-section" data-aos="fade-up">
         <h3>
             <i class="bi bi-newspaper" style="color: var(--primary-blue); margin-right: 10px;"></i>
             Tin tức thị trường mới nhất
@@ -1076,7 +1176,7 @@
         
         <div class="news-grid">
             @foreach($news as $item)
-            <article class="news-card">
+            <article class="news-card" data-aos="fade-up" data-aos-delay="{{ $loop->index * 100 }}">
                 @if($item['image'])
                 <div class="news-image">
                     <img src="{{ $item['image'] }}" alt="{{ $item['title'] }}" loading="lazy">
@@ -1088,7 +1188,7 @@
                 @endif
                 
                 <div class="news-content">
-                    <a href="{{ $item['link'] }}" target="_blank" class="news-title">
+                    <a href="{{ $item['link'] }}" target="_blank" rel="noopener" class="news-title">
                         {{ $item['title'] }}
                     </a>
                     
@@ -1101,10 +1201,8 @@
                             <i class="bi bi-calendar3"></i>
                             {{ $item['pubDate'] }}
                         </div>
-                        
-                        <a href="{{ $item['link'] }}" target="_blank" class="news-read-more">
-                            Đọc thêm
-                            <i class="bi bi-arrow-right"></i>
+                        <a href="{{ $item['link'] }}" target="_blank" rel="noopener" class="news-read-more">
+                            Đọc thêm <i class="bi bi-arrow-right"></i>
                         </a>
                     </div>
                 </div>
@@ -1113,11 +1211,10 @@
         </div>
         
         <div style="text-align: center; margin-top: 2rem;">
-            <a href="https://vnexpress.net/kinh-doanh" target="_blank" 
-               style="display: inline-flex; align-items: center; gap: 0.5rem; 
-                      background: var(--light-blue); color: var(--primary-blue); 
-                      padding: 0.75rem 1.5rem; border-radius: 25px; text-decoration: none; 
-                      font-weight: 500; transition: all 0.3s ease;">
+            <a href="https://vnexpress.net/kinh-doanh" target="_blank" rel="noopener"
+               style="display:inline-flex;align-items:center;gap:0.5rem;background:var(--light-blue);color:var(--primary-blue);padding:0.75rem 1.5rem;border-radius:25px;text-decoration:none;font-weight:500;transition:all 0.3s ease;"
+               onmouseover="this.style.background='var(--primary-blue)';this.style.color='white'"
+               onmouseout="this.style.background='var(--light-blue)';this.style.color='var(--primary-blue)'">
                 <i class="bi bi-newspaper"></i>
                 Xem tất cả tin tức
                 <i class="bi bi-arrow-right"></i>
@@ -1127,6 +1224,7 @@
     @endif
 </div>
 @endsection
+
 
 @section('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
@@ -1292,8 +1390,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@section('scripts')
-@parent
 <script>
 let aiPredictClicked = false;
 document.getElementById('aiPredictBtn').onclick = function() {

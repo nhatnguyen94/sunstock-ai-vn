@@ -16,14 +16,41 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\SyncStockData::class,
         \App\Console\Commands\SyncStockPrices::class,
         \App\Console\Commands\RegisterVnstockApiKey::class,
+        \App\Console\Commands\SyncHotIndustries::class,
+        \App\Console\Commands\SyncExchangeRates::class,
     ];
 
     /**
      * Define the application's command schedule.
+     *
+     * To activate the scheduler on Windows (XAMPP), add a Task Scheduler entry:
+     *   Program: php
+     *   Arguments: C:\xampp\htdocs\stock-app\artisan schedule:run
+     *   Trigger: Every 1 minute
+     *
+     * Or run once manually: php artisan schedule:work
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('sync:stock-data')->daily();
+        // Pre-populate exchange rates before users visit (Vietcombank updates ~7-8 AM)
+        $schedule->command('sync:exchange-rates')->dailyAt('07:30')
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        // Refresh hot industries (company listings rarely change, daily is enough)
+        $schedule->command('sync:hot-industries --limit=100')->dailyAt('07:45')
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        // Sync stock symbols list weekly (new listings are rare)
+        $schedule->command('sync:stock-data')->weeklyOn(1, '07:00')
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        // Sync stock prices daily after VN market closes (~3 PM = 15:00 ICT)
+        $schedule->command('sync:stock-prices')->dailyAt('15:30')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

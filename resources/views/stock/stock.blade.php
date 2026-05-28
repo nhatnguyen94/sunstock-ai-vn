@@ -266,52 +266,71 @@
     /* Chart Container */
     .chart-container {
         background: white;
-        border-radius: 16px;
-        padding: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 20px;
+        padding: 1.5rem 1.5rem 0.5rem;
+        box-shadow: 0 8px 32px rgba(37,99,235,0.10);
         border: 1px solid #e5e7eb;
         margin-bottom: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .chart-container::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 4px;
+        background: linear-gradient(90deg, #2563eb, #7c3aed, #10b981);
+        border-radius: 20px 20px 0 0;
     }
 
     .chart-header {
-        margin-bottom: 2rem;
-        text-align: center;
-    }
-
-    .chart-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #2563eb;
-        margin: 0;
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
         gap: 10px;
     }
 
-    .chart-wrapper {
-        position: relative;
-        height: 500px;
-        width: 100%;
+    .chart-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 
-    .chart-item {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        opacity: 0;
-        transition: opacity 0.3s ease;
+    .chart-period-btns {
+        display: flex;
+        gap: 6px;
     }
 
-    .chart-item.active {
-        opacity: 1;
+    .period-btn {
+        padding: 4px 12px;
+        border: 1px solid #e5e7eb;
+        background: white;
+        color: #6b7280;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    #priceChart, #candlestickChart {
-        width: 100% !important;
-        height: 100% !important;
+    .period-btn:hover, .period-btn.active {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }
+
+    #apexCandleChart, #apexLineChart {
+        display: none;
+    }
+
+    #apexCandleChart.active, #apexLineChart.active {
+        display: block;
     }
 
     /* Data Table */
@@ -632,14 +651,48 @@
                     @if(isset($overview['name']) && $overview['name'])
                         <p class="stock-name">{{ $overview['name'] }}</p>
                     @endif
+                    @php
+                        $latestData = !empty($data) ? $data[count($data)-1] : null;
+                        $prevData = count($data) >= 2 ? $data[count($data)-2] : null;
+                        $latestClose = $latestData['close'] ?? null;
+                        $prevClose = $prevData['close'] ?? null;
+                        $dailyChange = ($latestClose && $prevClose && $prevClose > 0) ? (($latestClose - $prevClose) / $prevClose * 100) : null;
+                        $latestDateStr = $latestData ? \Carbon\Carbon::createFromTimestampMs($latestData['time'])->format('d/m/Y') : null;
+                    @endphp
+                    @if($latestClose)
+                    <div style="display:flex;align-items:center;gap:1.5rem;margin-top:0.75rem;flex-wrap:wrap;">
+                        <div>
+                            <span style="font-size:2rem;font-weight:800;color:white;">{{ number_format($latestClose, 0, ',', '.') }}</span>
+                            <span style="font-size:0.85rem;opacity:0.75;margin-left:4px;">VNĐ</span>
+                        </div>
+                        @if($dailyChange !== null)
+                        <div style="background:{{ $dailyChange >= 0 ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)' }};border:1px solid {{ $dailyChange >= 0 ? 'rgba(52,211,153,0.4)' : 'rgba(248,113,113,0.4)' }};border-radius:8px;padding:4px 12px;font-weight:700;font-size:0.95rem;color:{{ $dailyChange >= 0 ? '#34d399' : '#f87171' }};">
+                            <i class="bi bi-{{ $dailyChange >= 0 ? 'arrow-up' : 'arrow-down' }}"></i>
+                            {{ $dailyChange >= 0 ? '+' : '' }}{{ number_format($dailyChange, 2) }}%
+                        </div>
+                        @endif
+                        @if(isset($latestDateStr))
+                        <div style="font-size:0.78rem;opacity:0.6;">
+                            <i class="bi bi-calendar3"></i> {{ $latestDateStr }}
+                        </div>
+                        @endif
+                    </div>
+                    @else
                     <p class="stock-subtitle">Thông tin chi tiết cổ phiếu và biểu đồ giá</p>
+                    @endif
                 </div>
             </div>
             <div class="col-md-4 text-md-right">
-                <a href="{{ url('/') }}" class="back-button">
-                    <i class="bi bi-arrow-left"></i>
-                    Quay lại trang chủ
-                </a>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;position:relative;z-index:2;">
+                    <a href="{{ url('/') }}" class="back-button">
+                        <i class="bi bi-house"></i>
+                        Trang chủ
+                    </a>
+                    <a href="{{ url('/stock/compare?symbols='.$symbol) }}" class="back-button">
+                        <i class="bi bi-bar-chart-steps"></i>
+                        So sánh
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -693,48 +746,45 @@
 
     @if (count($data) > 0)
         <!-- Chart Controls -->
-        <div class="chart-controls">
-            <span style="color: #6b7280; font-weight: 500; margin-right: 1rem;">
-                <i class="bi bi-bar-chart-line"></i>
-                Loại biểu đồ:
+        <div class="chart-controls" data-aos="fade-up">
+            <span style="color:#6b7280;font-weight:600;margin-right:0.5rem;font-size:0.9rem;">
+                <i class="bi bi-bar-chart-line"></i> Loại biểu đồ:
             </span>
-            <button id="btnCandle" class="chart-toggle-btn active" title="Xem biểu đồ nến (chi tiết giá từng phiên)">
-                <i class="bi bi-bar-chart"></i>
-                Biểu đồ nến
+            <button id="btnCandle" class="chart-toggle-btn active">
+                <i class="bi bi-bar-chart"></i> Biểu đồ nến
             </button>
-            <button id="btnLine" class="chart-toggle-btn" title="Xem biểu đồ đường (giá đóng cửa)">
-                <i class="bi bi-graph-up"></i>
-                Biểu đồ đường
+            <button id="btnLine" class="chart-toggle-btn">
+                <i class="bi bi-graph-up"></i> Biểu đồ đường
             </button>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:0.8rem;color:#9ca3af;">
+                <span style="width:10px;height:10px;border-radius:2px;background:#10b981;display:inline-block;"></span> Tăng
+                <span style="width:10px;height:10px;border-radius:2px;background:#ef4444;display:inline-block;margin-left:4px;"></span> Giảm
+            </div>
         </div>
 
         <!-- Chart Container -->
-        <div class="chart-container">
+        <div class="chart-container" data-aos="fade-up" data-aos-delay="100">
             <div class="chart-header">
                 <h3 class="chart-title">
-                    <i class="bi bi-graph-up"></i>
+                    <i class="bi bi-graph-up" style="color:#2563eb;"></i>
                     Biểu đồ giá {{ $symbol }}
                     @if(isset($overview['name']) && $overview['name'])
-                        <small style="font-size: 0.8em; opacity: 0.8;">({{ $overview['name'] }})</small>
+                        <small style="font-size:0.75em;color:#6b7280;font-weight:500;">({{ $overview['name'] }})</small>
                     @endif
                 </h3>
-            </div>
-            
-            <div class="chart-wrapper">
-                <!-- Candlestick Chart -->
-                <div id="candleChartWrap" class="chart-item active">
-                    <canvas id="candlestickChart"></canvas>
-                </div>
-
-                <!-- Line Chart -->
-                <div id="lineChartWrap" class="chart-item">
-                    <canvas id="priceChart"></canvas>
+                <div class="chart-period-btns" id="periodBtns">
+                    <button class="period-btn" data-months="1">1T</button>
+                    <button class="period-btn" data-months="3">3T</button>
+                    <button class="period-btn" data-months="6">6T</button>
+                    <button class="period-btn active" data-months="0">Tất cả</button>
                 </div>
             </div>
+            <div id="apexCandleChart" class="active"></div>
+            <div id="apexLineChart"></div>
         </div>
 
         <!-- Data Table -->
-        <div class="data-section">
+        <div class="data-section" data-aos="fade-up" data-aos-delay="200">
             <div class="data-header">
                 <h3 class="data-title">
                     <i class="bi bi-table"></i>
@@ -785,369 +835,249 @@
 @section('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
 @if (count($data) > 0)
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon@2.5.2/build/global/luxon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0/dist/chartjs-adapter-luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
 @endif
 
 <script>
-// Global variables for charts
-let candleChart = null;
-let lineChart = null;
-
-// Quick search function
 function searchSymbol(symbol) {
     document.getElementById('symbol').value = symbol;
     document.querySelector('.search-section form').submit();
 }
 
 @if (count($data) > 0)
-    // Prepare data
-    const rawData = @json($data);
-    console.log('Raw data:', rawData);
+const rawData = @json($data);
 
-    // Chart data preparation
-    const labels = rawData.map(item => {
-        const date = new Date(item.time);
-        return date.toLocaleDateString('vi-VN');
-    });
-    
-    const prices = rawData.map(item => parseFloat(item.close));
-    
-    const candlestickData = rawData.map(item => ({
-        x: item.time,
-        o: parseFloat(item.open),
-        h: parseFloat(item.high),
-        l: parseFloat(item.low),
-        c: parseFloat(item.close)
-    }));
+// Prepare full datasets
+const candleSeriesFull = rawData.map(d => ({
+    x: new Date(d.time),
+    y: [parseFloat(d.open), parseFloat(d.high), parseFloat(d.low), parseFloat(d.close)]
+}));
+const lineSeries = rawData.map(d => [new Date(d.time).getTime(), parseFloat(d.close)]);
+const volumeSeries = rawData.map(d => ({
+    x: new Date(d.time),
+    y: parseFloat(d.volume)
+}));
 
-    console.log('Labels:', labels);
-    console.log('Prices:', prices);
-    console.log('Candlestick data:', candlestickData);
+let activeMonths = 0; // 0 = all
 
-    // Create Candlestick Chart
-    const ctxCandle = document.getElementById('candlestickChart').getContext('2d');
-    candleChart = new Chart(ctxCandle, {
+function filterByMonths(months) {
+    if (!months) return { candle: candleSeriesFull, line: lineSeries, vol: volumeSeries };
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - months);
+    return {
+        candle: candleSeriesFull.filter(d => d.x >= cutoff),
+        line: lineSeries.filter(d => d[0] >= cutoff.getTime()),
+        vol: volumeSeries.filter(d => d.x >= cutoff)
+    };
+}
+
+// ── ApexCharts: Candlestick ──
+const candleOptions = {
+    series: [{ name: 'Giá', data: candleSeriesFull }],
+    chart: {
         type: 'candlestick',
-        data: {
-            datasets: [{
-                label: 'Biểu đồ nến {{ $symbol }}',
-                data: candlestickData,
-                color: {
-                    up: '#10b981',
-                    down: '#ef4444',
-                    unchanged: '#6b7280'
-                }
-            }]
+        height: 480,
+        toolbar: { show: true, tools: { download: true, selection: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } },
+        animations: { enabled: true, easing: 'easeinout', speed: 600 },
+        background: 'transparent',
+        fontFamily: 'Inter, sans-serif',
+    },
+    plotOptions: {
+        candlestick: {
+            colors: { upward: '#10b981', downward: '#ef4444' },
+            wick: { useFillColor: true }
+        }
+    },
+    xaxis: {
+        type: 'datetime',
+        labels: {
+            datetimeFormatter: { year: 'yyyy', month: "MM/yyyy", day: 'dd/MM' },
+            style: { fontSize: '11px', colors: '#6b7280' }
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: {
-                duration: 1000,
-                easing: 'easeInOutQuart'
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    labels: {
-                        color: '#1f2937',
-                        font: { weight: 600, size: 14 }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    type: 'time',
-                    adapters: { date: { zone: 'Asia/Ho_Chi_Minh' } },
-                    time: { unit: 'day', tooltipFormat: 'dd/MM/yyyy' },
-                    title: {
-                        display: true,
-                        text: 'Ngày',
-                        color: '#1f2937',
-                        font: { weight: 600, size: 13 }
-                    },
-                    grid: { color: 'rgba(229, 231, 235, 0.3)' }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Giá (VNĐ)',
-                        color: '#1f2937',
-                        font: { weight: 600, size: 13 }
-                    },
-                    grid: { color: 'rgba(229, 231, 235, 0.3)' }
-                }
-            }
+        axisBorder: { show: false },
+        axisTicks: { show: false }
+    },
+    yaxis: {
+        tooltip: { enabled: true },
+        labels: {
+            formatter: v => (v/1000).toFixed(0) + 'K',
+            style: { fontSize: '11px', colors: '#6b7280' }
         }
-    });
+    },
+    tooltip: {
+        theme: 'light',
+        x: { format: 'dd/MM/yyyy' },
+        y: {
+            formatter: v => v ? Number(v).toLocaleString('vi-VN') + ' VNĐ' : ''
+        }
+    },
+    grid: {
+        borderColor: '#f3f4f6',
+        strokeDashArray: 4
+    }
+};
 
-    // Create Line Chart
-    const ctx = document.getElementById('priceChart').getContext('2d');
-    lineChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Giá đóng cửa {{ $symbol }}',
-                data: prices,
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 3,
-                pointHoverRadius: 6,
-                pointBackgroundColor: '#2563eb',
-                pointBorderColor: 'white',
-                pointBorderWidth: 2
-            }]
+// ── ApexCharts: Area Line ──
+const lineOptions = {
+    series: [{ name: 'Giá đóng cửa', data: lineSeries }],
+    chart: {
+        type: 'area',
+        height: 480,
+        toolbar: { show: true, tools: { download: true, selection: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } },
+        animations: { enabled: true, easing: 'easeinout', speed: 800, animateGradually: { enabled: true, delay: 100 } },
+        background: 'transparent',
+        fontFamily: 'Inter, sans-serif',
+    },
+    stroke: { curve: 'smooth', width: 2.5, colors: ['#2563eb'] },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.45,
+            opacityTo: 0.0,
+            stops: [0, 100],
+            colorStops: [
+                { offset: 0, color: '#2563eb', opacity: 0.4 },
+                { offset: 100, color: '#2563eb', opacity: 0 }
+            ]
+        }
+    },
+    colors: ['#2563eb'],
+    xaxis: {
+        type: 'datetime',
+        labels: {
+            datetimeFormatter: { year: 'yyyy', month: "MM/yyyy", day: 'dd/MM' },
+            style: { fontSize: '11px', colors: '#6b7280' }
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: {
-                duration: 1000,
-                easing: 'easeInOutQuart'
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    labels: {
-                        color: '#1f2937',
-                        font: { weight: 600, size: 14 }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Ngày',
-                        color: '#1f2937',
-                        font: { weight: 600, size: 13 }
-                    },
-                    grid: { color: 'rgba(229, 231, 235, 0.3)' }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Giá (VNĐ)',
-                        color: '#1f2937',
-                        font: { weight: 600, size: 13 }
-                    },
-                    grid: { color: 'rgba(229, 231, 235, 0.3)' }
-                }
-            }
+        axisBorder: { show: false },
+        axisTicks: { show: false }
+    },
+    yaxis: {
+        labels: {
+            formatter: v => (v/1000).toFixed(0) + 'K',
+            style: { fontSize: '11px', colors: '#6b7280' }
         }
+    },
+    tooltip: {
+        theme: 'light',
+        x: { format: 'dd/MM/yyyy' },
+        y: { formatter: v => Number(v).toLocaleString('vi-VN') + ' VNĐ' }
+    },
+    grid: {
+        borderColor: '#f3f4f6',
+        strokeDashArray: 4
+    },
+    markers: { size: 0, hover: { size: 5 } },
+    dataLabels: { enabled: false }
+};
+
+let candleChart = new ApexCharts(document.getElementById('apexCandleChart'), candleOptions);
+let lineChart = new ApexCharts(document.getElementById('apexLineChart'), lineOptions);
+candleChart.render();
+lineChart.render();
+
+// Toggle charts
+document.getElementById('btnCandle').addEventListener('click', function() {
+    document.getElementById('apexCandleChart').classList.add('active');
+    document.getElementById('apexLineChart').classList.remove('active');
+    this.classList.add('active');
+    document.getElementById('btnLine').classList.remove('active');
+    candleChart.updateOptions({}, false, true);
+});
+document.getElementById('btnLine').addEventListener('click', function() {
+    document.getElementById('apexLineChart').classList.add('active');
+    document.getElementById('apexCandleChart').classList.remove('active');
+    this.classList.add('active');
+    document.getElementById('btnCandle').classList.remove('active');
+    lineChart.updateOptions({}, false, true);
+});
+
+// Period filter
+document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const months = parseInt(this.dataset.months) || 0;
+        const filtered = filterByMonths(months);
+        candleChart.updateSeries([{ name: 'Giá', data: filtered.candle }]);
+        lineChart.updateSeries([{ name: 'Giá đóng cửa', data: filtered.line }]);
     });
+});
 
-    // Simple chart switching
-    function showChart(showId, hideId) {
-        const hideElement = document.getElementById(hideId);
-        const showElement = document.getElementById(showId);
-        
-        hideElement.classList.remove('active');
-        showElement.classList.add('active');
-        
-        // Resize chart after switching
-        setTimeout(() => {
-            if (showId === 'candleChartWrap' && candleChart) {
-                candleChart.resize();
-            } else if (showId === 'lineChartWrap' && lineChart) {
-                lineChart.resize();
-            }
-        }, 300);
-    }
+// Table
+const pageSize = 20;
+let currentPage = 1;
 
-    // Chart button events
-    document.getElementById('btnCandle').addEventListener('click', function() {
-        showChart('candleChartWrap', 'lineChartWrap');
-        
-        // Update button states
-        document.getElementById('btnCandle').classList.add('active');
-        document.getElementById('btnLine').classList.remove('active');
-    });
+function renderTable(page) {
+    currentPage = page;
+    const start = (page - 1) * pageSize;
+    const pageData = rawData.slice().reverse().slice(start, start + pageSize);
+    const tbody = document.getElementById('priceTableBody');
+    tbody.innerHTML = pageData.map(item => {
+        const date = new Date(item.time).toLocaleDateString('vi-VN');
+        const close = parseFloat(item.close);
+        const open = parseFloat(item.open);
+        const isUp = close >= open;
+        return `<tr>
+            <td style="font-weight:600;">${date}</td>
+            <td>${Number(item.open).toLocaleString()}</td>
+            <td class="price-positive">${Number(item.high).toLocaleString()}</td>
+            <td class="price-negative">${Number(item.low).toLocaleString()}</td>
+            <td style="font-weight:700;color:${isUp ? '#10b981' : '#ef4444'};">
+                <i class="bi bi-${isUp ? 'arrow-up' : 'arrow-down'}"></i>
+                ${Number(item.close).toLocaleString()}
+            </td>
+            <td class="volume-cell">${Number(item.volume).toLocaleString()}</td>
+            <td><span class="badge badge-primary">${item.currency || 'VND'}</span></td>
+        </tr>`;
+    }).join('');
+    renderPagination();
+}
 
-    document.getElementById('btnLine').addEventListener('click', function() {
-        showChart('lineChartWrap', 'candleChartWrap');
-        
-        // Update button states
-        document.getElementById('btnLine').classList.add('active');
-        document.getElementById('btnCandle').classList.remove('active');
-    });
-
-    // Table pagination
-    const pageSize = 20;
-    let currentPage = 1;
-    
-    function renderTable(page) {
-        currentPage = page;
-        const start = (page - 1) * pageSize;
-        const end = start + pageSize;
-        const pageData = rawData.slice().reverse().slice(start, end);
-        const tbody = document.getElementById('priceTableBody');
-        
-        tbody.innerHTML = pageData.map(item => {
-            const date = new Date(item.time).toLocaleDateString('vi-VN');
-            const volume = Number(item.volume).toLocaleString();
-            
-            return `
-                <tr>
-                    <td style="font-weight: 600;">${date}</td>
-                    <td>${Number(item.open).toLocaleString()}</td>
-                    <td class="price-positive">${Number(item.high).toLocaleString()}</td>
-                    <td class="price-negative">${Number(item.low).toLocaleString()}</td>
-                    <td style="font-weight: 600;">${Number(item.close).toLocaleString()}</td>
-                    <td class="volume-cell">${volume}</td>
-                    <td><span class="badge badge-primary">${item.currency || 'VND'}</span></td>
-                </tr>
-            `;
-        }).join('');
-        
-        renderPagination();
-    }
-    
-    function renderPagination() {
-        const totalPages = Math.ceil(rawData.length / pageSize);
-        const pagination = document.getElementById('tablePagination');
-        let html = '';
-        
-        // Previous button
-        if (currentPage > 1) {
-            html += `<li class="page-item">
-                        <a class="page-link" href="#" onclick="renderTable(${currentPage - 1}); return false;">
-                            <i class="bi bi-chevron-left"></i>
-                        </a>
-                    </li>`;
-        }
-        
-        // Page numbers
-        const startPage = Math.max(1, currentPage - 2);
-        const endPage = Math.min(totalPages, currentPage + 2);
-        
-        if (startPage > 1) {
-            html += `<li class="page-item">
-                        <a class="page-link" href="#" onclick="renderTable(1); return false;">1</a>
-                    </li>`;
-            if (startPage > 2) {
-                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-            }
-        }
-        
-        for (let i = startPage; i <= endPage; i++) {
-            html += `<li class="page-item${i === currentPage ? ' active' : ''}">
-                        <a class="page-link" href="#" onclick="renderTable(${i}); return false;">${i}</a>
-                    </li>`;
-        }
-        
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-            }
-            html += `<li class="page-item">
-                        <a class="page-link" href="#" onclick="renderTable(${totalPages}); return false;">${totalPages}</a>
-                    </li>`;
-        }
-        
-        // Next button
-        if (currentPage < totalPages) {
-            html += `<li class="page-item">
-                        <a class="page-link" href="#" onclick="renderTable(${currentPage + 1}); return false;">
-                            <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </li>`;
-        }
-        
-        pagination.innerHTML = html;
-    }
-    
-    // Initialize table
-    renderTable(1);
-
+function renderPagination() {
+    const totalPages = Math.ceil(rawData.length / pageSize);
+    const p = document.getElementById('tablePagination');
+    let h = '';
+    if (currentPage > 1) h += `<li class="page-item"><a class="page-link" href="#" onclick="renderTable(${currentPage-1});return false;"><i class="bi bi-chevron-left"></i></a></li>`;
+    const sp = Math.max(1, currentPage-2), ep = Math.min(totalPages, currentPage+2);
+    if (sp > 1) { h += `<li class="page-item"><a class="page-link" href="#" onclick="renderTable(1);return false;">1</a></li>`; if (sp>2) h += `<li class="page-item disabled"><span class="page-link">...</span></li>`; }
+    for (let i=sp;i<=ep;i++) h += `<li class="page-item${i===currentPage?' active':''}"><a class="page-link" href="#" onclick="renderTable(${i});return false;">${i}</a></li>`;
+    if (ep < totalPages) { if (ep<totalPages-1) h += `<li class="page-item disabled"><span class="page-link">...</span></li>`; h += `<li class="page-item"><a class="page-link" href="#" onclick="renderTable(${totalPages});return false;">${totalPages}</a></li>`; }
+    if (currentPage < totalPages) h += `<li class="page-item"><a class="page-link" href="#" onclick="renderTable(${currentPage+1});return false;"><i class="bi bi-chevron-right"></i></a></li>`;
+    p.innerHTML = h;
+}
+renderTable(1);
 @endif
 
-// Enhanced Awesomplete autocomplete
-let awesomplete = new Awesomplete(document.getElementById('symbol'), {
-    minChars: 1,
-    maxItems: 15,
-    autoFirst: true,
-    list: []
-});
-
+// Awesomplete autocomplete
+let awesomplete = new Awesomplete(document.getElementById('symbol'), { minChars: 1, maxItems: 15, autoFirst: true, list: [] });
 let searchTimeout;
-
 document.getElementById('symbol').addEventListener('input', function() {
-    let val = this.value.trim();
+    const val = this.value.trim();
     const notFoundMsg = document.getElementById('notFoundMsg');
-    
-    if (val.length < 1) {
-        notFoundMsg.classList.remove('show');
-        return;
-    }
-    
-    // Clear previous timeout
+    if (val.length < 1) { notFoundMsg.classList.remove('show'); return; }
     clearTimeout(searchTimeout);
-    
-    // Set new timeout for debounce
     searchTimeout = setTimeout(() => {
         fetch('/stocks-list?q=' + encodeURIComponent(val))
-            .then(res => res.json())
+            .then(r => r.json())
             .then(data => {
-                if (data.length === 0) {
-                    notFoundMsg.classList.add('show');
-                } else {
-                    notFoundMsg.classList.remove('show');
-                }
-                
-                // Enhanced autocomplete with stock names
-                let list = data.map(item => ({
-                    label: `<b>${item.symbol}</b><span>${item.name ? ' - ' + item.name : ''}</span>`,
-                    value: item.symbol
-                }));
-                
-                awesomplete.list = list;
+                notFoundMsg.classList[data.length === 0 ? 'add' : 'remove']('show');
+                awesomplete.list = data.map(item => ({ label: `<b>${item.symbol}</b><span>${item.name ? ' - '+item.name : ''}</span>`, value: item.symbol }));
             })
-            .catch(err => {
-                notFoundMsg.classList.add('show');
-                console.error('Lỗi lấy danh sách mã:', err);
-            });
-    }, 300); // 300ms debounce
+            .catch(() => notFoundMsg.classList.add('show'));
+    }, 300);
 });
-
-// Hide error message when user focuses input
-document.getElementById('symbol').addEventListener('focus', function() {
-    document.getElementById('notFoundMsg').classList.remove('show');
-});
-
-// Loading state for search form
+document.getElementById('symbol').addEventListener('focus', () => document.getElementById('notFoundMsg').classList.remove('show'));
 document.querySelector('.search-section form').addEventListener('submit', function() {
     const btn = this.querySelector('.search-btn');
     const btnText = btn.querySelector('.btn-text');
     const btnIcon = btn.querySelector('i');
-    
-    if (!btnText || !btnIcon) return;
-    
     btn.disabled = true;
-    btnIcon.className = 'loading-spinner';
-    btnText.textContent = 'Đang tìm...';
-    
-    // Re-enable after 5 seconds (fallback)
-    setTimeout(() => {
-        btn.disabled = false;
-        btnIcon.className = 'bi bi-search';
-        btnText.textContent = 'Tra cứu';
-    }, 5000);
+    if (btnIcon) btnIcon.className = 'loading-spinner';
+    if (btnText) btnText.textContent = 'Đang tìm...';
+    setTimeout(() => { btn.disabled = false; if (btnIcon) btnIcon.className = 'bi bi-search'; if (btnText) btnText.textContent = 'Tra cứu'; }, 5000);
 });
-
-// Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-    // Focus search input with Ctrl/Cmd + K
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        document.getElementById('symbol').focus();
-    }
-});
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); document.getElementById('symbol').focus(); } });
 </script>
 @endsection
+

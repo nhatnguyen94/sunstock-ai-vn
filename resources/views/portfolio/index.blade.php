@@ -18,7 +18,7 @@
     </div>
 
     <!-- Total Stats Cards -->
-    <div class="row mb-5">
+    <div class="row mb-5" data-aos="fade-up" data-aos-delay="100">
         <div class="col-md-3">
             <div class="custom-card text-center" style="padding:2rem;">
                 <div class="stat-icon" style="background:linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); color:white; width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">

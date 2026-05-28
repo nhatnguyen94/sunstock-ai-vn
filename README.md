@@ -12,15 +12,25 @@
 
 ## 📸 Screenshots
 
-![Screenshot](public/images/Screenshot_1.png)
-![Screenshot](public/images/Screenshot_2.png)
-![Screenshot](public/images/Screenshot_5.png)
-![Screenshot](public/images/Screenshot_3.png)
-![Screenshot](public/images/Screenshot_4.png)
-![Screenshot](public/images/Screenshot_6.png)
-![Screenshot](public/images/Screenshot_7.png)
-![Screenshot](public/images/Screenshot_8.png)
-![Screenshot](public/images/Screenshot_9.png)
+| Homepage | Stock Detail |
+|---|---|
+| ![Homepage](public/images/ss_homepage.png) | ![Stock VCB](public/images/ss_stock_vcb.png) |
+
+| Exchange Rates | Compare Stocks |
+|---|---|
+| ![Exchange](public/images/ss_exchange.png) | ![Compare](public/images/ss_compare.png) |
+
+| Portfolio | Login |
+|---|---|
+| ![Portfolio](public/images/ss_portfolio.png) | ![Login](public/images/ss_login.png) |
+
+| Register |
+|---|
+| ![Register](public/images/ss_register.png) |
+
+| AI CHAT BOT |
+|---|
+| ![AI CHAT BOT](public/images/Screenshot_7.png) |
 
 ## 🚀 Features
 

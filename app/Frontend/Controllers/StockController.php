@@ -13,6 +13,7 @@ use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Frontend\Services\AiService;
 use App\Frontend\Services\ExchangeRateService;
 use App\Frontend\Services\StockService;
+use App\Models\HotIndustry;
 use App\Models\Stock;
 use App\Models\StockPrice;
 use Carbon\Carbon;
@@ -73,9 +74,9 @@ class StockController extends Controller
             return $rates;
         });
 
-        $hotIndustriesRaw = Cache::remember('hot_industries', 3600, function () {
-            return $this->stockService->fetchHotIndustriesFromPython(30);
-        });
+        // Load hot industries from DB (populated by scheduler sync:hot-industries).
+        // Falls back to Python on first run, persisting result for subsequent requests.
+        $hotIndustriesRaw = $this->getHotIndustries();
 
         // Paginate array manually
         $page = $request->get('page', 1);
@@ -94,6 +95,38 @@ class StockController extends Controller
         });
 
         return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news'));
+    }
+
+    /**
+     * Load hot industries from DB. If DB is empty (first run before scheduler has run),
+     * fall back to Python and persist the result so subsequent requests are instant.
+     */
+    private function getHotIndustries(): array
+    {
+        $rows = HotIndustry::select('symbol', 'organ_name', 'icb_name3')->get()->toArray();
+
+        if (!empty($rows)) {
+            return $rows;
+        }
+
+        // First-run fallback: call Python, persist to DB
+        $data = $this->stockService->fetchHotIndustriesFromPython(100);
+
+        if (!empty($data)) {
+            $inserts = array_map(fn($item) => [
+                'symbol'     => $item['symbol'] ?? '',
+                'organ_name' => $item['organ_name'] ?? null,
+                'icb_name3'  => $item['icb_name3'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], $data);
+
+            foreach (array_chunk($inserts, 200) as $chunk) {
+                HotIndustry::insert($chunk);
+            }
+        }
+
+        return $data;
     }
 
     /**

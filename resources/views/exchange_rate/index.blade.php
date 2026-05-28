@@ -527,6 +527,14 @@
     }
 
     /* Currency Styling */
+    .currency-row-highlight {
+        background: linear-gradient(90deg, rgba(37,99,235,0.04), transparent) !important;
+    }
+    .currency-flag {
+        font-size: 1.4rem;
+        margin-right: 4px;
+        vertical-align: middle;
+    }
     .currency-code {
         background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
         color: white;
@@ -797,31 +805,117 @@
 @endsection
 
 @section('content')
+@php
+$currencyFlags = ['USD'=>'🇺🇸','EUR'=>'🇪🇺','JPY'=>'🇯🇵','GBP'=>'🇬🇧','CNY'=>'🇨🇳','SGD'=>'🇸🇬','HKD'=>'🇭🇰','AUD'=>'🇦🇺','CAD'=>'🇨🇦','CHF'=>'🇨🇭','KRW'=>'🇰🇷','THB'=>'🇹🇭','NOK'=>'🇳🇴','SEK'=>'🇸🇪','DKK'=>'🇩🇰','MYR'=>'🇲🇾','INR'=>'🇮🇳','NZD'=>'🇳🇿','SAR'=>'🇸🇦','AED'=>'🇦🇪','KWD'=>'🇰🇼'];
+$keyRates = ['USD','EUR','JPY','GBP','CNY'];
+@endphp
 <!-- Header Section -->
-<section class="exchange-header">
+<section class="exchange-header" style="padding-bottom:0;">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="exchange-title fade-in">
+        <div class="row align-items-center" style="padding-top:2.5rem;padding-bottom:2rem;">
+            <div class="col-md-7">
+                <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:30px;padding:5px 16px;margin-bottom:1rem;font-size:0.8rem;font-weight:600;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#34d399;animation:pulse-ring 1.5s ease-out infinite;display:inline-block;"></span>
+                    Cập nhật hàng ngày lúc 07:30
+                </div>
+                <h1 class="exchange-title fade-in" style="margin-bottom:0.5rem;">
                     <i class="bi bi-currency-exchange"></i>
                     Tỷ Giá Ngoại Tệ
                 </h1>
-                <p class="exchange-subtitle fade-in">Vietcombank - Cập nhật theo thời gian thực</p>
+                <p class="exchange-subtitle fade-in">Vietcombank · Cập nhật mỗi ngày · Hỗ trợ 20+ ngoại tệ</p>
             </div>
-            <div class="col-md-4 text-md-end">
-                <a href="{{ url('/') }}" class="back-button">
-                    <i class="bi bi-arrow-left"></i>
-                    Về trang chủ
-                </a>
+            <div class="col-md-5 text-md-end">
+                <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;align-items:center;">
+                    <a href="{{ url('/') }}" class="back-button">
+                        <i class="bi bi-house"></i> Trang chủ
+                    </a>
+                    <a href="{{ url('/exchange-rate') }}" class="back-button">
+                        <i class="bi bi-arrow-clockwise"></i> Mới nhất
+                    </a>
+                </div>
             </div>
         </div>
+
+        <!-- Quick Highlights Strip -->
+        @php
+        $highlightCurrencies = ['USD' => ['🇺🇸', '#2563eb'], 'EUR' => ['🇪🇺', '#7c3aed'], 'JPY' => ['🇯🇵', '#dc2626'], 'GBP' => ['🇬🇧', '#059669'], 'CNY' => ['🇨🇳', '#ea580c'], 'SGD' => ['🇸🇬', '#0891b2']];
+        $highlightData = [];
+        $ratesForHighlight = $rates ?? [];
+        if (!empty($ratesForHighlight)) {
+            $firstDateItems = reset($ratesForHighlight);
+            foreach ($firstDateItems as $item) {
+                $code = $item['currency_code'] ?? '';
+                if (isset($highlightCurrencies[$code])) {
+                    $highlightData[$code] = $item;
+                }
+            }
+        }
+        @endphp
+        @if(!empty($highlightData))
+        <div style="display:flex;gap:0;border-top:1px solid rgba(255,255,255,0.15);overflow-x:auto;padding-bottom:0;">
+            @foreach($highlightCurrencies as $code => $meta)
+            @if(isset($highlightData[$code]))
+            @php $item = $highlightData[$code]; $sell = $item['sell'] ?? '-'; @endphp
+            <div style="flex:1;min-width:100px;padding:1rem 1.25rem;border-right:1px solid rgba(255,255,255,0.1);text-align:center;background:rgba(255,255,255,0.06);cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
+                <div style="font-size:1.4rem;margin-bottom:2px;">{{ $meta[0] }}</div>
+                <div style="font-size:0.72rem;font-weight:700;opacity:0.8;letter-spacing:1px;">{{ $code }}</div>
+                <div style="font-size:0.95rem;font-weight:800;color:white;margin-top:2px;">{{ is_numeric(str_replace([',','.'], '', $sell)) ? number_format((float)str_replace(',', '', $sell), 0, ',', '.') : $sell }}</div>
+                <div style="font-size:0.65rem;opacity:0.5;margin-top:1px;">VNĐ</div>
+            </div>
+            @endif
+            @endforeach
+        </div>
+        @endif
     </div>
 </section>
 
 <!-- Main Content -->
 <div class="main-content">
     <div class="container">
-        <!-- Search Section -->
+
+        <!-- Key Rates Bar Chart -->
+        @php
+        $chartRates = [];
+        $chartColors = ['#2563eb','#7c3aed','#dc2626','#059669','#ea580c','#0891b2'];
+        $ratesForChart = $rates ?? [];
+        if (!empty($ratesForChart)) {
+            $firstItems = reset($ratesForChart);
+            $idx = 0;
+            foreach (['USD','EUR','JPY','GBP','CNY','SGD'] as $code) {
+                foreach ($firstItems as $it) {
+                    if (($it['currency_code'] ?? '') === $code) {
+                        $sell = $it['sell'] ?? '0';
+                        $sellNum = (float)str_replace([',', ' '], '', $sell);
+                        if ($sellNum > 0) $chartRates[] = ['code' => $code, 'sell' => $sellNum, 'flag' => ['USD'=>'🇺🇸','EUR'=>'🇪🇺','JPY'=>'🇯🇵','GBP'=>'🇬🇧','CNY'=>'🇨🇳','SGD'=>'🇸🇬'][$code] ?? '', 'color' => $chartColors[$idx]];
+                        $idx++;
+                        break;
+                    }
+                }
+            }
+        }
+        @endphp
+        @if(!empty($chartRates))
+        <div style="background:white;border-radius:20px;padding:1.75rem 2rem 0.5rem;box-shadow:0 4px 24px rgba(37,99,235,0.08);border:1px solid #e5e7eb;margin-bottom:2.5rem;position:relative;overflow:hidden;" data-aos="fade-up">
+            <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#2563eb,#7c3aed,#10b981);border-radius:20px 20px 0 0;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+                <div>
+                    <h4 style="font-size:1.1rem;font-weight:700;color:#1f2937;margin:0;">
+                        <i class="bi bi-bar-chart-fill" style="color:#2563eb;margin-right:6px;"></i>
+                        Tỷ giá bán (VNĐ) các ngoại tệ chính
+                    </h4>
+                    <p style="font-size:0.8rem;color:#9ca3af;margin:2px 0 0;">Giá bán Vietcombank · {{ !empty($ratesForChart) ? \Carbon\Carbon::parse(array_key_first($ratesForChart))->format('d/m/Y') : 'Hôm nay' }}</p>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    @foreach($chartRates as $cr)
+                    <span style="display:inline-flex;align-items:center;gap:4px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:3px 10px;font-size:0.78rem;font-weight:700;color:#374151;">
+                        {{ $cr['flag'] }} {{ $cr['code'] }}: <span style="color:{{ $cr['color'] }};">{{ number_format($cr['sell'], 0, ',', '.') }}</span>
+                    </span>
+                    @endforeach
+                </div>
+            </div>
+            <div id="keyRatesChart"></div>
+        </div>
+        @endif
         <div class="search-section slide-up">
             <h3 class="search-title">
                 <i class="bi bi-search"></i>
@@ -949,15 +1043,19 @@
                             </thead>
                             <tbody>
                                 @foreach($items as $item)
-                                <tr>
+                                @php $code = $item['currency_code'] ?? ''; $isKey = in_array($code, $keyRates); @endphp
+                                <tr class="{{ $isKey ? 'currency-row-highlight' : '' }}">
                                     <td>
-                                        <span class="currency-code">{{ $item['currency_code'] }}</span>
+                                        <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                                            <span style="font-size:1.3rem;">{{ $currencyFlags[$code] ?? '🏳️' }}</span>
+                                            <span class="currency-code" style="{{ $isKey ? 'box-shadow:0 3px 12px rgba(37,99,235,0.4);' : '' }}">{{ $code }}</span>
+                                        </div>
                                     </td>
                                     <td>
                                         <div class="currency-name">{{ $item['currency_name'] }}</div>
                                     </td>
                                     <td>
-                                        <div class="currency-unit">1 {{ $item['currency_code'] }} = VNĐ</div>
+                                        <div class="currency-unit">1 {{ $code }} = VNĐ</div>
                                     </td>
                                     <td>
                                         <span class="rate-value buy-cash" title="Click để copy">
@@ -1025,15 +1123,19 @@
                                 </thead>
                                 <tbody>
                                     @foreach($items as $item)
-                                    <tr>
+                                    @php $code = $item['currency_code'] ?? ''; $isKey = in_array($code, $keyRates); @endphp
+                                    <tr class="{{ $isKey ? 'currency-row-highlight' : '' }}">
                                         <td>
-                                            <span class="currency-code">{{ $item['currency_code'] ?? '' }}</span>
+                                            <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                                                <span style="font-size:1.3rem;">{{ $currencyFlags[$code] ?? '🏳️' }}</span>
+                                                <span class="currency-code" style="{{ $isKey ? 'box-shadow:0 3px 12px rgba(37,99,235,0.4);' : '' }}">{{ $code }}</span>
+                                            </div>
                                         </td>
                                         <td>
                                             <div class="currency-name">{{ $item['currency_name'] ?? '' }}</div>
                                         </td>
                                         <td>
-                                            <div class="currency-unit">1 {{ $item['currency_code'] ?? '' }} = VNĐ</div>
+                                            <div class="currency-unit">1 {{ $code }} = VNĐ</div>
                                         </td>
                                         <td>
                                             <span class="rate-value buy-cash" title="Click để copy">
@@ -1083,6 +1185,7 @@
 @endsection
 
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Update current time
@@ -1363,5 +1466,76 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// ApexCharts: Key Rates Bar Chart
+@php
+$chartRatesJS = [];
+$ratesForChartJS = $rates ?? [];
+if (!empty($ratesForChartJS)) {
+    $firstItemsJS = reset($ratesForChartJS);
+    foreach (['USD','EUR','JPY','GBP','CNY','SGD'] as $code) {
+        foreach ($firstItemsJS as $it) {
+            if (($it['currency_code'] ?? '') === $code) {
+                $sell = $it['sell'] ?? '0';
+                $sellNum = (float)str_replace([',', ' '], '', $sell);
+                if ($sellNum > 0) $chartRatesJS[] = ['code' => $code, 'sell' => $sellNum];
+                break;
+            }
+        }
+    }
+}
+@endphp
+@if(!empty($chartRatesJS))
+const keyRatesData = {
+    categories: @json(array_column($chartRatesJS, 'code')),
+    values: @json(array_column($chartRatesJS, 'sell')),
+    colors: ['#2563eb','#7c3aed','#dc2626','#059669','#ea580c','#0891b2']
+};
+if (document.getElementById('keyRatesChart') && typeof ApexCharts !== 'undefined') {
+    const keyRatesChart = new ApexCharts(document.getElementById('keyRatesChart'), {
+        series: [{ name: 'Tỷ giá bán (VNĐ)', data: keyRatesData.values }],
+        chart: {
+            type: 'bar',
+            height: 220,
+            toolbar: { show: false },
+            animations: { enabled: true, easing: 'easeinout', speed: 700 },
+            fontFamily: 'Inter, sans-serif',
+        },
+        colors: keyRatesData.colors,
+        plotOptions: {
+            bar: {
+                distributed: true,
+                borderRadius: 8,
+                columnWidth: '50%',
+                dataLabels: { position: 'top' }
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: v => Number(v).toLocaleString('vi-VN'),
+            offsetY: -22,
+            style: { fontSize: '11px', colors: ['#374151'], fontWeight: '700' }
+        },
+        xaxis: {
+            categories: keyRatesData.categories,
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+            labels: { style: { fontSize: '13px', fontWeight: '700', colors: '#6b7280' } }
+        },
+        yaxis: {
+            labels: {
+                formatter: v => (v/1000).toFixed(0) + 'K',
+                style: { fontSize: '11px', colors: '#9ca3af' }
+            }
+        },
+        grid: { borderColor: '#f3f4f6', strokeDashArray: 4, yaxis: { lines: { show: true } }, xaxis: { lines: { show: false } } },
+        legend: { show: false },
+        tooltip: {
+            y: { formatter: v => Number(v).toLocaleString('vi-VN') + ' VNĐ' }
+        }
+    });
+    keyRatesChart.render();
+}
+@endif
 </script>
 @endsection

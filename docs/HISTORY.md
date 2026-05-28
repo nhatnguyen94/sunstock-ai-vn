@@ -1,5 +1,45 @@
 # Feature Update History
 
+## Feature Update: AUTO_SYNC_BACKGROUND_SCHEDULER - May 28, 2026
+### Problem Solved:
+- Homepage was slow because `fetchHotIndustriesFromPython()` was called synchronously on cache miss (every 3600s), blocking page load for 10-20s.
+- Exchange rates had the same issue on the first request of each day.
+- No automatic data refresh — user had to manually run `php artisan stock:sync`.
+
+### Added:
+- **Migration**: `database/migrations/2026_05_28_070000_create_hot_industries_table.php` — stores hot industry records in DB.
+- **Model**: `app/Models/HotIndustry.php` — Eloquent model for `hot_industries` table.
+- **Command**: `app/Console/Commands/SyncHotIndustries.php` — `php artisan sync:hot-industries [--limit=100]` — fetches from Python, truncates and re-populates the table, busts cache.
+- **Command**: `app/Console/Commands/SyncExchangeRates.php` — `php artisan sync:exchange-rates [--days=1]` — fetches rates from Python, saves to DB, busts cache.
+
+### Modified:
+- **Kernel**: `app/Console/Kernel.php` — Added 4 scheduled tasks:
+  - `sync:exchange-rates` → daily at 07:30 (before users access)
+  - `sync:hot-industries` → daily at 07:45
+  - `sync:stock-data` → weekly Monday at 07:00 (symbols rarely change)
+  - `sync:stock-prices` → daily at 15:30 (after VN market close)
+- **Controller**: `app/Frontend/Controllers/StockController.php` — `home()` now reads hot industries from DB (instant) via new private `getHotIndustries()` method. Falls back to Python on first run and persists result.
+- **Python**: `py/get_hot_industries.py` — Fixed for vnstock 4.x API (`Listing()` instead of deprecated `Vnstock().listing`). Joins `all_symbols()` to get `organ_name`. Updated industry name `'Công nghệ Thông tin'` → `'Công nghệ và thông tin'`.
+
+### How to Activate Scheduler (XAMPP/Windows):
+```
+# Option A: Persistent process (keep terminal open)
+php artisan schedule:work
+
+# Option B: Windows Task Scheduler (recommended for production)
+# Program: C:\xampp\php\php.exe
+# Arguments: C:\xampp\htdocs\stock-app\artisan schedule:run
+# Trigger: Every 1 minute, starting at system startup
+```
+
+### Verified:
+- `php artisan sync:hot-industries` → synced 100 records ✓
+- `php artisan sync:exchange-rates` → synced 20 records across 1 date ✓
+- DB table `hot_industries` contains 100 rows ✓
+- Homepage hot industries section now loads from DB (no Python call on page load) ✓
+
+---
+
 ## Feature Update: DOCUMENTATION_AUDIT_AND_EXPANSION - May 28, 2026
 ### Updated:
 - **docs/STRUCTURE.md**: Full audit against actual codebase — added missing controllers (`EmailVerificationController`, all Backend controllers), `Role` model, Middleware, Console Commands, Jobs, full Python scripts list, Backend views, key architectural patterns.
