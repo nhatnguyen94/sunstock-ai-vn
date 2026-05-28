@@ -40,6 +40,9 @@ To keep this guide manageable, it has been split into the following sections:
 8. **[RBAC & Permissions](docs/RBAC.md)**
    - Role constants, Gate definitions, middleware, permission matrix.
 
+9. **[Frontend Views & Asset Structure](docs/FRONTEND_VIEWS.md)**
+   - CSS/JS file locations, Blade → asset mapping, data-init pattern, CDN dependencies, build commands.
+
 ---
 
 ## 🤖 VNStock AI Agent References

@@ -177,30 +177,5 @@
         </div>
     @endif
 </div>
-
-<style>
-    .custom-card {
-        background: white;
-        border-radius: 16px;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-color);
-        transition: all 0.3s ease;
-    }
-
-    .custom-card:hover {
-        box-shadow: var(--shadow-md);
-        transform: translateY(-2px);
-    }
-
-    .card-header-custom {
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .portfolio-stats {
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1rem;
-        background: var(--bg-light);
-    }
-</style>
+@vite('resources/frontend/css/portfolio/index.css')
 @endsection

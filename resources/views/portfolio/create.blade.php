@@ -149,29 +149,5 @@
         </div>
     </div>
 </div>
-
-<style>
-    .custom-card {
-        background: white;
-        border-radius: 16px;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-color);
-    }
-
-    .card-header-custom {
-        border-bottom: 1px solid var(--border-color);
-        padding: 1.5rem 2rem 1rem;
-    }
-
-    .search-input:focus {
-        border-color: var(--primary-blue);
-        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
-    }
-
-    .suggestion-card:hover {
-        box-shadow: var(--shadow-sm);
-        transform: translateY(-1px);
-        transition: all 0.3s ease;
-    }
-</style>
+@vite('resources/frontend/css/portfolio/create.css')
 @endsection

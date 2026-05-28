@@ -98,24 +98,5 @@
         </div>
     </div>
 </div>
-
-<style>
-.info-label {
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    display: block;
-    margin-bottom: 0.5rem;
-}
-
-.info-value {
-    font-size: 1.1rem;
-    color: var(--text-primary);
-    font-weight: 500;
-    background: var(--light-gray);
-    padding: 1rem 1.5rem;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-}
-</style>
+@vite('resources/frontend/css/profile/show.css')
 @endsection
