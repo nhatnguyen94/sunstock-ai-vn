@@ -658,3 +658,122 @@
             left: 1rem;
         }
     }
+
+    /* ── Indicator Toolbar ─────────────────────────── */
+    .indicator-toolbar {
+        background: white;
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .indicator-label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.88rem;
+        margin-right: 4px;
+    }
+    .indicator-sep {
+        color: #d1d5db;
+        font-size: 1rem;
+    }
+    .indicator-check {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        font-size: 0.88rem;
+        font-weight: 500;
+        user-select: none;
+        padding: 4px 10px;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        transition: background 0.15s;
+    }
+    .indicator-check:hover { background: #f3f4f6; }
+    .indicator-check input[type=checkbox] { cursor: pointer; }
+
+    /* ── Sub-chart header ──────────────────────────── */
+    .sub-chart-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0.6rem 1rem 0;
+        background: white;
+        border-top: 1px solid #f3f4f6;
+    }
+    .sub-chart-label {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #374151;
+    }
+    .sub-chart-hint {
+        font-size: 0.78rem;
+        color: #9ca3af;
+    }
+    #rsiChartWrapper, #macdChartWrapper {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    /* ── Finance Section ───────────────────────────── */
+    .finance-section {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+        border: 1px solid #e5e7eb;
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+    .finance-type-tabs, .finance-period-tabs {
+        display: inline-flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .finance-period-tabs { margin-left: 12px; }
+    .fin-type-btn, .fin-period-btn {
+        padding: 0.45rem 1rem;
+        border: 1px solid #e5e7eb;
+        background: white;
+        color: #374151;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .fin-type-btn:hover, .fin-period-btn:hover { border-color: #2563eb; color: #2563eb; }
+    .fin-type-btn.active, .fin-period-btn.active {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }
+    .btn-load-finance {
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-load-finance:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(37,99,235,0.3);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }

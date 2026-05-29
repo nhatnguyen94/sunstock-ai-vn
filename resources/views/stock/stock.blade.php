@@ -113,6 +113,30 @@
     @endif
 
     @if (count($data) > 0)
+        <!-- Indicator Toolbar -->
+        <div class="indicator-toolbar" data-aos="fade-up" id="indicatorToolbar">
+            <span class="indicator-label"><i class="bi bi-sliders"></i> Chỉ báo:</span>
+            <label class="indicator-check" title="Simple Moving Average 20 phiên">
+                <input type="checkbox" id="indMA20"> <span style="color:#f59e0b;">MA20</span>
+            </label>
+            <label class="indicator-check" title="Simple Moving Average 50 phiên">
+                <input type="checkbox" id="indMA50"> <span style="color:#3b82f6;">MA50</span>
+            </label>
+            <label class="indicator-check" title="Simple Moving Average 200 phiên">
+                <input type="checkbox" id="indMA200"> <span style="color:#ec4899;">MA200</span>
+            </label>
+            <label class="indicator-check" title="Bollinger Bands (20, 2)">
+                <input type="checkbox" id="indBB"> <span style="color:#8b5cf6;">Bollinger</span>
+            </label>
+            <span class="indicator-sep">|</span>
+            <label class="indicator-check" title="Relative Strength Index 14 phiên — biểu đồ phụ bên dưới">
+                <input type="checkbox" id="indRSI"> <span style="color:#06b6d4;">RSI(14)</span>
+            </label>
+            <label class="indicator-check" title="MACD (12,26,9) — biểu đồ phụ bên dưới">
+                <input type="checkbox" id="indMACD"> <span style="color:#10b981;">MACD</span>
+            </label>
+        </div>
+
         <!-- Chart Controls -->
         <div class="chart-controls" data-aos="fade-up">
             <span style="color:#6b7280;font-weight:600;margin-right:0.5rem;font-size:0.9rem;">
@@ -149,6 +173,24 @@
             </div>
             <div id="apexCandleChart" class="active"></div>
             <div id="apexLineChart"></div>
+        </div>
+
+        <!-- RSI Sub-chart -->
+        <div id="rsiChartWrapper" style="display:none;margin-top:12px;" data-aos="fade-up">
+            <div class="sub-chart-header">
+                <span class="sub-chart-label"><i class="bi bi-activity" style="color:#06b6d4;"></i> RSI (14)</span>
+                <span class="sub-chart-hint">Vùng quá mua: &gt;70 &nbsp;|&nbsp; Vùng quá bán: &lt;30</span>
+            </div>
+            <div id="rsiChart"></div>
+        </div>
+
+        <!-- MACD Sub-chart -->
+        <div id="macdChartWrapper" style="display:none;margin-top:12px;" data-aos="fade-up">
+            <div class="sub-chart-header">
+                <span class="sub-chart-label"><i class="bi bi-bar-chart-line" style="color:#10b981;"></i> MACD (12, 26, 9)</span>
+                <span class="sub-chart-hint">Đường MACD vượt Signal → xu hướng tăng</span>
+            </div>
+            <div id="macdChart"></div>
         </div>
 
         <!-- Data Table -->
@@ -197,6 +239,35 @@
             Chưa có dữ liệu để hiển thị biểu đồ hoặc bảng. Vui lòng thử lại sau hoặc chọn mã cổ phiếu khác.
         </div>
     @endif
+
+    <!-- Finance Section -->
+    <div class="finance-section" data-aos="fade-up" data-aos-delay="100">
+        <div class="data-header">
+            <h3 class="data-title">
+                <i class="bi bi-building"></i>
+                Tài chính doanh nghiệp <span>{{ $symbol }}</span>
+            </h3>
+            <div id="financeTabBar" style="display:none;">
+                <div class="finance-type-tabs">
+                    <button class="fin-type-btn active" data-type="income">KQKD</button>
+                    <button class="fin-type-btn" data-type="balance">Bảng cân đối</button>
+                    <button class="fin-type-btn" data-type="cashflow">Lưu chuyển tiền</button>
+                    <button class="fin-type-btn" data-type="ratio">Chỉ số tài chính</button>
+                </div>
+                <div class="finance-period-tabs">
+                    <button class="fin-period-btn active" data-period="quarter">Quý</button>
+                    <button class="fin-period-btn" data-period="year">Năm</button>
+                </div>
+            </div>
+        </div>
+        <div id="financeBody">
+            <div style="text-align:center;padding:2rem 0;">
+                <button id="btnLoadFinance" class="btn-load-finance">
+                    <i class="bi bi-table"></i> Tải dữ liệu tài chính
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 

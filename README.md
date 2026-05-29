@@ -34,7 +34,9 @@
 
 ## 🚀 Features
 
-- **Stock Viewer** — Search any Vietnamese stock symbol with autocomplete, view historical price charts and data tables.
+- **Stock Viewer** — Search any Vietnamese stock symbol with autocomplete, view historical price charts (candlestick & line) and data tables.
+- **📊 Technical Indicators** — Overlay MA20/50/200, Bollinger Bands on the main chart; RSI(14) and MACD(12,26,9) display as dedicated sub-charts below. All indicators update when filtering by time period (1M/3M/6M/1Y/All).
+- **🏦 Company Financials** — On-demand financial statement viewer: Income Statement, Balance Sheet, Cash Flow, and Financial Ratios — quarterly or annual — powered by the KBS data source via vnstock.
 - **Compare Stocks** — Side-by-side chart comparison for multiple symbols.
 - **Hot Industries** — Discover top-performing stocks in Banking, Real Estate, and IT sectors.
 - **Portfolio Management** — Create portfolios, track holdings, monitor profit/loss in real time, set price targets and stop-loss alerts, get AI rebalancing suggestions.
@@ -50,11 +52,13 @@
 | Layer | Technology |
 |---|---|
 | Backend | Laravel 12 (PHP 8.2+) |
-| Data Fetching | Python 3 + vnstock library |
+| Data Fetching | Python 3 + vnstock 4.x library |
 | AI | OpenRouter API (supports any OpenRouter-compatible LLM) |
-| Database | MySQL |
-| Frontend | Blade Templates + Bootstrap 5 + Bootstrap Icons |
+| Database | MySQL (RANGE-partitioned by year for scale) |
+| Charts | ApexCharts 3.49 (candlestick, line, bar, mixed) |
+| Frontend | Blade Templates + Bootstrap 4.5 + Bootstrap Icons |
 | Architecture | SOLID — Controller / Service / Repository / Interface |
+| Queue | Laravel Database Queue — 6 parallel workers for data sync |
 
 ## ⚡ Quick Start
 
@@ -128,6 +132,9 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-05-29 | **Technical Indicators** (MA/BB/RSI/MACD) + **Company Financials** on stock page |
+| 2026-05-29 | Historical data backfill via 6-worker parallel queue; MySQL RANGE partitioning |
+| 2026-05-29 | Fixed vnstock 4.x API breakage & Laravel 12 scheduler; pagination bug fix |
 | 2026-05-28 | Full documentation audit & expansion |
 | 2026-05-16 | Improved search, added ETF support, backend pipeline fixes |
 | 2026-05-02 | RBAC system, separate admin login, role management |
@@ -155,7 +162,9 @@ MIT License © 2025–2026
 
 ## 🚀 Tính năng
 
-- **Xem cổ phiếu** — Tìm kiếm mã cổ phiếu với autocomplete, xem biểu đồ giá lịch sử và bảng dữ liệu.
+- **Xem cổ phiếu** — Tìm kiếm mã cổ phiếu với autocomplete, xem biểu đồ giá lịch sử (nến Nhật & đường) và bảng dữ liệu.
+- **📊 Chỉ báo kỹ thuật** — Thêm MA20/50/200, Bollinger Bands lên biểu đồ chính; RSI(14) và MACD(12,26,9) hiển thị dưới dạng biểu đồ phụ riêng biệt. Tất cả chỉ báo cập nhật theo bộ lọc thời gian (1T/3T/6T/1N/Tất cả).
+- **🏦 Tài chính doanh nghiệp** — Xem báo cáo tài chính theo yêu cầu: Kết quả kinh doanh, Bảng cân đối kế toán, Lưu chuyển tiền tệ, Chỉ số tài chính — theo quý hoặc năm — từ nguồn dữ liệu KBS qua vnstock.
 - **So sánh cổ phiếu** — So sánh biểu đồ nhiều mã cổ phiếu cùng lúc.
 - **Ngành hot** — Khám phá cổ phiếu nổi bật trong các ngành Ngân hàng, Bất động sản, CNTT.
 - **Quản lý danh mục** — Tạo danh mục đầu tư, theo dõi lợi nhuận/lỗ theo thời gian thực, đặt mức giá mục tiêu và cắt lỗ, gợi ý cân bằng danh mục bằng AI.
@@ -235,6 +244,9 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-05-29 | **Chỉ báo kỹ thuật** (MA/BB/RSI/MACD) + **Tài chính doanh nghiệp** trên trang cổ phiếu |
+| 2026-05-29 | Backfill lịch sử giá song song 6 workers; phân vùng MySQL RANGE theo năm |
+| 2026-05-29 | Sửa lỗi vnstock 4.x API & scheduler Laravel 12; sửa phân trang |
 | 2026-05-28 | Rà soát và mở rộng toàn bộ tài liệu |
 | 2026-05-16 | Cải tiến tìm kiếm, bổ sung ETF, sửa lỗi UI/UX |
 | 2026-05-02 | Hệ thống RBAC, đăng nhập admin riêng, quản lý vai trò |

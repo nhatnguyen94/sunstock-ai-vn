@@ -11,6 +11,7 @@ namespace App\Frontend\Controllers;
 use App\Frontend\Interfaces\NewsServiceInterface;
 use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Frontend\Services\AiService;
+use App\Frontend\Services\CompanyFinancialService;
 use App\Frontend\Services\ExchangeRateService;
 use App\Frontend\Services\StockService;
 use App\Models\HotIndustry;
@@ -26,19 +27,20 @@ use Illuminate\View\View;
 class StockController extends Controller
 {
     protected $stockRepo;
-
     protected $stockService;
-
     protected $exchangeService;
+    protected $financialService;
 
     public function __construct(
         StockRepositoryInterface $stockRepo,
         StockService $stockService,
-        ExchangeRateService $exchangeService
+        ExchangeRateService $exchangeService,
+        CompanyFinancialService $financialService
     ) {
-        $this->stockRepo = $stockRepo;
-        $this->stockService = $stockService;
-        $this->exchangeService = $exchangeService;
+        $this->stockRepo        = $stockRepo;
+        $this->stockService     = $stockService;
+        $this->exchangeService  = $exchangeService;
+        $this->financialService = $financialService;
     }
 
     /**
@@ -234,6 +236,31 @@ class StockController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * API: return company financial data (income / balance / cashflow / ratio).
+     * Cached 4 hours per symbol+type+period combination.
+     */
+    public function finance(Request $request): JsonResponse
+    {
+        $symbol = strtoupper(trim($request->input('symbol', '')));
+        $type   = $request->input('type',   'income');
+        $period = $request->input('period', 'quarter');
+
+        if (! $symbol || ! preg_match('/^[A-Z0-9]{1,20}$/', $symbol)) {
+            return response()->json(['error' => 'Invalid symbol'], 400);
+        }
+        if (! in_array($type, ['income', 'balance', 'cashflow', 'ratio'])) {
+            return response()->json(['error' => 'Invalid type'], 400);
+        }
+        if (! in_array($period, ['quarter', 'year'])) {
+            return response()->json(['error' => 'Invalid period'], 400);
+        }
+
+        return response()->json(
+            $this->financialService->getFinancialData($symbol, $type, $period)
+        );
     }
 
     public function aiChat(Request $request, AiService $aiService)

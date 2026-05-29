@@ -9,10 +9,12 @@
 namespace App\Providers;
 
 use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
+use App\Frontend\Interfaces\CompanyFinancialRepositoryInterface;
 use App\Frontend\Interfaces\NewsServiceInterface;
 use App\Frontend\Interfaces\PortfolioRepositoryInterface;
 use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Frontend\Interfaces\UserProfileRepositoryInterface;
+use App\Frontend\Repositories\CompanyFinancialRepository;
 use App\Frontend\Repositories\ExchangeRateRepository;
 use App\Frontend\Repositories\PortfolioRepository;
 use App\Frontend\Repositories\StockRepository;
@@ -48,6 +50,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             PortfolioRepositoryInterface::class,
             PortfolioRepository::class
+        );
+        $this->app->bind(
+            CompanyFinancialRepositoryInterface::class,
+            CompanyFinancialRepository::class
         );
     }
 

@@ -18,6 +18,9 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\RegisterVnstockApiKey::class,
         \App\Console\Commands\SyncHotIndustries::class,
         \App\Console\Commands\SyncExchangeRates::class,
+        \App\Console\Commands\GeneratePriceSummaries::class,
+        \App\Console\Commands\BackfillStockPrices::class,
+        // SyncCompanyFinancials is auto-discovered via $this->load() below
     ];
 
     /**

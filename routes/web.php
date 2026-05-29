@@ -21,6 +21,7 @@ Route::post('/search', [StockController::class, 'search'])->name('stock.search')
 Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
 Route::get('/stock/compare', [StockController::class, 'compare'])->name('stock.compare');
 Route::get('/stock/compare-data', [StockController::class, 'compareData'])->name('stock.compare-data');
+Route::get('/stock/finance', [StockController::class, 'finance'])->name('stock.finance');
 
 Route::get('/stocks-list', [StockController::class, 'getStockSymbols']);
 
