@@ -12,10 +12,14 @@ use App\Backend\Interfaces\NewsRepositoryInterface as BackendNewsRepositoryInter
 use App\Backend\Interfaces\NewsServiceInterface as BackendNewsServiceInterface;
 use App\Backend\Interfaces\StockRepositoryInterface as BackendStockRepositoryInterface;
 use App\Backend\Interfaces\StockServiceInterface as BackendStockServiceInterface;
+use App\Backend\Interfaces\UserRepositoryInterface as BackendUserRepositoryInterface;
+use App\Backend\Interfaces\UserServiceInterface as BackendUserServiceInterface;
 use App\Backend\Repositories\NewsRepository as BackendNewsRepository;
 use App\Backend\Repositories\StockRepository as BackendStockRepository;
+use App\Backend\Repositories\UserRepository as BackendUserRepository;
 use App\Backend\Services\NewsService as BackendNewsService;
 use App\Backend\Services\StockService as BackendStockService;
+use App\Backend\Services\UserService as BackendUserService;
 use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
 use App\Frontend\Interfaces\CompanyFinancialRepositoryInterface;
 use App\Frontend\Interfaces\NewsRepositoryInterface as FrontendNewsRepositoryInterface;
@@ -42,6 +46,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(
+            BackendUserRepositoryInterface::class,
+            BackendUserRepository::class
+        );
+        $this->app->bind(
+            BackendUserServiceInterface::class,
+            BackendUserService::class
+        );
         $this->app->bind(
             BackendNewsRepositoryInterface::class,
             BackendNewsRepository::class

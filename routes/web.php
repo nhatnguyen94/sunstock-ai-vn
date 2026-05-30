@@ -100,12 +100,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/timeline', [TimelineController::class, 'index'])->name('timeline');
         Route::get('/timeline/stats', [TimelineController::class, 'stats'])->name('timeline.stats');
         
-        // Users Management - Chỉ Admin
-        Route::resource('users', UserController::class);
-        
-        // User Email Verification Management - Chỉ Admin
-        Route::post('/users/{user}/verify', [EmailVerificationController::class, 'adminVerify'])->name('users.verify');
-        Route::post('/users/{user}/unverify', [EmailVerificationController::class, 'adminUnverify'])->name('users.unverify');
+        // Users Management — Admin only
+        Route::middleware('can:manage-users')->group(function () {
+            Route::resource('users', UserController::class);
+            Route::post('/users/{user}/verify', [EmailVerificationController::class, 'adminVerify'])->name('users.verify');
+            Route::post('/users/{user}/unverify', [EmailVerificationController::class, 'adminUnverify'])->name('users.unverify');
+        });
         
         // Stock, News, Portfolio — Admin + AdminSupport only
         Route::middleware('can:manage-features')->group(function () {

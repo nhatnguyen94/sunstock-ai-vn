@@ -68,6 +68,20 @@
                 <div class="row">
                     <div class="col-md-12">
                         <div class="mb-3">
+                            <label class="form-label">Xác thực email</label>
+                            <label class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="email_verified" value="1"
+                                       {{ old('email_verified', '1') ? 'checked' : '' }}>
+                                <span class="form-check-label">Đánh dấu email đã xác thực ngay</span>
+                            </label>
+                            <small class="form-hint">Bỏ chọn nếu muốn user phải tự xác thực qua email.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
                             <label class="form-label required">Vai trò (có thể chọn nhiều)</label>
                             <div class="form-selectgroup form-selectgroup-boxes d-flex flex-wrap gap-2">
                                 @foreach($roles as $role)

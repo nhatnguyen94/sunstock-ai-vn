@@ -2,159 +2,103 @@
 
 namespace App\Backend\Controllers;
 
-use App\Models\Role;
+use App\Backend\Interfaces\UserServiceInterface;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\View\View;
 
 class UserController extends Controller
 {
-    /**
-     * Hiển thị danh sách users
-     * Chỉ Admin mới có quyền
-     */
-    public function index(Request $request)
-    {
-        // Kiểm tra quyền
-        if (!Gate::allows('manage-users')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
-        }
+    public function __construct(
+        protected UserServiceInterface $userService
+    ) {}
 
-        $users = User::with('roles', 'profile')
-            ->when($request->search, function($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            })
-            ->paginate(15);
+    public function index(Request $request): View
+    {
+        $users = $this->userService->listUsers($request->only('search'));
 
         return view('backend.users.index', compact('users'));
     }
 
-    /**
-     * Hiển thị form tạo user mới
-     */
-    public function create()
+    public function create(): View
     {
-        if (!Gate::allows('manage-users')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
-        }
+        $roles = $this->userService->getRoles();
 
-        $roles = Role::all();
         return view('backend.users.create', compact('roles'));
     }
 
-    /**
-     * Lưu user mới
-     */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        if (!Gate::allows('manage-users')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+        $validated = $request->validate([
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'roles' => 'required|array|min:1',
-            'roles.*' => 'exists:roles,name',
+            'roles'    => 'required|array|min:1',
+            'roles.*'  => 'exists:roles,name',
         ], [
             'roles.required' => 'Phải chọn ít nhất một vai trò.',
             'roles.*.exists' => 'Vai trò không hợp lệ.',
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'email_verified_at' => now(),
-        ]);
+        $validated['email_verified_at'] = $request->boolean('email_verified') ? now() : null;
 
-        // Gán multiple roles
-        $user->syncRoles($request->roles);
+        $this->userService->createUser($validated);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User đã được tạo thành công!');
     }
 
-    /**
-     * Hiển thị chi tiết user
-     */
-    public function show(User $user)
+    public function show(User $user): View
     {
-        if (!Gate::allows('manage-users')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
-        }
+        $user = $this->userService->findWithRelations($user);
 
-        $user->load('roles', 'profile', 'portfolios');
         return view('backend.users.show', compact('user'));
     }
 
-    /**
-     * Hiển thị form chỉnh sửa user
-     */
-    public function edit(User $user)
+    public function edit(User $user): View
     {
-        if (!Gate::allows('manage-users')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
-        }
-
-        $roles = Role::all();
+        $roles = $this->userService->getRoles();
         $user->load('roles');
-        
+
         return view('backend.users.edit', compact('user', 'roles'));
     }
 
-    /**
-     * Cập nhật user
-     */
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $user): RedirectResponse
     {
-        if (!Gate::allows('manage-users')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+        $validated = $request->validate([
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8|confirmed',
-            'roles' => 'required|array|min:1',
-            'roles.*' => 'exists:roles,name',
+            'roles'    => 'required|array|min:1',
+            'roles.*'  => 'exists:roles,name',
         ], [
             'roles.required' => 'Phải chọn ít nhất một vai trò.',
             'roles.*.exists' => 'Vai trò không hợp lệ.',
         ]);
 
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password ? Hash::make($request->password) : $user->password,
-        ]);
+        $validated['email_verified_at'] = $request->status === 'active'
+            ? ($user->email_verified_at ?? now())
+            : null;
 
-        // Cập nhật multiple roles
-        $user->syncRoles($request->roles);
+        if (empty($validated['password'])) {
+            unset($validated['password']);
+        }
+
+        $this->userService->updateUser($user, $validated);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User đã được cập nhật thành công!');
     }
 
-    /**
-     * Xóa user
-     */
-    public function destroy(User $user)
+    public function destroy(User $user): RedirectResponse
     {
-        if (!Gate::allows('manage-users')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
-        }
-
-        // Không cho phép tự xóa chính mình
         if ($user->id === auth()->id()) {
             return redirect()->route('admin.users.index')
                 ->with('error', 'Bạn không thể xóa chính mình!');
         }
 
-        $user->delete();
+        $this->userService->deleteUser($user);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User đã được xóa thành công!');
