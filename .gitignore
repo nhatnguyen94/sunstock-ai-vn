@@ -3,6 +3,13 @@
 .env
 .env.backup
 .env.production
+.env.docker
+.env.docker.bak
+.env.xampp
+docker/nginx/ssl/
+*.pem
+*.key.pem
+docker/init.sql
 .phpactor.json
 .phpunit.result.cache
 /.fleet

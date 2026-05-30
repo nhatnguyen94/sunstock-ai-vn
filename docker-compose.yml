@@ -1,0 +1,117 @@
+services:
+
+  # ── Nginx: HTTPS reverse proxy ───────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./public:/var/www/html/public:ro   # serve static files without going to PHP
+    depends_on:
+      - php
+    networks:
+      - stocknet
+    restart: unless-stopped
+
+  # ── PHP-FPM: Laravel app + Python ───────────────────────────────────────────
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/html                                          # code mount (dev)
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-custom.ini:ro
+      - vendor_data:/var/www/html/vendor                        # vendor in named volume (faster on Windows)
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - PYTHONIOENCODING=utf-8
+    networks:
+      - stocknet
+    restart: unless-stopped
+
+  # ── MySQL 8.0 ────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-stock_app}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"   # expose on 3307 to avoid conflict with XAMPP MySQL on 3306
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-secret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - stocknet
+    restart: unless-stopped
+
+  # ── Redis 7 ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - stocknet
+    restart: unless-stopped
+
+  # ── Queue workers (6 parallel via Supervisor) ────────────────────────────────
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    command: ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+    volumes:
+      - .:/var/www/html
+      - ./docker/php/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
+      - vendor_data:/var/www/html/vendor
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - PYTHONIOENCODING=utf-8
+    networks:
+      - stocknet
+    restart: unless-stopped
+
+  # ── Scheduler (php artisan schedule:work) ────────────────────────────────────
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - .:/var/www/html
+      - vendor_data:/var/www/html/vendor
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - PYTHONIOENCODING=utf-8
+    networks:
+      - stocknet
+    restart: unless-stopped
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  mysql_data:
+  redis_data:
+  vendor_data:    # isolates vendor/ from Windows filesystem (much faster)
+
+# ── Network ───────────────────────────────────────────────────────────────────
+networks:
+  stocknet:
+    driver: bridge

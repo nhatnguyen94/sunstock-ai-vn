@@ -51,29 +51,53 @@
             document.getElementById('aiChatInput').focus();
         }
         
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        let _aiChatBusy = false;
+
         function sendAiChat() {
+            if (_aiChatBusy) return;
             let msg = document.getElementById('aiChatInput').value.trim();
             let lang = document.getElementById('aiLangSelect').value;
             if (!msg) return;
-            
+
+            _aiChatBusy = true;
+            const inputEl = document.getElementById('aiChatInput');
+            inputEl.disabled = true;
+
             let box = document.getElementById('aiChatMessages');
             box.innerHTML += `<div style="margin-bottom:10px;text-align:right;">
-                <span style="background:linear-gradient(135deg,var(--primary-blue),var(--secondary-blue));color:white;border-radius:18px 18px 4px 18px;padding:10px 15px;display:inline-block;max-width:85%;font-weight:500;font-size:0.9rem;">${msg}</span>
+                <span style="background:linear-gradient(135deg,var(--primary-blue),var(--secondary-blue));color:white;border-radius:18px 18px 4px 18px;padding:10px 15px;display:inline-block;max-width:85%;font-weight:500;font-size:0.9rem;">${escapeHtml(msg)}</span>
             </div>`;
-            document.getElementById('aiChatInput').value = '';
-            
+            inputEl.value = '';
+
             box.innerHTML += `<div id="aiLoading" style="margin-bottom:10px;">
                 <span style="background:white;border:1px solid var(--border-color);border-radius:18px 18px 18px 4px;padding:10px 15px;display:inline-flex;align-items:center;gap:8px;font-size:0.9rem;">
                     <span class="loading" style="border-top-color:var(--primary-blue);border-color:rgba(37,99,235,0.2);border-top-color:var(--primary-blue);"></span> AI đang phân tích...
                 </span>
             </div>`;
             box.scrollTop = box.scrollHeight;
-            
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 35000);
+
             fetch('/ai-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                body: JSON.stringify({ message: msg, lang: lang })
-            }).then(res => res.json()).then(data => {
+                body: JSON.stringify({ message: msg, lang: lang }),
+                signal: controller.signal,
+            }).then(res => {
+                clearTimeout(timeoutId);
+                if (!res.ok) throw new Error('http_' + res.status);
+                return res.json();
+            }).then(data => {
                 const loading = document.getElementById('aiLoading');
                 if (loading) loading.remove();
                 box.innerHTML += `<div style="margin-bottom:10px;">
@@ -81,15 +105,23 @@
                         <div style="width:30px;height:30px;background:linear-gradient(135deg,var(--primary-blue),var(--secondary-blue));border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:4px;">
                             <i class="bi bi-robot" style="color:white;font-size:0.85rem;"></i>
                         </div>
-                        <span style="background:white;border:1px solid var(--border-color);border-radius:4px 18px 18px 18px;padding:10px 15px;display:inline-block;max-width:85%;font-size:0.9rem;line-height:1.5;">${data.answer}</span>
+                        <span style="background:white;border:1px solid var(--border-color);border-radius:4px 18px 18px 18px;padding:10px 15px;display:inline-block;max-width:85%;font-size:0.9rem;line-height:1.5;">${escapeHtml(data.answer)}</span>
                     </div>
                 </div>`;
                 box.scrollTop = box.scrollHeight;
-            }).catch(() => {
+            }).catch(err => {
+                clearTimeout(timeoutId);
                 const loading = document.getElementById('aiLoading');
                 if (loading) loading.remove();
-                box.innerHTML += `<div style="margin-bottom:10px;"><span style="background:#fee2e2;color:#dc2626;border-radius:4px 18px 18px 18px;padding:10px 15px;display:inline-block;font-size:0.9rem;"><i class="bi bi-exclamation-triangle"></i> Có lỗi, vui lòng thử lại!</span></div>`;
+                const errMsg = err.name === 'AbortError'
+                    ? 'Yêu cầu quá thời gian, vui lòng thử lại!'
+                    : 'Có lỗi xảy ra, vui lòng thử lại!';
+                box.innerHTML += `<div style="margin-bottom:10px;"><span style="background:#fee2e2;color:#dc2626;border-radius:4px 18px 18px 18px;padding:10px 15px;display:inline-block;font-size:0.9rem;"><i class="bi bi-exclamation-triangle"></i> ${errMsg}</span></div>`;
                 box.scrollTop = box.scrollHeight;
+            }).finally(() => {
+                _aiChatBusy = false;
+                inputEl.disabled = false;
+                inputEl.focus();
             });
         }
         

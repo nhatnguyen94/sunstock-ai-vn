@@ -1,0 +1,12 @@
+.git
+node_modules
+docker/nginx/ssl
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+.env
+.env.*
+!.env.example
+*.sql
+*.log

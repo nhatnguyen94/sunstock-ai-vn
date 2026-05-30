@@ -39,6 +39,10 @@ return [
         'key' => env('OPENROUTER_API_KEY'),
     ],
 
+    'groq' => [
+        'key' => env('GROQ_API_KEY'),
+    ],
+
     'python' => [
         'path' => env('PYTHON_PATH', 'python'),
     ],

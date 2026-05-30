@@ -10,9 +10,7 @@ class AiController extends Controller
 {
     public function predict(Request $request, AiService $aiService)
     {
-        // Nếu chưa đăng nhập, chỉ cho phép 1 lần (có thể kiểm tra bằng session hoặc cookie nếu muốn chặt chẽ hơn)
-        // Ở đây chỉ demo, luôn trả về kết quả
-        $prompt = 'Dự đoán thị trường chứng khoán Việt Nam tuần này.';
+        $prompt = 'Dự đoán xu hướng thị trường chứng khoán Việt Nam tuần này. Nêu cụ thể các yếu tố tác động và khuyến nghị ngắn gọn cho nhà đầu tư.';
         $result = $aiService->predictMarket($prompt, Auth::user());
 
         return response()->json(['result' => $result]);

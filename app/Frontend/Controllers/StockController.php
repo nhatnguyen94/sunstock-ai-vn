@@ -270,8 +270,16 @@ class StockController extends Controller
             'lang' => 'nullable|string|in:vi,en',
         ]);
 
-        $question = $request->input('message');
         $lang = $request->input('lang', 'vi');
+
+        // Strip control characters and null bytes to prevent prompt injection
+        $question = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $request->input('message'));
+        $question = trim($question);
+
+        if (empty($question)) {
+            return response()->json(['answer' => $lang === 'en' ? 'Please enter a valid question.' : 'Vui lòng nhập câu hỏi hợp lệ.']);
+        }
+
         $answer = $aiService->ask($question, $lang);
 
         return response()->json(['answer' => $answer]);

@@ -19,7 +19,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - **Services**: `app/Frontend/Services/` - Business logic for Frontend
   - `StockService.php` - Call Python scripts to fetch/sync stock data, hot industries
   - `ExchangeRateService.php` - Handle exchange rate data
-  - `AiService.php` - AI chat/prediction integration
+  - `AiService.php` - AI chat/prediction via Groq API (llama-3.3-70b-versatile, fallback chain, Redis cache 2h for predict, XSS-safe)
   - `NewsService.php` - RSS news from VnExpress
   - `PortfolioService.php` - Portfolio management business logic
 
@@ -68,11 +68,18 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 
 ### Console Commands
 - `app/Console/Commands/SyncStockData.php` - Artisan command to sync stock symbols/details from Python
-- `app/Console/Commands/SyncStockPrices.php` - Artisan command to sync historical stock prices
+- `app/Console/Commands/SyncStockPrices.php` - Sync daily stock prices; skips symbols already synced today (`--force` to override)
+- `app/Console/Commands/BackfillStockPrices.php` - Backfill historical prices from a start date; skips stocks with data >2 years old (`--force` to override)
+- `app/Console/Commands/GeneratePriceSummaries.php` - Rebuild monthly OHLCV summaries in `stock_price_summaries`
+- `app/Console/Commands/SyncHotIndustries.php` - Sync hot industry stock list from Python/vnstock
+- `app/Console/Commands/SyncExchangeRates.php` - Sync VCB exchange rates via Python
+- `app/Console/Commands/SyncCompanyFinancials.php` - Sync company financials to DB cache; `--dispatch` mode pre-filters fully-fresh symbols
 - `app/Console/Commands/RegisterVnstockApiKey.php` - Register vnstock API key via Python script
 
 ### Jobs
 - `app/Jobs/ProcessStockPriceSync.php` - Queued job for async stock price synchronization
+- `app/Jobs/BackfillStockPriceChunk.php` - Queued job for historical price backfill (multi-symbol batch, date range)
+- `app/Jobs/SyncCompanyFinancialJob.php` - Queued job for syncing company financials (all types/periods for one symbol)
 
 ### Routes (`routes/web.php`)
 - **Public**: homepage, stock index/compare, exchange rate, AI chat/predict, stock search
@@ -92,6 +99,32 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `get_hot_industries.py` - Fetch hot industry stocks (Banking, Real Estate, IT)
 - `get_stock_list.py` - Fetch full list of stock symbols from vnstock
 - `register_api_key.py` - Register/configure vnstock API key
+
+## Runtime Environment (Docker)
+
+> **Full guide**: [docs/DOCKER.md](DOCKER.md)
+
+Project runs in Docker Compose with 6 containers:
+
+| Container | Role | Host Port |
+|---|---|---|
+| `nginx` | HTTPS reverse proxy (nginx:1.27-alpine) | 80, 443 |
+| `php` | PHP-FPM 8.2 + Python 3 venv | — |
+| `mysql` | MySQL 8.0 database | 3307 |
+| `redis` | Redis 7 (queue, cache, sessions) | — |
+| `queue` | 6 queue workers (supervisor) | — |
+| `scheduler` | Laravel scheduler (`schedule:work`) | — |
+
+- **App URL**: `https://sunstock-local.dev`
+- **Python path**: `/opt/venv/bin/python3` (env: `PYTHON_PATH`)
+- **AI Provider**: Groq API (env: `GROQ_API_KEY`) — `config('services.groq.key')`
+
+```bash
+# Daily use
+docker compose up -d
+docker exec -it stock-app-php-1 bash
+docker exec stock-app-php-1 php artisan <command>
+```
 
 ## Namespace Convention
 - Frontend: `App\Frontend\{Controllers|Services|Repositories|Interfaces}`

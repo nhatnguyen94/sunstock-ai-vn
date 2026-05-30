@@ -53,14 +53,50 @@
 |---|---|
 | Backend | Laravel 12 (PHP 8.2+) |
 | Data Fetching | Python 3 + vnstock 4.x library |
-| AI | OpenRouter API (supports any OpenRouter-compatible LLM) |
+| AI | Groq API — `llama-3.3-70b-versatile` (free, 14,400 req/day, ~0.4s response) |
 | Database | MySQL (RANGE-partitioned by year for scale) |
 | Charts | ApexCharts 3.49 (candlestick, line, bar, mixed) |
 | Frontend | Blade Templates + Bootstrap 4.5 + Bootstrap Icons |
 | Architecture | SOLID — Controller / Service / Repository / Interface |
-| Queue | Laravel Database Queue — 6 parallel workers for data sync |
+| Queue | Redis Queue — 6 parallel workers (Docker supervisor) |
 
-## ⚡ Quick Start
+## ⚡ Quick Start (Docker — recommended)
+
+**Requirements:** Docker Desktop
+
+```bash
+# 1. Clone
+git clone https://github.com/nhatnguyen94/sunstock-ai-vn.git
+cd stock-app
+```
+
+```bash
+# 2. Configure .env (copy from .env.xampp as base)
+cp .env.xampp .env
+# Edit DB_HOST=mysql, REDIS_HOST=redis, APP_URL=https://sunstock-local.dev
+# Add: GROQ_API_KEY=your_groq_key
+```
+
+```bash
+# 3. Add hosts entry (Windows: C:\Windows\System32\drivers\etc\hosts)
+# 127.0.0.1 sunstock-local.dev
+```
+
+```bash
+# 4. Start containers
+docker compose up -d
+docker exec stock-app-php-1 composer install
+docker exec stock-app-php-1 php artisan migrate --seed
+docker exec stock-app-php-1 php artisan sync:stock-data
+```
+
+```bash
+# 5. Visit https://sunstock-local.dev
+```
+
+> See [docs/DOCKER.md](docs/DOCKER.md) for full Docker setup, SSL certificate, MySQL Workbench connection.
+
+## ⚡ Quick Start (XAMPP / manual)
 
 **Requirements:** PHP 8.2+, Composer, MySQL, Node.js, Python 3.10+
 
@@ -79,7 +115,7 @@ php artisan key:generate
 DB_DATABASE=stock_app
 DB_USERNAME=root
 DB_PASSWORD=
-OPENROUTER_API_KEY=your_key_here
+GROQ_API_KEY=your_groq_key_here
 ```
 
 ```bash
@@ -96,8 +132,8 @@ pip install vnstock
 
 ```bash
 # 5. Sync stock data
-php artisan stock:sync          # Sync stock symbols
-php artisan stock:sync-prices   # Sync historical prices
+php artisan sync:stock-data         # Sync stock symbols
+php artisan sync:stock-prices       # Sync historical prices
 ```
 
 ```bash
@@ -108,11 +144,11 @@ php artisan serve
 
 ## 🤖 AI Chat Setup
 
-1. Get a free API key at [openrouter.ai](https://openrouter.ai)
-2. Add to `.env`: `OPENROUTER_API_KEY=your_key_here`
+1. Get a free API key at [console.groq.com](https://console.groq.com) (no credit card required)
+2. Add to `.env`: `GROQ_API_KEY=gsk_...`
 3. The chat widget appears on the bottom-right of every page
-4. To change the AI model, edit `app/Frontend/Services/AiService.php`
-5. Browse available models at [openrouter.ai/models](https://openrouter.ai/models)
+4. To change the AI model, edit `AiService::GROQ_MODELS` in `app/Frontend/Services/AiService.php`
+5. Available free models: `llama-3.3-70b-versatile`, `llama3-70b-8192`, `gemma2-9b-it`
 
 ## 📁 Project Structure
 
@@ -132,15 +168,18 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-05-30 | **Docker migration** — Nginx + PHP-FPM + MySQL + Redis + HTTPS (`sunstock-local.dev`) |
+| 2026-05-30 | **Switched AI to Groq** — 14,400 req/day free, ~0.4s response, stable 100% |
+| 2026-05-30 | **Security**: XSS fix (escapeHtml), prompt injection hardening, input sanitization |
+| 2026-05-30 | **Idempotency**: sync commands skip already-synced data; `--force` flag to override |
 | 2026-05-29 | **Technical Indicators** (MA/BB/RSI/MACD) + **Company Financials** on stock page |
 | 2026-05-29 | Historical data backfill via 6-worker parallel queue; MySQL RANGE partitioning |
 | 2026-05-29 | Fixed vnstock 4.x API breakage & Laravel 12 scheduler; pagination bug fix |
 | 2026-05-28 | Full documentation audit & expansion |
 | 2026-05-16 | Improved search, added ETF support, backend pipeline fixes |
 | 2026-05-02 | RBAC system, separate admin login, role management |
-| 2026-05-01 | Architecture cleanup, removed legacy namespaces |
 | 2025-08-25 | Email verification, AI market prediction |
-| 2025-08-23 | Switched AI to OpenRouter, multi-model support |
+| 2025-08-23 | AI Chat feature, portfolio management |
 
 > Full history: [docs/HISTORY.md](docs/HISTORY.md)
 
@@ -181,12 +220,28 @@ MIT License © 2025–2026
 |---|---|
 | Backend | Laravel 12 (PHP 8.2+) |
 | Lấy dữ liệu | Python 3 + thư viện vnstock |
-| AI | OpenRouter API |
-| Cơ sở dữ liệu | MySQL |
+| AI | Groq API — miễn phí, 14.400 req/ngày, phản hồi ~0.4s |
 | Giao diện | Blade Templates + Bootstrap 5 + Bootstrap Icons |
 | Kiến trúc | SOLID — Controller / Service / Repository / Interface |
 
-## ⚡ Cài đặt nhanh
+## ⚡ Cài đặt nhanh (Docker — khình cận)
+
+**Yêu cầu:** Docker Desktop
+
+```bash
+git clone https://github.com/nhatnguyen94/sunstock-ai-vn.git
+cd stock-app
+# Cấu hình .env: DB_HOST=mysql, REDIS_HOST=redis, GROQ_API_KEY=...
+docker compose up -d
+docker exec stock-app-php-1 composer install
+docker exec stock-app-php-1 php artisan migrate --seed
+# Thêm 127.0.0.1 sunstock-local.dev vào hosts file
+# Truy cập https://sunstock-local.dev
+```
+
+> Xem hướng dẫn chi tiết tại [docs/DOCKER.md](docs/DOCKER.md)
+
+## ⚡ Cài đặt nhanh (thủ công / XAMPP)
 
 **Yêu cầu:** PHP 8.2+, Composer, MySQL, Node.js, Python 3.10+
 
@@ -205,7 +260,7 @@ php artisan key:generate
 DB_DATABASE=stock_app
 DB_USERNAME=root
 DB_PASSWORD=
-OPENROUTER_API_KEY=your_key_here
+GROQ_API_KEY=your_groq_key_here
 ```
 
 ```bash
@@ -234,25 +289,28 @@ php artisan serve
 
 ## 🤖 Cài đặt AI Chat
 
-1. Lấy API key miễn phí tại [openrouter.ai](https://openrouter.ai)
-2. Thêm vào `.env`: `OPENROUTER_API_KEY=your_key_here`
+1. Lấy API key miễn phí tại [console.groq.com](https://console.groq.com)
+2. Thêm vào `.env`: `GROQ_API_KEY=gsk_...`
 3. Widget chat xuất hiện ở góc phải dưới màn hình
-4. Để đổi model AI, chỉnh sửa `app/Frontend/Services/AiService.php`
-5. Xem danh sách model tại [openrouter.ai/models](https://openrouter.ai/models)
+4. Để đổi model AI, chỉnh sửa `AiService::GROQ_MODELS` trong `app/Frontend/Services/AiService.php`
+5. Xem danh sách model tại [console.groq.com/docs/models](https://console.groq.com/docs/models)
 
 ## 🆕 Nhật ký cập nhật
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-05-30 | **Docker migration** — Nginx + PHP-FPM + MySQL + Redis + HTTPS (`sunstock-local.dev`) |
+| 2026-05-30 | **Chuyển AI sang Groq** — 14.400 req/ngày miễn phí, ~0.4s, ổn định 100% |
+| 2026-05-30 | **Bảo mật**: Sửa XSS, chống prompt injection, sanitize input |
+| 2026-05-30 | **Idempotency**: Lệnh sync bỏ qua dữ liệu đã đồng bộ; flag `--force` để buộc sync lại |
 | 2026-05-29 | **Chỉ báo kỹ thuật** (MA/BB/RSI/MACD) + **Tài chính doanh nghiệp** trên trang cổ phiếu |
 | 2026-05-29 | Backfill lịch sử giá song song 6 workers; phân vùng MySQL RANGE theo năm |
 | 2026-05-29 | Sửa lỗi vnstock 4.x API & scheduler Laravel 12; sửa phân trang |
 | 2026-05-28 | Rà soát và mở rộng toàn bộ tài liệu |
 | 2026-05-16 | Cải tiến tìm kiếm, bổ sung ETF, sửa lỗi UI/UX |
 | 2026-05-02 | Hệ thống RBAC, đăng nhập admin riêng, quản lý vai trò |
-| 2026-05-01 | Dọn dẹp kiến trúc, xóa namespace cũ |
 | 2025-08-25 | Xác thực email, AI dự đoán thị trường |
-| 2025-08-23 | Chuyển AI sang OpenRouter, hỗ trợ nhiều model |
+| 2025-08-23 | Tính năng AI Chat, quản lý danh mục |
 
 > Xem đầy đủ: [docs/HISTORY.md](docs/HISTORY.md)
 

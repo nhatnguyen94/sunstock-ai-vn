@@ -160,13 +160,29 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 let aiPredictClicked = false;
+
+function _escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 document.getElementById('aiPredictBtn').onclick = function() {
-    if (aiPredictClicked && !window._isAuth) return; // Chỉ cho nhấn 1 lần nếu chưa đăng nhập
+    if (aiPredictClicked) return;
     aiPredictClicked = true;
+
+    const btn = document.getElementById('aiPredictBtn');
+    btn.disabled = true;
 
     document.getElementById('aiPredictResult').style.display = 'block';
     document.getElementById('aiPredictLoading').style.display = 'block';
     document.getElementById('aiPredictContent').innerHTML = '';
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 40000);
 
     fetch('/ai-predict', {
         method: 'POST',
@@ -174,19 +190,30 @@ document.getElementById('aiPredictBtn').onclick = function() {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
+        signal: controller.signal,
     })
-    .then(res => res.json())
+    .then(res => {
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error('http_' + res.status);
+        return res.json();
+    })
     .then(data => {
         document.getElementById('aiPredictLoading').style.display = 'none';
         document.getElementById('aiPredictContent').innerHTML = `<div style="font-size:1.1rem; color:var(--primary-blue); font-weight:500;">
-            <i class="bi bi-stars" style="color:#fbbf24;"></i> ${data.result}
+            <i class="bi bi-stars" style="color:#fbbf24;"></i> ${_escapeHtml(data.result)}
         </div>`;
     })
-    .catch(() => {
+    .catch(err => {
+        clearTimeout(timeoutId);
         document.getElementById('aiPredictLoading').style.display = 'none';
+        const errMsg = err.name === 'AbortError'
+            ? 'Yêu cầu quá thời gian, vui lòng thử lại!'
+            : 'Lỗi lấy dự đoán AI, vui lòng thử lại!';
         document.getElementById('aiPredictContent').innerHTML = `<div style="color:var(--danger-red); font-weight:500;">
-            <i class="bi bi-exclamation-triangle"></i> Lỗi lấy dự đoán AI!
+            <i class="bi bi-exclamation-triangle"></i> ${_escapeHtml(errMsg)}
         </div>`;
+        aiPredictClicked = false;
+        btn.disabled = false;
     });
 };

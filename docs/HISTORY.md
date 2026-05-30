@@ -2,6 +2,142 @@
 
 ---
 
+## Feature Update: AI_GROQ_MIGRATION_AND_SECURITY_HARDENING - May 30, 2026
+
+### Problem Solved:
+- OpenRouter free tier extremely unstable: most model IDs returned HTTP 404 (models removed), popular models 429 rate-limited constantly.
+- `AiService` had no timeout → requests hung indefinitely.
+- XSS vulnerability: `data.answer` and user `msg` rendered via raw `innerHTML` without escaping.
+- Prompt injection possible: no input sanitization, system prompt too weak.
+- API response body logged in full → potential info leak.
+- AI market prediction called live API on every click, no caching.
+- Chat allowed double-send (no busy lock).
+
+### Solution:
+- Migrated AI provider from OpenRouter → **Groq** (free: 14,400 req/day, ~0.4s response time)
+- Added XSS escaping for all AI output and user input in frontend
+- Hardened system prompt against jailbreak/role-play/injection
+- Added server-side input sanitization (control chars, null bytes)
+- Cached market prediction result 2 hours per week in Redis
+- Added busy lock + AbortController timeout in frontend chat
+
+### Modified:
+- **`app/Frontend/Services/AiService.php`**
+  - Provider: OpenRouter → **Groq** (`https://api.groq.com/openai/v1/chat/completions`)
+  - Models: `llama-3.3-70b-versatile` → `llama3-70b-8192` → `gemma2-9b-it` (fallback chain)
+  - Added `->timeout(30)` to all HTTP calls
+  - `predictMarket()`: result cached in Redis 2 hours (`ai_market_predict_YYYYWW`)
+  - System prompt hardened: scope-limited to finance, anti-jailbreak, no HTML/script output
+  - Log truncated to 300 chars (was full body)
+  - 0.3s delay between fallback retries
+  - Config key: `config('services.groq.key')`
+
+- **`app/Frontend/Controllers/StockController.php`** — `aiChat()`: strip control chars (`\x00`–`\x1F`) from user input before sending to AI
+
+- **`config/services.php`** — added `'groq' => ['key' => env('GROQ_API_KEY')]`
+
+- **`.env`** — added `GROQ_API_KEY=...`
+
+- **`resources/frontend/js/layouts/app.js`** — added `escapeHtml()` helper; applied to `msg` and `data.answer`; busy lock `_aiChatBusy`; `AbortController` 35s timeout; check `res.ok` before parse
+
+- **`resources/frontend/js/index.js`** — added `_escapeHtml()` helper; applied to `data.result`; `AbortController` 40s timeout; check `res.ok`; button re-enabled on error
+
+### Performance:
+- Before (OpenRouter): 4–8s response, frequent 404/429 failures
+- After (Groq): **~0.4s chat, ~1.9s predict**, stable HTTP 200
+
+### Verified:
+- Chat: `FPT là cổ phiếu gì?` → response in 0.41s ✓
+- Predict: full market analysis in 1.94s ✓
+
+---
+
+## Feature Update: DOCKER_MIGRATION - May 30, 2026
+
+### Problem Solved:
+- XAMPP requires manual start/stop of services; no reproducible environment.
+- Python venv management difficult on Windows.
+- No HTTPS support locally.
+- Queue workers required manual `.bat` script; scheduler not persistent.
+
+### Solution:
+Full migration to Docker Compose stack with 6 containers.
+
+### New Files:
+- **`docker-compose.yml`** — 6 containers: nginx, php (PHP-FPM 8.2 + Python venv), mysql:8.0, redis:7, queue (supervisor 6 workers), scheduler
+- **`docker/php/Dockerfile`** — PHP 8.2-FPM + `python3-venv` + `pip install vnstock pandas` in `/opt/venv`
+- **`docker/nginx/default.conf`** — HTTPS server block, HTTP→HTTPS redirect, fastcgi proxy to `php:9000`
+- **`docker/nginx/ssl/sunstock-local.dev.pem`** + key — mkcert cert trusted by Windows/browsers, expires 2028
+- **`docker/php/supervisord.conf`** — 6 `queue:work redis` workers in queue container
+- **`docker/php/php.ini`** — upload_max_filesize, max_execution_time overrides
+- **`.dockerignore`** — excludes node_modules, vendor, storage logs, docker/nginx/ssl
+- **`.env`** — updated: `DB_HOST=mysql`, `REDIS_HOST=redis`, `APP_URL=https://sunstock-local.dev`, `PYTHON_PATH=/opt/venv/bin/python3`
+- **`.env.xampp`** — backup of original XAMPP config
+- **`docs/DOCKER.md`** — comprehensive guide: setup, daily commands, exec into containers, MySQL Workbench, troubleshooting, production notes
+
+### Stack Details:
+| Container | Image | Host Port |
+|---|---|---|
+| nginx | nginx:1.27-alpine | 80, 443 |
+| php | stock-app-php (custom) | — |
+| mysql | mysql:8.0 | 3307 |
+| redis | redis:7-alpine | — |
+| queue | stock-app-php | — |
+| scheduler | stock-app-php | — |
+
+### Access:
+- **App**: `https://sunstock-local.dev` (add `127.0.0.1 sunstock-local.dev` to `hosts` file)
+- **MySQL Workbench**: host `127.0.0.1`, port `3307`, user `root`, password `<DB_PASSWORD từ .env>`
+
+### Common Commands:
+```bash
+docker compose up -d                           # Start all containers
+docker compose down                            # Stop (data volumes persist)
+docker exec -it stock-app-php-1 bash          # Shell into PHP container
+docker exec stock-app-php-1 php artisan ...   # Run artisan commands
+```
+
+---
+
+## Feature Update: IDEMPOTENCY_SYNC_SKIP_EXISTING_DATA - May 30, 2026
+
+### Problem Solved:
+- `backfill:stock-prices --dispatch` dispatched ~312 jobs every time `.bat` was run, even if all stocks already had historical data from 2018+.
+- `sync:stock-prices` dispatched 1,558 jobs every daily run, even for stocks that already had today's price synced (e.g., ran twice in a day).
+- `sync:company-financials --dispatch --stale` created a job per symbol even when all 8 type/period combinations were fresh — jobs would immediately skip all work.
+
+### Solution:
+Add pre-dispatch idempotency checks in all 3 commands so jobs are only created when there is actual work to do.
+
+### Modified:
+- **`app/Console/Commands/SyncStockPrices.php`**
+  - Added `--force` option
+  - Before chunking symbols, queries `StockPrice` for `date = today` → gets set of already-synced `stock_id`s
+  - Filters out those stock IDs before dispatch
+  - Reports: `Skipped {N} symbols already synced today (YYYY-MM-DD). Use --force to override.`
+  - Result: **979 of 1,558 stocks skipped** on re-run; only 58 jobs dispatched instead of 156
+
+- **`app/Console/Commands/SyncCompanyFinancials.php`** (dispatch mode)
+  - In `--dispatch` mode with `--stale`: before dispatching job per symbol, checks all type/period combinations via `$this->repo->find()` + `isStale()`
+  - If ALL 8 combinations (4 types × 2 periods) are fresh → skip symbol, no job created
+  - If ANY combination is stale/missing → dispatch job (job still respects `$stale` flag internally)
+  - Reports: `Dispatched {N} jobs | Skipped (all fresh): {M}`
+
+- **`app/Console/Commands/BackfillStockPrices.php`**
+  - Added `--force` option
+  - Uses **2-year threshold**: if a stock has any `StockPrice` record with `date <= now() - 2 years`, it has already been backfilled (daily-sync-only stocks only have 1-2 years of data)
+  - Filters out already-backfilled stocks before dispatch
+  - Reports: `Skipped {N} stocks already have historical data (data before YYYY-MM-DD). Use --force to rebackfill.`
+  - Result: **900 of 1,558 stocks skipped** on re-run
+
+### Verified:
+- `php artisan sync:stock-prices` → `Skipped 979 symbols already synced today (2026-05-29)` ✓
+- `php artisan sync:company-financials --symbol=VCB --type=income --period=quarter --dispatch --stale` → `Dispatched 0 jobs | Skipped (all fresh): 1` ✓
+- `php artisan backfill:stock-prices --dispatch` → `Skipped 900 stocks... Dispatched 132 jobs` ✓
+- `--force` flag bypasses all checks and dispatches everything ✓
+
+---
+
 ## Feature Update: COMPANY_FINANCIALS_DB_CACHE_AND_ARCHITECTURE - May 29, 2026
 
 ### Problem Solved:
