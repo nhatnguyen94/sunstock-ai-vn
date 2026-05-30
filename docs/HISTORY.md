@@ -2,6 +2,128 @@
 
 ---
 
+## Feature Update: NEWS_CATEGORIES_FRONTEND - May 30, 2026
+
+### Added:
+- **Migration** `2026_05_30_130000_create_news_categories_table.php` — `news_categories(id, name, slug)` seeded with 4 initial categories
+- **Migration** `2026_05_30_130001_refactor_news_category_to_category_id.php` — replaces `news.category` varchar with `news.category_id` FK; migrates all 260 existing rows
+- **Model** `app/Models/NewsCategory.php` — fillable(name, slug), hasMany(News)
+- **Updated Model** `app/Models/News.php` — `category_id` in fillable, `belongsTo(NewsCategory)`
+- **`app/Frontend/Interfaces/NewsRepositoryInterface.php`** — `getLatest`, `paginate`, `getCategories`
+- **`app/Frontend/Repositories/NewsRepository.php`** — reads from `news` table with category relationship
+- **`app/Frontend/Controllers/NewsController.php`** — `index(?$categorySlug)`: paginated news + category sidebar
+- **Routes** `/news` (news.index) and `/news/category/{slug}` (news.category)
+- **`resources/views/news/index.blade.php`** — hero header, search bar, card grid, sidebar category nav, pagination
+- **`resources/frontend/css/news/index.css`** — full styling (hero, grid, cards, sidebar, badges)
+
+### Modified:
+- **`app/Frontend/Interfaces/NewsServiceInterface.php`** — `getLatestNews()→Collection`, `getPaginatedNews()`, `getCategories()`
+- **`app/Frontend/Services/NewsService.php`** — rewrites from RSS live-fetch to DB-backed via `NewsRepositoryInterface`
+- **`app/Frontend/Controllers/StockController.php`** — `getLatestNews(6)` (was 4), returns `Collection` not array
+- **`resources/views/index.blade.php`** — news section uses Eloquent model attrs (`$item->url`, `$item->image_url`, `$item->published_at`); "Xem tất cả" links to `/news`
+- **`resources/views/layouts/app.blade.php`** — added "Tin tức" dropdown nav with category sub-items (queried inline)
+- **Backend `NewsService`** — SOURCES now use hardcoded `category_id` (1–4), no string lookup
+- **Backend `NewsRepository`** — `getCategories()` added; `paginate()` adds `category_id` filter + `with('category')` eager load
+- **Backend `news/index.blade.php`** — category filter dropdown; `$item->category?->name` instead of string
+- **`AppServiceProvider`** — binds `FrontendNewsRepositoryInterface → FrontendNewsRepository`
+
+### Technical:
+- 260 news rows all have `category_id` populated after migration
+- DB schema: `news_categories(id,name,slug)` ← `news.category_id` FK
+- Nav dropdown queries `NewsCategory::orderBy('name')` inline in layout (1 query, cached by OPcache)
+- Frontend `NewsService` reads from DB (no live RSS), homepage news cached 15 min via Redis
+
+---
+
+## Feature Update: NEWS_RSS_SYSTEM - May 30, 2026
+
+### Added:
+- **Migration** `2026_05_30_120000_create_news_table.php` — `news` table with dedup via `url_hash` (MD5), index on `source` + `published_at`
+- **Model** `app/Models/News.php` — fillable + datetime casts
+- **`app/Backend/Interfaces/NewsRepositoryInterface.php`** — `paginate`, `insertNew`, `getSources`, `getLatestSyncTime`
+- **`app/Backend/Interfaces/NewsServiceInterface.php`** — `listNews`, `syncFromAllSources`, `getSources`
+- **`app/Backend/Repositories/NewsRepository.php`** — bulk insert with dedup, filter paginate (search/source/date range)
+- **`app/Backend/Services/NewsService.php`** — crawls 5 RSS feeds (VnExpress ×2, CafeF ×2, Dân Trí ×1), parses SimpleXML, extracts images from enclosure/media:content/description
+- **`app/Console/Commands/SyncNews.php`** — `php artisan sync:news`
+- **Scheduler** `Kernel.php` — `sync:news` every 30 minutes
+- **DI Bindings** `AppServiceProvider` — `BackendNewsRepositoryInterface → BackendNewsRepository`, `BackendNewsServiceInterface → BackendNewsService`
+
+### Modified:
+- **`app/Backend/Controllers/NewsController.php`** — replaced fake hardcoded data with proper DI injection of `NewsServiceInterface`; `index()` paginate + filter; `updateRss()` calls service and reports count
+- **`resources/views/backend/news/index.blade.php`** — full rewrite: filter form (search/source/date), thumbnail + description table, source badges, pagination, spinner on sync button
+
+### Technical:
+- RSS sources: VnExpress Kinh doanh, VnExpress Chứng khoán, CafeF Thị trường, CafeF Doanh nghiệp, Dân Trí Kinh doanh
+- Dedup by `url_hash = MD5(url)` — safe to re-run sync anytime
+- 260 articles saved on first sync (160 + 100 after URL fix)
+
+---
+
+## Feature Update: STOCK_ADMIN_SERVICE_LAYER - May 30, 2026
+
+### Problem Solved:
+- `StockController` was calling `StockRepositoryInterface` directly — violating the Controller→Service→Repository pattern required by AGENTS.md.
+- Business logic (symbol normalization, data transformation) was leaking into the controller.
+
+### Solution:
+- Added full Service layer for admin stock management:
+  - `app/Backend/Interfaces/StockServiceInterface.php` — contract with 6 methods
+  - `app/Backend/Services/StockService.php` — implements business logic (normalization, orchestration, job dispatch stub); injects `StockRepositoryInterface`
+- Updated `StockController` to inject `StockServiceInterface` instead of repository directly.
+- Moved `strtoupper(trim($symbol))` normalization from controller to `StockService`.
+- Added guard in `updateStock()` to `unset()` exchange/industry/market_cap fields — prevents admin form from ever overwriting auto-synced data.
+- Registered `BackendStockServiceInterface → BackendStockService` binding in `AppServiceProvider`.
+
+### Modified:
+- **`app/Backend/Interfaces/StockServiceInterface.php`** — NEW
+- **`app/Backend/Services/StockService.php`** — NEW
+- **`app/Backend/Controllers/StockController.php`** — inject service; move transforms out
+- **`app/Providers/AppServiceProvider.php`** — add service binding
+
+---
+
+
+
+### Problem Solved:
+- `/admin/stocks` threw `SQLSTATE[42S22]: Column not found: 1054 Unknown column 'exchange' in 'field list'` — migration never ran.
+- `stocks` table had redundant `exchange`, `industry`, `market_cap` columns that duplicated data already in `stock_symbols` (master reference table).
+- `StockController` used no Repository pattern — direct Eloquent calls in controller violated architecture.
+- `StockController.php` had a duplicate class definition causing PHP fatal error.
+
+### Solution:
+- Ran pending migration `2026_05_02_032539_add_exchange_column_to_stocks_table`.
+- Created migration to add `exchange` and `industry` to `stock_symbols` table.
+- Created migration to remove `exchange`, `industry`, `market_cap` from `stocks` table.
+- Updated `Stock` model: removed redundant fillable fields, added `symbolInfo()` hasOne relationship to `StockSymbol`.
+- Updated `StockSymbol` model: added `exchange` and `industry` to `$fillable`.
+- Updated `py/get_stock_list.py` to fetch exchange and industry from vnstock `symbols_by_exchange()` / `symbols_by_industries()`.
+- Updated `StockService::syncStockSymbolsAndDetails()` to persist exchange/industry to `stock_symbols`.
+- Implemented full Repository pattern for Backend stocks:
+  - `app/Backend/Interfaces/StockRepositoryInterface.php`
+  - `app/Backend/Repositories/StockRepository.php` (eager-loads `symbolInfo`, caches exchanges 5 min)
+  - Registered binding in `AppServiceProvider` (aliased to avoid collision with Frontend interface)
+- Rewrote `app/Backend/Controllers/StockController.php`: constructor DI, `Gate::authorize()`, English docblocks, return type hints, all DB ops via repository.
+- Created missing admin views: `create.blade.php`, `edit.blade.php`, `show.blade.php` for stocks.
+- Updated `index.blade.php` to show exchange badge via `$stock->symbolInfo->exchange`.
+
+### Modified:
+- **`app/Backend/Controllers/StockController.php`** — full rewrite with Repository DI
+- **`app/Backend/Interfaces/StockRepositoryInterface.php`** — NEW
+- **`app/Backend/Repositories/StockRepository.php`** — NEW
+- **`app/Providers/AppServiceProvider.php`** — added Backend stock binding
+- **`app/Models/Stock.php`** — removed redundant fillable, added `symbolInfo()` relationship
+- **`app/Models/StockSymbol.php`** — added exchange/industry to fillable
+- **`py/get_stock_list.py`** — fetches exchange and industry from vnstock
+- **`app/Frontend/Services/StockService.php`** — writes exchange/industry to stock_symbols
+- **`resources/views/backend/stocks/index.blade.php`** — uses symbolInfo relationship
+- **`resources/views/backend/stocks/create.blade.php`** — NEW
+- **`resources/views/backend/stocks/edit.blade.php`** — NEW
+- **`resources/views/backend/stocks/show.blade.php`** — NEW
+- **`database/migrations/2026_05_30_000001_add_exchange_industry_to_stock_symbols_table.php`** — NEW
+- **`database/migrations/2026_05_30_000002_remove_redundant_columns_from_stocks_table.php`** — NEW
+
+---
+
 ## Feature Update: AI_GROQ_MIGRATION_AND_SECURITY_HARDENING - May 30, 2026
 
 ### Problem Solved:

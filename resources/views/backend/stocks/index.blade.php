@@ -135,32 +135,25 @@
                                     <div class="font-weight-medium">{{ $stock->name ?? 'N/A' }}</div>
                                 </td>
                                 <td>
-                                    @if($stock->exchange)
-                                        <span class="badge bg-{{ $stock->exchange === 'HSX' ? 'red' : ($stock->exchange === 'HNX' ? 'blue' : 'green') }}-lt">
-                                            {{ $stock->exchange }}
+                                    @php $exch = $stock->symbolInfo->exchange ?? null; @endphp
+                                    @if($exch)
+                                        <span class="badge bg-{{ $exch === 'HSX' ? 'red' : ($exch === 'HNX' ? 'blue' : 'green') }}-lt">
+                                            {{ $exch }}
                                         </span>
                                     @else
                                         <span class="text-muted">N/A</span>
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="text-muted">{{ $stock->industry ?? 'N/A' }}</span>
+                                    <span class="text-muted">{{ $stock->symbolInfo->industry ?? 'N/A' }}</span>
                                 </td>
                                 <td>
-                                    @if($stock->market_cap)
-                                        <div class="text-end">{{ number_format($stock->market_cap, 0, ',', '.') }} VND</div>
-                                    @else
-                                        <span class="text-muted">N/A</span>
-                                    @endif
+                                    <span class="text-muted">—</span>
                                 </td>
                                 <td>
-                                    @if($stock->latest_price)
-                                        <div class="text-end font-weight-bold">{{ number_format($stock->latest_price, 0, ',', '.') }} VND</div>
-                                        @if($stock->price_change)
-                                            <div class="text-end small {{ $stock->price_change >= 0 ? 'text-success' : 'text-danger' }}">
-                                                {{ $stock->price_change >= 0 ? '+' : '' }}{{ number_format($stock->price_change, 2) }}%
-                                            </div>
-                                        @endif
+                                    @if($stock->latestPrice)
+                                        <div class="fw-bold">{{ number_format($stock->latestPrice->close * 1000, 0, ',', '.') }} đ</div>
+                                        <div class="text-muted small">{{ $stock->latestPrice->date }}</div>
                                     @else
                                         <span class="text-muted">N/A</span>
                                     @endif

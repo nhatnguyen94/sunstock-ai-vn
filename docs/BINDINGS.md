@@ -6,9 +6,14 @@
 
 | Interface | Implementation | Usage |
 |---|---|---|
-| `App\Frontend\Interfaces\StockRepositoryInterface` | `App\Frontend\Repositories\StockRepository` | Injected into `StockController` |
+| `App\Frontend\Interfaces\StockRepositoryInterface` | `App\Frontend\Repositories\StockRepository` | Injected into `StockController` (Frontend) |
+| `App\Backend\Interfaces\NewsRepositoryInterface` | `App\Backend\Repositories\NewsRepository` | Injected into `App\Backend\Services\NewsService` (Admin) |
+| `App\Backend\Interfaces\NewsServiceInterface` | `App\Backend\Services\NewsService` | Injected into `App\Backend\Controllers\NewsController` (Admin) |
+| `App\Backend\Interfaces\StockRepositoryInterface` | `App\Backend\Repositories\StockRepository` | Injected into `App\Backend\Services\StockService` (Admin) |
+| `App\Backend\Interfaces\StockServiceInterface` | `App\Backend\Services\StockService` | Injected into `App\Backend\Controllers\StockController` (Admin) |
 | `App\Frontend\Interfaces\ExchangeRateRepositoryInterface` | `App\Frontend\Repositories\ExchangeRateRepository` | Injected into `ExchangeRateController` |
-| `App\Frontend\Interfaces\NewsServiceInterface` | `App\Frontend\Services\NewsService` | Injected into `StockController@home` |
+| `App\Frontend\Interfaces\NewsRepositoryInterface` | `App\Frontend\Repositories\NewsRepository` | Injected into `App\Frontend\Services\NewsService` |
+| `App\Frontend\Interfaces\NewsServiceInterface` | `App\Frontend\Services\NewsService` | Injected into `StockController@home`, `NewsController` (Frontend) |
 | `App\Frontend\Interfaces\UserProfileRepositoryInterface` | `App\Frontend\Repositories\UserProfileRepository` | Injected into `ProfileController` |
 | `App\Frontend\Interfaces\PortfolioRepositoryInterface` | `App\Frontend\Repositories\PortfolioRepository` | Injected into `PortfolioController` |
 

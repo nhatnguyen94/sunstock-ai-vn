@@ -41,7 +41,7 @@
 - **Hot Industries** — Discover top-performing stocks in Banking, Real Estate, and IT sectors.
 - **Portfolio Management** — Create portfolios, track holdings, monitor profit/loss in real time, set price targets and stop-loss alerts, get AI rebalancing suggestions.
 - **Exchange Rates** — View Vietcombank (VCB) foreign exchange rates, updated daily.
-- **Market News** — Real-time news feed from VnExpress RSS.
+- **Market News** — Aggregated news from 5 RSS sources (VnExpress ×2, CafeF ×2, Dân Trí ×1) stored in DB with categories (Kinh doanh, Chứng khoán, Thị trường, Doanh nghiệp). Dedicated `/news` page with category filtering, search, and pagination. Synced every 30 minutes via scheduler.
 - **AI Chat & Prediction** — Ask financial questions and get market predictions powered by OpenRouter AI (supports multiple LLM models).
 - **User Accounts** — Register, log in, email verification, profile management.
 - **Role-Based Access Control (RBAC)** — Separate admin login, role management (Admin, Webadmin, AdminSupport, User), permission gates.
@@ -168,6 +168,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-05-31 | **Multi-source News** — 5 RSS feeds (VnExpress ×2, CafeF ×2, Dân Trí ×1) → DB with `news_categories` FK; dedicated `/news` page with category nav, search, pagination; scheduler syncs every 30 min |
 | 2026-05-30 | **Docker migration** — Nginx + PHP-FPM + MySQL + Redis + HTTPS (`sunstock-local.dev`) |
 | 2026-05-30 | **Switched AI to Groq** — 14,400 req/day free, ~0.4s response, stable 100% |
 | 2026-05-30 | **Security**: XSS fix (escapeHtml), prompt injection hardening, input sanitization |
@@ -208,7 +209,7 @@ MIT License © 2025–2026
 - **Ngành hot** — Khám phá cổ phiếu nổi bật trong các ngành Ngân hàng, Bất động sản, CNTT.
 - **Quản lý danh mục** — Tạo danh mục đầu tư, theo dõi lợi nhuận/lỗ theo thời gian thực, đặt mức giá mục tiêu và cắt lỗ, gợi ý cân bằng danh mục bằng AI.
 - **Tỷ giá ngoại tệ** — Xem tỷ giá Vietcombank cập nhật hàng ngày.
-- **Tin tức thị trường** — Cập nhật tin tức từ VnExpress RSS.
+- **Tin tức thị trường** — Tổng hợp tin từ 5 nguồn RSS (VnExpress ×2, CafeF ×2, Dân Trí ×1), lưu vào DB với 4 danh mục (Kinh doanh, Chứng khoán, Thị trường, Doanh nghiệp). Trang `/news` riêng với lọc danh mục, tìm kiếm và phân trang. Đồng bộ tự động mỗi 30 phút.
 - **AI Chat & Dự đoán** — Hỏi đáp tài chính và dự đoán thị trường qua OpenRouter AI (hỗ trợ nhiều model LLM).
 - **Tài khoản người dùng** — Đăng ký, đăng nhập, xác thực email, quản lý hồ sơ.
 - **Phân quyền (RBAC)** — Đăng nhập admin riêng biệt, quản lý vai trò (Admin, Webadmin, AdminSupport, User).
@@ -299,6 +300,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-05-31 | **Tin tức đa nguồn** — 5 RSS feed (VnExpress ×2, CafeF ×2, Dân Trí ×1) lưu DB với bảng `news_categories`; trang `/news` riêng có dropdown danh mục trong navbar, tìm kiếm, phân trang; scheduler sync mỗi 30 phút |
 | 2026-05-30 | **Docker migration** — Nginx + PHP-FPM + MySQL + Redis + HTTPS (`sunstock-local.dev`) |
 | 2026-05-30 | **Chuyển AI sang Groq** — 14.400 req/ngày miễn phí, ~0.4s, ổn định 100% |
 | 2026-05-30 | **Bảo mật**: Sửa XSS, chống prompt injection, sanitize input |

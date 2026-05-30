@@ -105,7 +105,11 @@ class BackfillStockPriceChunk implements ShouldQueue
         }
 
         if (! empty($rows)) {
-            StockPrice::upsert($rows, ['stock_id', 'date'], ['open', 'high', 'low', 'close', 'volume']);
+            // MySQL has a 65,535 placeholder limit. With 7 columns per row the
+            // safe batch ceiling is floor(65535 / 7) = 9,362 — use 1,000 to be safe.
+            foreach (array_chunk($rows, 1000) as $batch) {
+                StockPrice::upsert($batch, ['stock_id', 'date'], ['open', 'high', 'low', 'close', 'volume']);
+            }
             Log::info("BackfillStockPriceChunk: upserted " . count($rows) . " rows for [{$symbolList}]");
         } else {
             Log::warning("BackfillStockPriceChunk: 0 rows for [{$symbolList}]");

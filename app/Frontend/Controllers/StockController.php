@@ -91,9 +91,9 @@ class StockController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        // Cache news for 15 minutes
+        // Cache news for 15 minutes (reads from DB, very fast)
         $news = Cache::remember('homepage_news', 900, function () use ($newsService) {
-            return $newsService->getLatestNews(4);
+            return $newsService->getLatestNews(6);
         });
 
         return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news'));

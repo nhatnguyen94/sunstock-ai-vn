@@ -2,58 +2,30 @@
 
 namespace App\Frontend\Services;
 
+use App\Frontend\Interfaces\NewsRepositoryInterface;
 use App\Frontend\Interfaces\NewsServiceInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class NewsService implements NewsServiceInterface
 {
-    protected $rssUrl = 'https://vnexpress.net/rss/kinh-doanh.rss';
+    public function __construct(
+        protected NewsRepositoryInterface $newsRepository
+    ) {}
 
-    public function getLatestNews($limit = 8)
+    public function getLatestNews(int $limit = 8): Collection
     {
-        $news = [];
-        $xmlString = $this->getRssContent($this->rssUrl);
-
-        if (! $xmlString) {
-            return [];
-        }
-
-        $rss = @simplexml_load_string($xmlString, 'SimpleXMLElement', LIBXML_NONET | LIBXML_NOCDATA);
-        if (!$rss || !isset($rss->channel->item)) {
-            return [];
-        }
-        foreach ($rss->channel->item as $item) {
-            if (count($news) >= $limit) {
-                break;
-            }
-            $news[] = [
-                'title' => (string) $item->title,
-                'link' => (string) $item->link,
-                'pubDate' => date('d/m/Y H:i', strtotime((string) $item->pubDate)),
-                'description' => (string) $item->description,
-                'image' => isset($item->enclosure) && $item->enclosure->attributes() ? (string) $item->enclosure->attributes()->url : null,
-            ];
-        }
-
-        return $news;
+        return $this->newsRepository->getLatest($limit);
     }
 
-    protected function getRssContent($url)
+    public function getPaginatedNews(array $filters, int $perPage = 15): LengthAwarePaginator
     {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; SunStockAI/1.0)');
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
-        $data = curl_exec($ch);
-        $err = curl_error($ch);
-        curl_close($ch);
-        if ($err) {
-            return null;
-        }
+        return $this->newsRepository->paginate($filters, $perPage);
+    }
 
-        return $data;
+    public function getCategories(): Collection
+    {
+        return $this->newsRepository->getCategories();
     }
 }
+

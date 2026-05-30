@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libicu-dev \
     supervisor \
+    procps \
     python3 \
     python3-pip \
     python3-venv \

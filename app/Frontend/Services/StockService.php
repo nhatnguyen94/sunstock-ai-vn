@@ -53,19 +53,21 @@ class StockService
                 if (empty($row['symbol'])) continue;
                 $name = $row['organ_name'] ?? $row['name'] ?? null;
                 $symbolRows[] = [
-                    'symbol' => $row['symbol'],
-                    'name' => $name,
+                    'symbol'     => $row['symbol'],
+                    'name'       => $name,
+                    'exchange'   => $row['exchange'] ?? null,
+                    'industry'   => $row['industry_name'] ?? null,
                     'updated_at' => $now,
                 ];
                 $stockRows[] = [
-                    'symbol' => $row['symbol'],
-                    'name' => $name,
+                    'symbol'     => $row['symbol'],
+                    'name'       => $name,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
             }
 
-            \App\Models\StockSymbol::upsert($symbolRows, ['symbol'], ['name', 'updated_at']);
+            \App\Models\StockSymbol::upsert($symbolRows, ['symbol'], ['name', 'exchange', 'industry', 'updated_at']);
             \App\Models\Stock::upsert($stockRows, ['symbol'], ['name', 'updated_at']);
 
             return ['success' => true, 'message' => 'Đã đồng bộ ' . count($symbolRows) . ' mã cổ phiếu.'];

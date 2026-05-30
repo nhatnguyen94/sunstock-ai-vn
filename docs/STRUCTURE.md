@@ -20,7 +20,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `StockService.php` - Call Python scripts to fetch/sync stock data, hot industries
   - `ExchangeRateService.php` - Handle exchange rate data
   - `AiService.php` - AI chat/prediction via Groq API (llama-3.3-70b-versatile, fallback chain, Redis cache 2h for predict, XSS-safe)
-  - `NewsService.php` - RSS news from VnExpress
+  - `NewsService.php` - Reads news from DB via NewsRepositoryInterface. getLatestNews(6) for homepage, getPaginatedNews for /news page.
   - `PortfolioService.php` - Portfolio management business logic
 
 - **Repositories**: `app/Frontend/Repositories/` - Database access for Frontend
@@ -28,13 +28,15 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `ExchangeRateRepository.php` - CRUD operations for exchange rate data
   - `UserProfileRepository.php` - CRUD operations for user profiles
   - `PortfolioRepository.php` - CRUD operations for portfolios and portfolio items
+  - `NewsRepository.php` - Reads news from DB: getLatest, paginate (filter by category slug/search), getCategories
 
 - **Interfaces**: `app/Frontend/Interfaces/` - Contracts for Frontend
   - `StockRepositoryInterface.php`
   - `ExchangeRateRepositoryInterface.php`
   - `UserProfileRepositoryInterface.php`
   - `PortfolioRepositoryInterface.php`
-  - `NewsServiceInterface.php`
+  - `NewsServiceInterface.php` — getLatestNews, getPaginatedNews, getCategories
+  - `NewsRepositoryInterface.php` — getLatest, paginate, getCategories
 
 ### Backend (Administration)
 - **Controllers**: `app/Backend/Controllers/` - Handle admin requests
@@ -47,9 +49,17 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `PortfolioController.php` - Admin portfolio management (list, toggle status, destroy)
   - `TimelineController.php` - Admin timeline/activity log viewer
 
-- **Services**: `app/Backend/Services/` - *(empty, business logic lives in models/controllers for now)*
-- **Repositories**: `app/Backend/Repositories/` - *(empty)*
-- **Interfaces**: `app/Backend/Interfaces/` - *(empty)*
+- **Services**: `app/Backend/Services/`
+  - `StockService.php` - Admin stock business logic: data normalization, orchestration, price-update job dispatch. Implements `StockServiceInterface`, delegates DB to `StockRepository`.
+  - `NewsService.php` - Crawls 5 RSS feeds (VnExpress ×2, CafeF ×2, Dân Trí ×1), deduplicates by url_hash, persists to `news` table. Implements `NewsServiceInterface`.
+- **Repositories**: `app/Backend/Repositories/`
+  - `StockRepository.php` - Admin stock DB operations (paginate with filters, getExchanges, create/update/delete with cache busting)
+  - `NewsRepository.php` - News DB operations (paginate with filters, bulk insertNew with dedup, getSources, getLatestSyncTime)
+- **Interfaces**: `app/Backend/Interfaces/`
+  - `StockServiceInterface.php` - Contract for admin stock service (listStocks, getExchanges, createStock, updateStock, deleteStock, triggerPriceUpdate)
+  - `StockRepositoryInterface.php` - Contract for admin stock DB operations
+  - `NewsServiceInterface.php` - Contract for admin news service (listNews, syncFromAllSources, getSources)
+  - `NewsRepositoryInterface.php` - Contract for admin news DB operations
 
 ### Models (Shared)
 - `app/Models/` - Eloquent models shared between Frontend/Backend
@@ -62,11 +72,14 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `Portfolio.php` - User portfolios with P&L calculations
   - `PortfolioItem.php` - Individual stock holdings
   - `Role.php` - RBAC role model (constants: `admin`, `webadmin`, `adminsupport`, `user`)
+  - `NewsCategory.php` - News category model; fillable(name, slug); hasMany(News)
+  - `News.php` - News article; belongsTo(NewsCategory via category_id); fields: title, description, url, url_hash, source, image_url, category_id, published_at, synced_at
 
 ### Middleware
 - `app/Http/Middleware/AdminAccess.php` - Blocks non-backend users; registered as alias `admin` in `bootstrap/app.php`
 
 ### Console Commands
+- `app/Console/Commands/SyncNews.php` - Crawl all RSS sources and save new articles; called by scheduler every 30 min
 - `app/Console/Commands/SyncStockData.php` - Artisan command to sync stock symbols/details from Python
 - `app/Console/Commands/SyncStockPrices.php` - Sync daily stock prices; skips symbols already synced today (`--force` to override)
 - `app/Console/Commands/BackfillStockPrices.php` - Backfill historical prices from a start date; skips stocks with data >2 years old (`--force` to override)

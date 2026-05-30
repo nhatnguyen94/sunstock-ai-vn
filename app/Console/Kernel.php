@@ -20,6 +20,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\SyncExchangeRates::class,
         \App\Console\Commands\GeneratePriceSummaries::class,
         \App\Console\Commands\BackfillStockPrices::class,
+        \App\Console\Commands\SyncNews::class,
         // SyncCompanyFinancials is auto-discovered via $this->load() below
     ];
 
@@ -52,6 +53,16 @@ class Kernel extends ConsoleKernel
 
         // Sync stock prices daily after VN market closes (~3 PM = 15:00 ICT)
         $schedule->command('sync:stock-prices')->dailyAt('15:30')
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        // Sync company financials weekly (quarterly reports don't change often)
+        $schedule->command('sync:company-financials')->weeklyOn(1, '08:00')
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        // Crawl RSS news from all sources every 30 minutes
+        $schedule->command('sync:news')->everyThirtyMinutes()
             ->withoutOverlapping()
             ->runInBackground();
     }

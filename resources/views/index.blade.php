@@ -358,44 +358,44 @@
     @endguest
 
     <!-- 4. NEWS -->
-    @if(isset($news) && count($news) > 0)
+    @if(isset($news) && $news->isNotEmpty())
     <section class="info-section" data-aos="fade-up">
         <h3>
             <i class="bi bi-newspaper" style="color: var(--primary-blue); margin-right: 10px;"></i>
             Tin tức thị trường mới nhất
             <span style="font-size: 0.7em; color: var(--text-secondary); font-weight: 400;">
-                (Cập nhật từ VnExpress)
+                (VnExpress · CafeF · Dân Trí)
             </span>
         </h3>
         
         <div class="news-grid">
             @foreach($news as $item)
-            <article class="news-card" data-aos="fade-up" data-aos-delay="{{ $loop->index * 100 }}">
-                @if($item['image'])
+            <article class="news-card" data-aos="fade-up" data-aos-delay="{{ $loop->index * 80 }}">
+                @if($item->image_url)
                 <div class="news-image">
-                    <img src="{{ $item['image'] }}" alt="{{ $item['title'] }}" loading="lazy">
+                    <img src="{{ $item->image_url }}" alt="{{ $item->title }}" loading="lazy">
                     <div class="news-date-badge">
                         <i class="bi bi-clock"></i>
-                        {{ $item['pubDate'] }}
+                        {{ $item->published_at->diffForHumans() }}
                     </div>
                 </div>
                 @endif
                 
                 <div class="news-content">
-                    <a href="{{ $item['link'] }}" target="_blank" rel="noopener" class="news-title">
-                        {{ $item['title'] }}
+                    <a href="{{ $item->url }}" target="_blank" rel="noopener" class="news-title">
+                        {{ $item->title }}
                     </a>
                     
                     <p class="news-description">
-                        {{ strip_tags($item['description']) }}
+                        {{ $item->description }}
                     </p>
                     
                     <div class="news-meta">
                         <div class="news-date">
                             <i class="bi bi-calendar3"></i>
-                            {{ $item['pubDate'] }}
+                            {{ $item->published_at->format('d/m/Y H:i') }}
                         </div>
-                        <a href="{{ $item['link'] }}" target="_blank" rel="noopener" class="news-read-more">
+                        <a href="{{ $item->url }}" target="_blank" rel="noopener" class="news-read-more">
                             Đọc thêm <i class="bi bi-arrow-right"></i>
                         </a>
                     </div>
@@ -405,7 +405,7 @@
         </div>
         
         <div style="text-align: center; margin-top: 2rem;">
-            <a href="https://vnexpress.net/kinh-doanh" target="_blank" rel="noopener"
+            <a href="{{ route('news.index') }}"
                style="display:inline-flex;align-items:center;gap:0.5rem;background:var(--light-blue);color:var(--primary-blue);padding:0.75rem 1.5rem;border-radius:25px;text-decoration:none;font-weight:500;transition:all 0.3s ease;"
                onmouseover="this.style.background='var(--primary-blue)';this.style.color='white'"
                onmouseout="this.style.background='var(--light-blue)';this.style.color='var(--primary-blue)'">

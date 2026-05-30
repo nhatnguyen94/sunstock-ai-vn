@@ -69,6 +69,24 @@
                             <i class="bi bi-currency-exchange"></i> Tỷ giá
                         </a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->is('news*') ? 'active' : '' }}"
+                           href="{{ route('news.index') }}" id="newsDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="bi bi-newspaper"></i> Tin tức
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="newsDropdown">
+                            <a class="dropdown-item" href="{{ route('news.index') }}">
+                                <i class="bi bi-journals text-primary"></i> Tất cả tin tức
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            @php $navNewsCategories = \App\Models\NewsCategory::orderBy('name')->get(); @endphp
+                            @foreach($navNewsCategories as $navCat)
+                            <a class="dropdown-item" href="{{ route('news.category', $navCat->slug) }}">
+                                <i class="bi bi-tag text-primary"></i> {{ $navCat->name }}
+                            </a>
+                            @endforeach
+                        </div>
+                    </li>
                     
                     @guest
                         <li class="nav-item ml-lg-2">

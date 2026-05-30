@@ -2,54 +2,45 @@
 
 namespace App\Backend\Controllers;
 
+use App\Backend\Interfaces\NewsServiceInterface;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 
 class NewsController extends Controller
 {
+    public function __construct(
+        protected NewsServiceInterface $newsService
+    ) {}
+
     /**
-     * Hiển thị danh sách news
-     * Admin và AdminSupport có quyền
+     * Display paginated news list with optional filters.
+     * Gate: manage-features (Admin + AdminSupport).
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        // Kiểm tra quyền
-        if (!Gate::allows('manage-features')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
-        }
+        $filters    = $request->only('search', 'source', 'category_id', 'date_from', 'date_to');
+        $news       = $this->newsService->listNews($filters, 30);
+        $sources    = $this->newsService->getSources();
+        $categories = $this->newsService->getCategories();
 
-        // Giả lập data news
-        $news = collect([
-            [
-                'id' => 1,
-                'title' => 'VN-Index tăng mạnh trong phiên sáng',
-                'source' => 'VnExpress',
-                'published_at' => now()->subHours(2),
-                'status' => 'published'
-            ],
-            [
-                'id' => 2,
-                'title' => 'Cổ phiếu ngân hàng dẫn dắt thị trường',
-                'source' => 'CafeF',
-                'published_at' => now()->subHours(4),
-                'status' => 'published'
-            ],
-        ]);
-
-        return view('backend.news.index', compact('news'));
+        return view('backend.news.index', compact('news', 'sources', 'categories', 'filters'));
     }
 
     /**
-     * Cập nhật RSS News từ VnExpress
+     * Trigger RSS sync from all configured sources.
+     * Gate: manage-features (Admin + AdminSupport).
      */
-    public function updateRss()
+    public function updateRss(): RedirectResponse
     {
-        if (!Gate::allows('manage-features')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
+        $result = $this->newsService->syncFromAllSources();
+
+        $msg = "Đã đồng bộ {$result['synced']} bài viết mới.";
+        if (!empty($result['errors'])) {
+            $msg .= ' Lỗi: ' . implode('; ', $result['errors']);
+            return redirect()->route('admin.news.index')->with('warning', $msg);
         }
 
-        // Gọi service để cập nhật RSS
-        return redirect()->route('admin.news.index')
-            ->with('success', 'Đã cập nhật tin tức từ RSS feeds.');
+        return redirect()->route('admin.news.index')->with('success', $msg);
     }
 }

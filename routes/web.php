@@ -11,6 +11,7 @@ use App\Frontend\Controllers\AiController;
 use App\Frontend\Controllers\AuthController;
 use App\Frontend\Controllers\EmailVerificationController;
 use App\Frontend\Controllers\ExchangeRateController;
+use App\Frontend\Controllers\NewsController as FrontendNewsController;
 use App\Frontend\Controllers\PortfolioController;
 use App\Frontend\Controllers\ProfileController;
 use App\Frontend\Controllers\StockController;
@@ -29,6 +30,10 @@ Route::get('/', [StockController::class, 'home'])->name('home');
 
 Route::get('/exchange-rate', [ExchangeRateController::class, 'index'])->name('exchange-rate.index');
 Route::get('/exchange-rate/search', [ExchangeRateController::class, 'search'])->name('exchange-rate.search');
+
+// News routes
+Route::get('/news', [FrontendNewsController::class, 'index'])->name('news.index');
+Route::get('/news/category/{categorySlug}', [FrontendNewsController::class, 'index'])->name('news.category');
 
 Route::middleware('throttle:10,1')->group(function () {
     Route::post('/ai-chat', [StockController::class, 'aiChat']);
@@ -102,20 +107,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/users/{user}/verify', [EmailVerificationController::class, 'adminVerify'])->name('users.verify');
         Route::post('/users/{user}/unverify', [EmailVerificationController::class, 'adminUnverify'])->name('users.unverify');
         
-        // Stock Management - Admin và AdminSupport
-        Route::resource('stocks', AdminStockController::class);
-        Route::post('/stocks/update-prices', [AdminStockController::class, 'updatePrices'])->name('stocks.update-prices');
-        
-        // News Management - Admin và AdminSupport
-        Route::get('/news', [NewsController::class, 'index'])->name('news.index');
-        Route::post('/news/update-rss', [NewsController::class, 'updateRss'])->name('news.update-rss');
-        
-        // Portfolio Management - Admin và AdminSupport
-        Route::get('/portfolios', [AdminPortfolioController::class, 'index'])->name('portfolios.index');
-        Route::get('/portfolios/{portfolio}', [AdminPortfolioController::class, 'show'])->name('portfolios.show');
-        Route::patch('/portfolios/{portfolio}/toggle-status', [AdminPortfolioController::class, 'toggleStatus'])->name('portfolios.toggle-status');
-        Route::delete('/portfolios/{portfolio}', [AdminPortfolioController::class, 'destroy'])->name('portfolios.destroy');
-        Route::get('/portfolios-stats', [AdminPortfolioController::class, 'stats'])->name('portfolios.stats');
+        // Stock, News, Portfolio — Admin + AdminSupport only
+        Route::middleware('can:manage-features')->group(function () {
+            Route::resource('stocks', AdminStockController::class);
+            Route::post('/stocks/update-prices', [AdminStockController::class, 'updatePrices'])->name('stocks.update-prices');
+
+            Route::get('/news', [NewsController::class, 'index'])->name('news.index');
+            Route::post('/news/update-rss', [NewsController::class, 'updateRss'])->name('news.update-rss');
+
+            Route::get('/portfolios', [AdminPortfolioController::class, 'index'])->name('portfolios.index');
+            Route::get('/portfolios/{portfolio}', [AdminPortfolioController::class, 'show'])->name('portfolios.show');
+            Route::patch('/portfolios/{portfolio}/toggle-status', [AdminPortfolioController::class, 'toggleStatus'])->name('portfolios.toggle-status');
+            Route::delete('/portfolios/{portfolio}', [AdminPortfolioController::class, 'destroy'])->name('portfolios.destroy');
+            Route::get('/portfolios-stats', [AdminPortfolioController::class, 'stats'])->name('portfolios.stats');
+        });
         
         // Admin Logout
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');

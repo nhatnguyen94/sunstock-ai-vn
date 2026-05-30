@@ -12,6 +12,8 @@
 | GET | `/stock/compare-data` | `stock.compare-data` | `StockController` | `compareData` |
 | GET | `/stocks-list` | *(none)* | `StockController` | `getStockSymbols` |
 | POST | `/search` | `stock.search` | `StockController` | `search` |
+| GET | `/news` | `news.index` | `NewsController` (Frontend) | `index` |
+| GET | `/news/category/{slug}` | `news.category` | `NewsController` (Frontend) | `index` |
 | GET | `/exchange-rate` | `exchange-rate.index` | `ExchangeRateController` | `index` |
 | GET | `/exchange-rate/search` | `exchange-rate.search` | `ExchangeRateController` | `search` |
 | POST | `/ai-chat` | *(none)* | `StockController` | `aiChat` |
