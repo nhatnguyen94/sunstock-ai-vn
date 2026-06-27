@@ -2,6 +2,41 @@
 
 ---
 
+## BACKEND_ADMIN_UPGRADE - June 27, 2026
+
+### Summary:
+Complete upgrade of the admin backend panel with real data, activity logging, and sync management.
+
+### New Components:
+- **`app/Models/ActivityLog.php`** — Eloquent model for `activity_logs` table. No `updated_at`. Static `iconConfig()` method maps event_type to icon/color.
+- **`app/Support/ActivityLogger.php`** — Static helper `ActivityLogger::log(eventType, description, properties, user)`. Catches all Throwable, never crashes caller.
+- **`app/Backend/Interfaces/ActivityLogRepositoryInterface.php`** — Interface: `paginate(filters, perPage)`, `countByType()`.
+- **`app/Backend/Repositories/ActivityLogRepository.php`** — Implementation of above. Filters: type, date, search.
+- **`app/Backend/Controllers/SyncStatusController.php`** — Shows data sync status cards + AJAX trigger buttons for 5 commands (whitelist enforced).
+- **`resources/views/backend/sync-status/index.blade.php`** — Sync Status admin page.
+- **`resources/views/backend/sync-status/_icon.blade.php`** — SVG icon partial.
+- **`resources/views/backend/timeline/_icon.blade.php`** — SVG icon partial for timeline.
+- **`database/migrations/2026_06_27_000001_create_activity_logs_table.php`** — Creates `activity_logs` table.
+
+### Rewritten Components:
+- **`app/Backend/Controllers/TimelineController.php`** — Removed fake hardcoded data. Now uses `ActivityLogRepository` for real data with filters.
+- **`app/Backend/Controllers/DashboardController.php`** — Now includes news count/sync time, exchange rates, stock prices, hot industries, financials, activity_today, and recent_activity.
+- **`resources/views/backend/timeline/index.blade.php`** — Real data, filter form, pagination.
+- **`resources/views/backend/dashboard/index.blade.php`** — 4 rows: core stats, data sync stats, recent users/portfolios, recent activity + quick actions.
+
+### ActivityLogger Hooks Added:
+- `AuthController::register()` → `user_register`
+- `PortfolioController::store()` → `portfolio_created`
+- `NewsController::updateRss()` → `news_sync`
+- `StockController::updatePrices()` → `stock_price_sync`
+- `AdminAuthController::login()` → `admin_login`
+
+### Routes Added:
+- `GET /admin/sync-status` → `admin.sync-status`
+- `POST /admin/sync-status/trigger/{key}` → `admin.sync-status.trigger`
+
+---
+
 ## Fix: SYNC_NEWS_SCHEDULER_MISSING - June 27, 2026
 
 ### Problem:

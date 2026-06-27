@@ -4,6 +4,7 @@ namespace App\Backend\Controllers;
 
 use App\Backend\Interfaces\StockServiceInterface;
 use App\Models\Stock;
+use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -121,6 +122,8 @@ class StockController extends Controller
     public function updatePrices(): RedirectResponse
     {
         $this->stockService->triggerPriceUpdate();
+
+        ActivityLogger::log('stock_price_sync', 'Admin trigger cập nhật giá cổ phiếu');
 
         return redirect()->route('admin.stocks.index')
             ->with('success', 'Price update has been queued. This may take a few minutes.');

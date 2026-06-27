@@ -1,8 +1,120 @@
 @extends('layouts.admin')
 
 @section('title', 'Timeline Hệ thống')
-@section('page_pretitle', 'Theo dõi')
+@section('page_pretitle', 'Theo dõi hoạt động thực tế')
 @section('page_title', 'Timeline Hệ thống')
+
+@section('breadcrumbs')
+    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active">Timeline</li>
+@endsection
+
+@section('content')
+    {{-- Filter --}}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('admin.timeline') }}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Loại hoạt động</label>
+                    <select class="form-select" name="type">
+                        <option value="">Tất cả</option>
+                        <option value="user_register"     {{ request('type') === 'user_register'     ? 'selected' : '' }}>Đăng ký user</option>
+                        <option value="user_login"        {{ request('type') === 'user_login'        ? 'selected' : '' }}>Đăng nhập user</option>
+                        <option value="admin_login"       {{ request('type') === 'admin_login'       ? 'selected' : '' }}>Đăng nhập admin</option>
+                        <option value="portfolio_created" {{ request('type') === 'portfolio_created' ? 'selected' : '' }}>Tạo portfolio</option>
+                        <option value="portfolio_deleted" {{ request('type') === 'portfolio_deleted' ? 'selected' : '' }}>Xóa portfolio</option>
+                        <option value="stock_added"       {{ request('type') === 'stock_added'       ? 'selected' : '' }}>Thêm cổ phiếu</option>
+                        <option value="stock_removed"     {{ request('type') === 'stock_removed'     ? 'selected' : '' }}>Xóa cổ phiếu</option>
+                        <option value="news_sync"         {{ request('type') === 'news_sync'         ? 'selected' : '' }}>Sync news</option>
+                        <option value="stock_price_sync"  {{ request('type') === 'stock_price_sync'  ? 'selected' : '' }}>Sync giá cổ phiếu</option>
+                        <option value="admin_action"      {{ request('type') === 'admin_action'      ? 'selected' : '' }}>Hành động admin</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tìm kiếm</label>
+                    <input type="text" class="form-control" name="search" value="{{ request('search') }}" placeholder="Tên user, mô tả...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Ngày</label>
+                    <input type="date" class="form-control" name="date" value="{{ request('date') }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Lọc</button>
+                </div>
+                <div class="col-md-2">
+                    @if(request()->hasAny(['type', 'date', 'search']))
+                        <a href="{{ route('admin.timeline') }}" class="btn btn-outline-secondary w-100">Reset</a>
+                    @endif
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Timeline list --}}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Hoạt động hệ thống ({{ $items->total() }} bản ghi)</h3>
+        </div>
+        <div class="card-body">
+            @if($items->count() > 0)
+                <div class="timeline">
+                    @foreach($items as $log)
+                    @php $cfg = \App\Models\ActivityLog::iconConfig()[$log->event_type] ?? ['icon' => 'activity', 'color' => 'gray']; @endphp
+                    <div class="timeline-item">
+                        <div class="timeline-badge bg-{{ $cfg['color'] }}">
+                            @include('backend.timeline._icon', ['icon' => $cfg['icon']])
+                        </div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{{ $log->user_name }}</strong>
+                                    <span class="badge bg-{{ $cfg['color'] }}-lt ms-1">{{ $log->event_type }}</span>
+                                </div>
+                                <small class="text-muted text-nowrap ms-3">{{ $log->created_at->diffForHumans() }}</small>
+                            </div>
+                            <p class="mt-1 mb-0 text-muted">{{ $log->description }}</p>
+                            @if($log->properties)
+                                <small class="text-muted">
+                                    @foreach($log->properties as $k => $v)
+                                        <span class="me-2"><strong>{{ $k }}:</strong> {{ is_array($v) ? json_encode($v) : $v }}</span>
+                                    @endforeach
+                                </small>
+                            @endif
+                            <div class="mt-1">
+                                <small class="text-muted">{{ $log->created_at->format('d/m/Y H:i:s') }}
+                                    @if($log->ip_address) &bull; IP: {{ $log->ip_address }} @endif
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                <div class="mt-4">
+                    {{ $items->links('vendor.pagination.bootstrap-5') }}
+                </div>
+            @else
+                <div class="empty">
+                    <div class="empty-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="48" height="48" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+                    </div>
+                    <p class="empty-title">Chưa có hoạt động nào</p>
+                    <p class="empty-subtitle text-muted">Hoạt động sẽ xuất hiện khi users đăng ký, tạo portfolio, hoặc admin thực hiện thao tác.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+@endsection
+
+@push('styles')
+<style>
+.timeline { position: relative; padding-left: 36px; }
+.timeline::before { content: ''; position: absolute; left: 14px; top: 0; bottom: 0; width: 2px; background: #e9ecef; }
+.timeline-item { position: relative; margin-bottom: 20px; }
+.timeline-badge { position: absolute; left: -29px; top: 4px; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+.timeline-content { background: #f8f9fa; border-radius: 6px; padding: 12px 16px; }
+</style>
+@endpush
 
 @section('breadcrumbs')
     <li class="breadcrumb-item">

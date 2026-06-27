@@ -14,6 +14,8 @@ use App\Backend\Interfaces\StockRepositoryInterface as BackendStockRepositoryInt
 use App\Backend\Interfaces\StockServiceInterface as BackendStockServiceInterface;
 use App\Backend\Interfaces\UserRepositoryInterface as BackendUserRepositoryInterface;
 use App\Backend\Interfaces\UserServiceInterface as BackendUserServiceInterface;
+use App\Backend\Interfaces\ActivityLogRepositoryInterface;
+use App\Backend\Repositories\ActivityLogRepository;
 use App\Backend\Repositories\NewsRepository as BackendNewsRepository;
 use App\Backend\Repositories\StockRepository as BackendStockRepository;
 use App\Backend\Repositories\UserRepository as BackendUserRepository;
@@ -97,6 +99,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             CompanyFinancialRepositoryInterface::class,
             CompanyFinancialRepository::class
+        );
+        $this->app->bind(
+            ActivityLogRepositoryInterface::class,
+            ActivityLogRepository::class
         );
     }
 

@@ -5,6 +5,7 @@ namespace App\Frontend\Controllers;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -95,6 +96,8 @@ class AuthController extends Controller
 
             // Gửi email xác thực
             $user->sendEmailVerificationNotification();
+
+            ActivityLogger::log('user_register', "User đăng ký: {$user->email}", ['email' => $user->email], $user);
 
             // Không tự động đăng nhập - yêu cầu xác thực email trước
             return redirect()->route('login')->with('success', 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập.');

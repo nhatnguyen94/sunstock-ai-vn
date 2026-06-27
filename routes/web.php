@@ -5,6 +5,7 @@ use App\Backend\Controllers\DashboardController;
 use App\Backend\Controllers\NewsController;
 use App\Backend\Controllers\PortfolioController as AdminPortfolioController;
 use App\Backend\Controllers\StockController as AdminStockController;
+use App\Backend\Controllers\SyncStatusController;
 use App\Backend\Controllers\TimelineController;
 use App\Backend\Controllers\UserController;
 use App\Frontend\Controllers\AiController;
@@ -122,6 +123,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/portfolios-stats', [AdminPortfolioController::class, 'stats'])->name('portfolios.stats');
         });
         
+        // Sync Status — manage-features
+        Route::middleware('can:manage-features')->group(function () {
+            Route::get('/sync-status', [SyncStatusController::class, 'index'])->name('sync-status');
+            Route::post('/sync-status/trigger/{key}', [SyncStatusController::class, 'trigger'])->name('sync-status.trigger');
+        });
+
         // Admin Logout
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });

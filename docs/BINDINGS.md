@@ -19,6 +19,7 @@
 | `App\Backend\Interfaces\StockServiceInterface` | `App\Backend\Services\StockService` | Injected into `App\Backend\Controllers\StockController` (Admin) |
 | `App\Backend\Interfaces\UserRepositoryInterface` | `App\Backend\Repositories\UserRepository` | Injected into `App\Backend\Services\UserService` (Admin) |
 | `App\Backend\Interfaces\UserServiceInterface` | `App\Backend\Services\UserService` | Injected into `App\Backend\Controllers\UserController` (Admin) |
+| `App\Backend\Interfaces\ActivityLogRepositoryInterface` | `App\Backend\Repositories\ActivityLogRepository` | Injected into `TimelineController`, `DashboardController` (Admin) |
 
 > **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService` are **not** bound via interfaces — they are injected directly as concrete classes.
 

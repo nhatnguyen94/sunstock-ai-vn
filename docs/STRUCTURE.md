@@ -50,7 +50,8 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `StockController.php` - Admin stock management (list, update prices)
   - `NewsController.php` - Admin news management (list, update RSS)
   - `PortfolioController.php` - Admin portfolio management (list, toggle status, destroy)
-  - `TimelineController.php` - Admin timeline/activity log viewer
+  - `TimelineController.php` - Admin timeline/activity log viewer (real data from `activity_logs` table, filters, pagination)
+  - `SyncStatusController.php` - Admin sync status page; AJAX trigger buttons for 5 whitelisted artisan commands; logs to ActivityLogger
 
 - **Services**: `app/Backend/Services/`
   - `StockService.php` - Admin stock business logic: data normalization, orchestration, price-update job dispatch. Implements `StockServiceInterface`, delegates DB to `StockRepository`.
@@ -60,6 +61,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `StockRepository.php` - Admin stock DB operations (paginate with filters, getExchanges, create/update/delete with cache busting)
   - `NewsRepository.php` - News DB operations (paginate with filters, bulk insertNew with dedup, getSources, getLatestSyncTime)
   - `UserRepository.php` - Admin user DB operations (paginate with search, findWithRelations, create/update/delete with role sync via syncRoles)
+  - `ActivityLogRepository.php` - Activity log DB operations (paginate with type/date/search filters, countByType for last 7 days)
 - **Interfaces**: `app/Backend/Interfaces/`
   - `StockServiceInterface.php` - Contract for admin stock service (listStocks, getExchanges, createStock, updateStock, deleteStock, triggerPriceUpdate)
   - `StockRepositoryInterface.php` - Contract for admin stock DB operations
@@ -67,6 +69,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `NewsRepositoryInterface.php` - Contract for admin news DB operations
   - `UserServiceInterface.php` - Contract for admin user service (listUsers, getRoles, createUser, updateUser, deleteUser, findWithRelations)
   - `UserRepositoryInterface.php` - Contract for admin user DB operations (paginate, findWithRelations, create, update, delete)
+  - `ActivityLogRepositoryInterface.php` - Contract for activity log DB (paginate with filters, countByType)
 
 ### Models (Shared)
 - `app/Models/` - Eloquent models shared between Frontend/Backend
@@ -84,6 +87,10 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `HotIndustry.php` - Hot industry stocks synced by scheduler; fields: symbol, organ_name, icb_name3
   - `StockPriceSummary.php` - Monthly OHLCV summary per stock; belongsTo(Stock); fields: stock_id, period_start, open, high, low, close, volume
   - `CompanyFinancial.php` - DB cache for company financial data; fields: symbol, type, period, raw_data (JSON), synced_at; STALE_DAYS=30
+  - `ActivityLog.php` - Activity log model; no `updated_at`; `iconConfig()` static method maps event_type → icon/color; event types: user_register, user_login, admin_login, portfolio_created, portfolio_deleted, stock_added, stock_removed, news_sync, stock_price_sync, admin_action
+
+### Support Classes
+- `app/Support/ActivityLogger.php` - Static helper `ActivityLogger::log(eventType, description, properties, user)`. Swallows all Throwable — never crashes calling code. Used in controllers for audit trail.
 
 ### Middleware
 - `app/Http/Middleware/AdminAccess.php` - Blocks non-backend users; registered as alias `admin` in `bootstrap/app.php`
@@ -113,7 +120,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 
 ### Views (`resources/views/`)
 - **Frontend**: `index.blade.php`, `stock/`, `exchange_rate/`, `news/`, `portfolio/`, `profile/`, `auth/`
-- **Backend (admin)**: `backend/dashboard/`, `backend/users/`, `backend/stocks/`, `backend/news/`, `backend/portfolios/`, `backend/timeline/`, `backend/auth/`, `backend/layouts/`
+- **Backend (admin)**: `backend/dashboard/`, `backend/users/`, `backend/stocks/`, `backend/news/`, `backend/portfolios/`, `backend/timeline/`, `backend/sync-status/`, `backend/auth/`, `backend/layouts/`
 - **Shared**: `layouts/`, `partials/`
 
 ### Python Scripts (`py/`)

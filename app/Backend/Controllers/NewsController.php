@@ -3,6 +3,7 @@
 namespace App\Backend\Controllers;
 
 use App\Backend\Interfaces\NewsServiceInterface;
+use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -36,6 +37,7 @@ class NewsController extends Controller
         $result = $this->newsService->syncFromAllSources();
 
         $msg = "Đã đồng bộ {$result['synced']} bài viết mới.";
+        ActivityLogger::log('news_sync', "Admin sync RSS: {$result['synced']} bài mới");
         if (!empty($result['errors'])) {
             $msg .= ' Lỗi: ' . implode('; ', $result['errors']);
             return redirect()->route('admin.news.index')->with('warning', $msg);

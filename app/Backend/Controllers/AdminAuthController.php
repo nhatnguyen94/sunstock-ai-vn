@@ -4,6 +4,7 @@ namespace App\Backend\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -55,6 +56,8 @@ class AdminAuthController extends Controller
             }
 
             // Đăng nhập thành công
+            ActivityLogger::log('admin_login', "Admin đăng nhập: {$user->name}");
+
             return redirect()->intended(route('admin.dashboard'))
                 ->with('success', "Chào mừng {$user->name}, bạn đã đăng nhập thành công!");
         }

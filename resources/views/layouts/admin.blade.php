@@ -75,15 +75,15 @@
           {{-- Tính năng --}}
           @can('manage-features')
           <li class="nav-item">
-            <a class="nav-link {{ Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*') ? '' : 'collapsed' }}"
+            <a class="nav-link {{ Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*', 'admin.sync-status*') ? '' : 'collapsed' }}"
                href="#sidebar-features" data-bs-toggle="collapse" role="button"
-               aria-expanded="{{ Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*') ? 'true' : 'false' }}">
+               aria-expanded="{{ Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*', 'admin.sync-status*') ? 'true' : 'false' }}">
               <span class="nav-link-icon d-md-none d-lg-inline-block">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
               </span>
               <span class="nav-link-title">Tính năng</span>
             </a>
-            <div class="nav collapse {{ Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*') ? 'show' : '' }}" id="sidebar-features">
+            <div class="nav collapse {{ Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*', 'admin.sync-status*') ? 'show' : '' }}" id="sidebar-features">
               <a class="nav-link {{ Request::routeIs('admin.stocks*') ? 'active' : '' }}" href="{{ route('admin.stocks.index') }}">
                 <span class="nav-link-bullet"></span>
                 <span class="nav-link-title">Quản lý Stock</span>
@@ -95,6 +95,10 @@
               <a class="nav-link {{ Request::routeIs('admin.portfolios*') ? 'active' : '' }}" href="{{ route('admin.portfolios.index') }}">
                 <span class="nav-link-bullet"></span>
                 <span class="nav-link-title">Quản lý Portfolio</span>
+              </a>
+              <a class="nav-link {{ Request::routeIs('admin.sync-status*') ? 'active' : '' }}" href="{{ route('admin.sync-status') }}">
+                <span class="nav-link-bullet"></span>
+                <span class="nav-link-title">Sync Status</span>
               </a>
             </div>
           </li>

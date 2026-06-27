@@ -85,5 +85,7 @@
 | PATCH | `/admin/portfolios/{portfolio}/toggle-status` | `admin.portfolios.toggle-status` | `PortfolioController` | `toggleStatus` | `manage-features` |
 | DELETE | `/admin/portfolios/{portfolio}` | `admin.portfolios.destroy` | `PortfolioController` | `destroy` | `manage-features` |
 | GET | `/admin/portfolios-stats` | `admin.portfolios.stats` | `PortfolioController` | `stats` | `manage-features` |
+| GET | `/admin/sync-status` | `admin.sync-status` | `SyncStatusController` | `index` | `manage-features` |
+| POST | `/admin/sync-status/trigger/{key}` | `admin.sync-status.trigger` | `SyncStatusController` | `trigger` | `manage-features` |
 
 > **Note**: Gate checks are enforced at the controller action level via `Gate::authorize()`, not at the route level (the route only checks that the user can access the backend at all).
