@@ -28,8 +28,9 @@
 
 ### Backend (Admin)
 1. Create Controller in `app/Backend/Controllers/` extending `App\Backend\Controllers\Controller`
-2. Create Service/Repository if needed (currently Backend folders are empty — logic is in models/controllers)
-3. Add admin routes under `Route::prefix('admin')->middleware(['auth:web', 'admin'])` group
+2. Create Interface + Service + Repository in `app/Backend/Interfaces/`, `app/Backend/Services/`, `app/Backend/Repositories/` (follow existing UserService/StockService/NewsService pattern)
+3. Register binding in `AppServiceProvider::register()`
+4. Add admin routes under `Route::prefix('admin')->middleware(['auth:web', 'admin'])` group
 4. Create views in `resources/views/backend/`
 5. Use `Gate::authorize()` inside controller actions for granular permission checks
 
@@ -67,6 +68,12 @@ When adding ANY new feature:
 - Use `Cache::remember('key', $ttl, fn)` for expensive queries
 - Featured stocks: 600s, exchange rates: 1800s, hot industries: 3600s
 - Always bust cache after admin data updates
+
+### Scheduling (Laravel 12 — CRITICAL)
+- **ONLY** define scheduled commands in `bootstrap/app.php` `->withSchedule()`.
+- `app/Console/Kernel.php` exists but its `schedule()` method is **NOT executed** in Laravel 12's slim bootstrap — it is completely ignored by the scheduler.
+- `Kernel.php` is only used to register `$commands[]` (manual command discovery). Schedule definitions there have zero effect.
+- Verify active schedule with: `php artisan schedule:list`
 
 ## 🤖 AI Development Guidelines
 

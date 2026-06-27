@@ -2,6 +2,59 @@
 
 ---
 
+## Fix: SYNC_NEWS_SCHEDULER_MISSING - June 27, 2026
+
+### Problem:
+- `/news` page chỉ hiển thị tin tức từ 4 tuần trước, không có bài mới.
+- `php artisan sync:news` chạy thủ công thì OK (lưu 260 bài mới), nhưng scheduler không tự chạy.
+
+### Root Cause:
+- Laravel 12 chỉ sử dụng schedule được khai báo trong `bootstrap/app.php` `->withSchedule()`.
+- `app/Console/Kernel.php` tồn tại nhưng bị bỏ qua hoàn toàn — không được bind làm console kernel.
+- `sync:news` **chỉ được khai báo trong `Kernel.php`**, không có trong `bootstrap/app.php` → không bao giờ chạy trong 4 tuần.
+- Verify bằng `php artisan schedule:list` → `sync:news` hoàn toàn vắng mặt.
+
+### Fix:
+- **`bootstrap/app.php`** — thêm `$schedule->command('sync:news')->everyThirtyMinutes()->withoutOverlapping()->runInBackground()` vào `->withSchedule()`.
+- Xóa cache `homepage_news` và `frontend_news_categories` để user thấy tin tức mới ngay.
+
+### Lesson Learned:
+- **Laravel 12**: LUÔN khai báo schedule trong `bootstrap/app.php` `->withSchedule()`, KHÔNG dùng `Kernel.php::schedule()`.
+- `app/Console/Kernel.php` vẫn được giữ lại để đăng ký `$commands[]` (auto-discover commands), nhưng `schedule()` method của nó bị bỏ qua.
+- Khi thêm scheduled command mới → chỉ cần thêm vào `bootstrap/app.php`.
+
+---
+
+## Feature Update: COMPANY_FINANCIALS_AND_BACKEND_USER_LAYER - June 27, 2026
+
+### Added:
+- **Migration** `2026_05_29_161453_create_company_financials_table.php` — `company_financials(symbol, type, period, raw_data JSON, synced_at)`
+- **Model** `app/Models/CompanyFinancial.php` — fillable(symbol, type, period, raw_data, synced_at); casts raw_data→array, synced_at→datetime; `STALE_DAYS=30` constant
+- **`app/Frontend/Interfaces/CompanyFinancialRepositoryInterface.php`** — `find(symbol, type, period)`, `upsert(symbol, type, period, rawData)`
+- **`app/Frontend/Repositories/CompanyFinancialRepository.php`** — implements interface; uses `updateOrCreate` for upsert
+- **`app/Frontend/Services/CompanyFinancialService.php`** — DB-cache-first logic: returns cached record if non-empty, else fetches from Python and persists; `syncSymbol()` for force-fetch by Artisan command
+- **`py/get_company_finance.py`** — fetches income/balance/cashflow/ratio statements via vnstock for a symbol+type+period
+- **Route** `GET /stock/finance` (`stock.finance`) → `StockController@finance` — JSON API for financial data; validates symbol/type/period inputs
+- **`app/Jobs/SyncCompanyFinancialJob.php`** — queued job for syncing all types/periods for one symbol
+- **`app/Console/Commands/SyncCompanyFinancials.php`** — `php artisan sync:company-financials` with `--symbol`, `--type`, `--period`, `--stale`, `--limit`, `--dispatch` options
+- **`app/Backend/Interfaces/UserRepositoryInterface.php`** — `paginate`, `findWithRelations`, `create`, `update`, `delete`
+- **`app/Backend\Interfaces\UserServiceInterface.php`** — `listUsers`, `getRoles`, `createUser`, `updateUser`, `deleteUser`, `findWithRelations`
+- **`app/Backend/Repositories/UserRepository.php`** — full CRUD with eager-load roles/profile, `syncRoles()` on create/update
+- **`app/Backend/Services/UserService.php`** — implements `UserServiceInterface`; delegates DB ops to `UserRepository`
+
+### Modified:
+- **`app/Frontend/Controllers/StockController.php`** — injected `CompanyFinancialService`; added `finance()` action
+- **`app/Backend/Controllers/UserController.php`** — refactored to inject `UserServiceInterface` (was using direct Eloquent); all CRUD via service layer
+- **`app/Providers/AppServiceProvider.php`** — added bindings: `BackendUserRepositoryInterface→BackendUserRepository`, `BackendUserServiceInterface→BackendUserService`, `CompanyFinancialRepositoryInterface→CompanyFinancialRepository`
+
+### Technical:
+- Financial data is cached in DB per `(symbol, type, period)` tuple; STALE_DAYS=30 before allowing background refresh
+- Python script outputs `{ "data": [...], "periods": [...] }` JSON to stdout
+- `finance()` API validates: symbol must match `/^[A-Z0-9]{1,20}$/`, type in [income,balance,cashflow,ratio], period in [quarter,year]
+- Backend User CRUD now follows full Controller→Service→Repository pattern consistent with Stock and News admin modules
+
+---
+
 ## Feature Update: NEWS_CATEGORIES_FRONTEND - May 30, 2026
 
 ### Added:

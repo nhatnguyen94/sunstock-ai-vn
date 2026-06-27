@@ -8,7 +8,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 ### Frontend (User Interface)
 - **Controllers**: `app/Frontend/Controllers/` - Handle requests from regular users
   - `Controller.php` - Base controller (extends `Illuminate\Routing\Controller`)
-  - `StockController.php` - Homepage, stock chart view, stock search, AI chat, compare
+  - `StockController.php` - Homepage, stock chart view, stock search, AI chat, compare, company financials API (`finance`)
   - `AuthController.php` - User login/registration/logout with validation
   - `EmailVerificationController.php` - Email verification flow (notice, resend, verify, admin verify/unverify)
   - `ProfileController.php` - User profile management (show/edit/update)
@@ -22,6 +22,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `AiService.php` - AI chat/prediction via Groq API (llama-3.3-70b-versatile, fallback chain, Redis cache 2h for predict, XSS-safe)
   - `NewsService.php` - Reads news from DB via NewsRepositoryInterface. getLatestNews(6) for homepage, getPaginatedNews for /news page.
   - `PortfolioService.php` - Portfolio management business logic
+  - `CompanyFinancialService.php` - Fetches company financials (income/balance/cashflow/ratio) via Python; DB-cached, falls back to live Python on miss
 
 - **Repositories**: `app/Frontend/Repositories/` - Database access for Frontend
   - `StockRepository.php` - CRUD operations for stock data
@@ -29,6 +30,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `UserProfileRepository.php` - CRUD operations for user profiles
   - `PortfolioRepository.php` - CRUD operations for portfolios and portfolio items
   - `NewsRepository.php` - Reads news from DB: getLatest, paginate (filter by category slug/search), getCategories
+  - `CompanyFinancialRepository.php` - DB cache for company financials: find(symbol, type, period), upsert
 
 - **Interfaces**: `app/Frontend/Interfaces/` - Contracts for Frontend
   - `StockRepositoryInterface.php`
@@ -37,6 +39,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `PortfolioRepositoryInterface.php`
   - `NewsServiceInterface.php` — getLatestNews, getPaginatedNews, getCategories
   - `NewsRepositoryInterface.php` — getLatest, paginate, getCategories
+  - `CompanyFinancialRepositoryInterface.php` — find, upsert
 
 ### Backend (Administration)
 - **Controllers**: `app/Backend/Controllers/` - Handle admin requests
@@ -52,14 +55,18 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - **Services**: `app/Backend/Services/`
   - `StockService.php` - Admin stock business logic: data normalization, orchestration, price-update job dispatch. Implements `StockServiceInterface`, delegates DB to `StockRepository`.
   - `NewsService.php` - Crawls 5 RSS feeds (VnExpress ×2, CafeF ×2, Dân Trí ×1), deduplicates by url_hash, persists to `news` table. Implements `NewsServiceInterface`.
+  - `UserService.php` - Admin user management business logic (CRUD, role assignment). Implements `UserServiceInterface`, delegates DB to `UserRepository`.
 - **Repositories**: `app/Backend/Repositories/`
   - `StockRepository.php` - Admin stock DB operations (paginate with filters, getExchanges, create/update/delete with cache busting)
   - `NewsRepository.php` - News DB operations (paginate with filters, bulk insertNew with dedup, getSources, getLatestSyncTime)
+  - `UserRepository.php` - Admin user DB operations (paginate with search, findWithRelations, create/update/delete with role sync via syncRoles)
 - **Interfaces**: `app/Backend/Interfaces/`
   - `StockServiceInterface.php` - Contract for admin stock service (listStocks, getExchanges, createStock, updateStock, deleteStock, triggerPriceUpdate)
   - `StockRepositoryInterface.php` - Contract for admin stock DB operations
   - `NewsServiceInterface.php` - Contract for admin news service (listNews, syncFromAllSources, getSources)
   - `NewsRepositoryInterface.php` - Contract for admin news DB operations
+  - `UserServiceInterface.php` - Contract for admin user service (listUsers, getRoles, createUser, updateUser, deleteUser, findWithRelations)
+  - `UserRepositoryInterface.php` - Contract for admin user DB operations (paginate, findWithRelations, create, update, delete)
 
 ### Models (Shared)
 - `app/Models/` - Eloquent models shared between Frontend/Backend
@@ -74,6 +81,9 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `Role.php` - RBAC role model (constants: `admin`, `webadmin`, `adminsupport`, `user`)
   - `NewsCategory.php` - News category model; fillable(name, slug); hasMany(News)
   - `News.php` - News article; belongsTo(NewsCategory via category_id); fields: title, description, url, url_hash, source, image_url, category_id, published_at, synced_at
+  - `HotIndustry.php` - Hot industry stocks synced by scheduler; fields: symbol, organ_name, icb_name3
+  - `StockPriceSummary.php` - Monthly OHLCV summary per stock; belongsTo(Stock); fields: stock_id, period_start, open, high, low, close, volume
+  - `CompanyFinancial.php` - DB cache for company financial data; fields: symbol, type, period, raw_data (JSON), synced_at; STALE_DAYS=30
 
 ### Middleware
 - `app/Http/Middleware/AdminAccess.php` - Blocks non-backend users; registered as alias `admin` in `bootstrap/app.php`
@@ -95,14 +105,14 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Jobs/SyncCompanyFinancialJob.php` - Queued job for syncing company financials (all types/periods for one symbol)
 
 ### Routes (`routes/web.php`)
-- **Public**: homepage, stock index/compare, exchange rate, AI chat/predict, stock search
+- **Public**: homepage, stock index/compare/finance, exchange rate, AI chat/predict, stock search
 - **Auth** (throttled): login, register, logout
 - **Email Verification** (`auth` middleware): verify email, resend
 - **User Protected** (`auth` + `verified`): profile, portfolio CRUD
 - **Admin** (`/admin` prefix, `admin` middleware): dashboard, users, stocks, news, portfolios, timeline
 
 ### Views (`resources/views/`)
-- **Frontend**: `index.blade.php`, `stock/`, `exchange_rate/`, `portfolio/`, `profile/`, `auth/`
+- **Frontend**: `index.blade.php`, `stock/`, `exchange_rate/`, `news/`, `portfolio/`, `profile/`, `auth/`
 - **Backend (admin)**: `backend/dashboard/`, `backend/users/`, `backend/stocks/`, `backend/news/`, `backend/portfolios/`, `backend/timeline/`, `backend/auth/`, `backend/layouts/`
 - **Shared**: `layouts/`, `partials/`
 
@@ -111,6 +121,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `get_exchange_rate.py` - Fetch VCB exchange rates by date or last N days
 - `get_hot_industries.py` - Fetch hot industry stocks (Banking, Real Estate, IT)
 - `get_stock_list.py` - Fetch full list of stock symbols from vnstock
+- `get_company_finance.py` - Fetch company financial statements (income/balance/cashflow/ratio) for a symbol+type+period
 - `register_api_key.py` - Register/configure vnstock API key
 
 ## Runtime Environment (Docker)

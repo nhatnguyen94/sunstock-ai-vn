@@ -49,6 +49,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('sync:company-financials --stale --limit=50')->monthlyOn(5, '02:00')
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Crawl RSS news from all sources every 30 minutes
+        $schedule->command('sync:news')->everyThirtyMinutes()
+            ->withoutOverlapping()
+            ->runInBackground();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

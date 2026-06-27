@@ -32,6 +32,8 @@ resources/
 │   │   │   └── register.css     ← Register page (37 lines)
 │   │   ├── exchange_rate/
 │   │   │   └── index.css        ← Exchange rate page (799 lines)
+│   │   ├── news/
+│   │   │   └── index.css        ← News list page (hero, grid, cards, sidebar, badges)
 │   │   ├── stock/
 │   │   │   ├── stock.css        ← Stock detail page (631 lines)
 │   │   │   └── compare.css      ← Stock compare page (156 lines)
@@ -75,6 +77,7 @@ resources/
 | `auth/register.blade.php` | `css/auth/register.css` | `js/auth/register.js` |
 | `auth/verify-email.blade.php` | *(none)* | `js/auth/verify-email.js` |
 | `exchange_rate/index.blade.php` | `css/exchange_rate/index.css` | `js/exchange_rate/index.js` |
+| `news/index.blade.php` | `css/news/index.css` | *(none)* |
 | `stock/stock.blade.php` | `css/stock/stock.css` | `js/stock/stock.js` |
 | `stock/compare.blade.php` | `css/stock/compare.css` | `js/stock/compare.js` |
 | `portfolio/index.blade.php` | `css/portfolio/index.css` | *(none)* |
@@ -122,10 +125,10 @@ The meta tag is always present in `layouts/app.blade.php`.
 
 ## vite.config.js Entry Points
 
-All CSS and JS files under `resources/frontend/` are registered as Vite entry points in `vite.config.js`. When adding a new page asset:
+All CSS and JS files under `resources/frontend/` are **automatically collected** via `collectFiles()` in `vite.config.js`. When adding a new page asset:
 
 1. Create `resources/frontend/css/[page].css` and/or `resources/frontend/js/[page].js`
-2. Add both paths to the `input` array in `vite.config.js`
+2. **No manual entry needed in `vite.config.js`** — the file is auto-discovered.
 3. In the Blade view, add to `@section('head')` and `@section('scripts')`:
    ```blade
    @section('head')

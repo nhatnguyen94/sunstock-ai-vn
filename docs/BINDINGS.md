@@ -7,17 +7,20 @@
 | Interface | Implementation | Usage |
 |---|---|---|
 | `App\Frontend\Interfaces\StockRepositoryInterface` | `App\Frontend\Repositories\StockRepository` | Injected into `StockController` (Frontend) |
-| `App\Backend\Interfaces\NewsRepositoryInterface` | `App\Backend\Repositories\NewsRepository` | Injected into `App\Backend\Services\NewsService` (Admin) |
-| `App\Backend\Interfaces\NewsServiceInterface` | `App\Backend\Services\NewsService` | Injected into `App\Backend\Controllers\NewsController` (Admin) |
-| `App\Backend\Interfaces\StockRepositoryInterface` | `App\Backend\Repositories\StockRepository` | Injected into `App\Backend\Services\StockService` (Admin) |
-| `App\Backend\Interfaces\StockServiceInterface` | `App\Backend\Services\StockService` | Injected into `App\Backend\Controllers\StockController` (Admin) |
 | `App\Frontend\Interfaces\ExchangeRateRepositoryInterface` | `App\Frontend\Repositories\ExchangeRateRepository` | Injected into `ExchangeRateController` |
 | `App\Frontend\Interfaces\NewsRepositoryInterface` | `App\Frontend\Repositories\NewsRepository` | Injected into `App\Frontend\Services\NewsService` |
 | `App\Frontend\Interfaces\NewsServiceInterface` | `App\Frontend\Services\NewsService` | Injected into `StockController@home`, `NewsController` (Frontend) |
 | `App\Frontend\Interfaces\UserProfileRepositoryInterface` | `App\Frontend\Repositories\UserProfileRepository` | Injected into `ProfileController` |
 | `App\Frontend\Interfaces\PortfolioRepositoryInterface` | `App\Frontend\Repositories\PortfolioRepository` | Injected into `PortfolioController` |
+| `App\Frontend\Interfaces\CompanyFinancialRepositoryInterface` | `App\Frontend\Repositories\CompanyFinancialRepository` | Injected into `CompanyFinancialService` |
+| `App\Backend\Interfaces\NewsRepositoryInterface` | `App\Backend\Repositories\NewsRepository` | Injected into `App\Backend\Services\NewsService` (Admin) |
+| `App\Backend\Interfaces\NewsServiceInterface` | `App\Backend\Services\NewsService` | Injected into `App\Backend\Controllers\NewsController` (Admin) |
+| `App\Backend\Interfaces\StockRepositoryInterface` | `App\Backend\Repositories\StockRepository` | Injected into `App\Backend\Services\StockService` (Admin) |
+| `App\Backend\Interfaces\StockServiceInterface` | `App\Backend\Services\StockService` | Injected into `App\Backend\Controllers\StockController` (Admin) |
+| `App\Backend\Interfaces\UserRepositoryInterface` | `App\Backend\Repositories\UserRepository` | Injected into `App\Backend\Services\UserService` (Admin) |
+| `App\Backend\Interfaces\UserServiceInterface` | `App\Backend\Services\UserService` | Injected into `App\Backend\Controllers\UserController` (Admin) |
 
-> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService` are **not** bound via interfaces — they are injected directly as concrete classes.
+> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService` are **not** bound via interfaces — they are injected directly as concrete classes.
 
 ## Adding a New Binding
 
