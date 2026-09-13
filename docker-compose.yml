@@ -41,13 +41,13 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-stock_app}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set in .env — no insecure default}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "3307:3306"   # expose on 3307 to avoid conflict with XAMPP MySQL on 3306
+      - "127.0.0.1:3307:3306"   # localhost-only: avoid exposing MySQL to the LAN/internet
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-secret}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:?DB_PASSWORD must be set in .env}"]
       interval: 10s
       timeout: 5s
       retries: 5

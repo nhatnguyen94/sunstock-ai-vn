@@ -18,23 +18,28 @@ use App\Frontend\Controllers\ProfileController;
 use App\Frontend\Controllers\StockController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/search', [StockController::class, 'search'])->name('stock.search');
-
-Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
-Route::get('/stock/compare', [StockController::class, 'compare'])->name('stock.compare');
-Route::get('/stock/compare-data', [StockController::class, 'compareData'])->name('stock.compare-data');
-Route::get('/stock/finance', [StockController::class, 'finance'])->name('stock.finance');
-
-Route::get('/stocks-list', [StockController::class, 'getStockSymbols']);
-
 Route::get('/', [StockController::class, 'home'])->name('home');
 
-Route::get('/exchange-rate', [ExchangeRateController::class, 'index'])->name('exchange-rate.index');
-Route::get('/exchange-rate/search', [ExchangeRateController::class, 'search'])->name('exchange-rate.search');
+// Data-heavy / Python-backed endpoints — throttled to prevent scraping & subprocess exhaustion
+Route::middleware('throttle:30,1')->group(function () {
+    Route::post('/search', [StockController::class, 'search'])->name('stock.search');
+
+    Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
+    Route::get('/stock/compare', [StockController::class, 'compare'])->name('stock.compare');
+    Route::get('/stock/compare-data', [StockController::class, 'compareData'])->name('stock.compare-data');
+    Route::get('/stock/finance', [StockController::class, 'finance'])->name('stock.finance');
+
+    Route::get('/stocks-list', [StockController::class, 'getStockSymbols']);
+
+    Route::get('/exchange-rate', [ExchangeRateController::class, 'index'])->name('exchange-rate.index');
+    Route::get('/exchange-rate/search', [ExchangeRateController::class, 'search'])->name('exchange-rate.search');
+});
 
 // News routes
-Route::get('/news', [FrontendNewsController::class, 'index'])->name('news.index');
-Route::get('/news/category/{categorySlug}', [FrontendNewsController::class, 'index'])->name('news.category');
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('/news', [FrontendNewsController::class, 'index'])->name('news.index');
+    Route::get('/news/category/{categorySlug}', [FrontendNewsController::class, 'index'])->name('news.category');
+});
 
 Route::middleware('throttle:10,1')->group(function () {
     Route::post('/ai-chat', [StockController::class, 'aiChat']);
@@ -126,7 +131,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Sync Status — manage-features
         Route::middleware('can:manage-features')->group(function () {
             Route::get('/sync-status', [SyncStatusController::class, 'index'])->name('sync-status');
-            Route::post('/sync-status/trigger/{key}', [SyncStatusController::class, 'trigger'])->name('sync-status.trigger');
+            Route::post('/sync-status/trigger/{key}', [SyncStatusController::class, 'trigger'])
+                ->middleware('throttle:5,1')
+                ->name('sync-status.trigger');
         });
 
         // Admin Logout
