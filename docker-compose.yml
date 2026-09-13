@@ -85,12 +85,12 @@ services:
       - stocknet
     restart: unless-stopped
 
-  # ── Scheduler (php artisan schedule:work) ────────────────────────────────────
+  # ── Scheduler (startup sync + php artisan schedule:work) ─────────────────────
   scheduler:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    command: ["php", "artisan", "schedule:work"]
+    command: ["sh", "/var/www/html/docker/php/scheduler-entrypoint.sh"]
     volumes:
       - .:/var/www/html
       - vendor_data:/var/www/html/vendor
