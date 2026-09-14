@@ -96,18 +96,21 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function hasRole(string $role): bool
     {
-        return $this->roles()->where('name', $role)->exists();
+        // `$this->roles` (property, not roles()) reuses an already-loaded
+        // relation instead of always issuing a fresh query — also what
+        // makes this testable by constructing a User with setRelation().
+        return $this->roles->contains('name', $role);
     }
 
     /**
      * Kiểm tra user có ít nhất một trong các roles không
-     * 
+     *
      * @param array $roles
      * @return bool
      */
     public function hasAnyRole(array $roles): bool
     {
-        return $this->roles()->whereIn('name', $roles)->exists();
+        return $this->roles->pluck('name')->intersect($roles)->isNotEmpty();
     }
 
     /**

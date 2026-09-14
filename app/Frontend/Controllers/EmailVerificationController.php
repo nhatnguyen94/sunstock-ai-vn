@@ -2,6 +2,7 @@
 
 namespace App\Frontend\Controllers;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -54,7 +55,7 @@ class EmailVerificationController extends Controller
     public function adminVerify(Request $request, $userId)
     {
         // Chỉ admin mới có quyền verify thủ công
-        if (!Auth::user() || !Auth::user()->hasRole('admin')) {
+        if (!Auth::user() || !Auth::user()->hasRole(Role::ADMIN)) {
             abort(403, 'Không có quyền thực hiện hành động này.');
         }
 
@@ -75,7 +76,7 @@ class EmailVerificationController extends Controller
     public function adminUnverify(Request $request, $userId)
     {
         // Chỉ admin mới có quyền bỏ verify
-        if (!Auth::user() || !Auth::user()->hasRole('admin')) {
+        if (!Auth::user() || !Auth::user()->hasRole(Role::ADMIN)) {
             abort(403, 'Không có quyền thực hiện hành động này.');
         }
 

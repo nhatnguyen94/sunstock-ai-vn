@@ -2,6 +2,38 @@
 
 ---
 
+## AUTH_AUTHZ_AUDIT_AND_TESTS - September 14, 2026
+
+### Summary:
+Full review of the login/register/admin-login flow and the RBAC layer (Gates, `AdminAccess` middleware, `User`/`Role` role checks) requested after a suspicion something was "a bit off." Found and fixed one real bug (guest admin-route redirect went to the wrong login page), one code-quality violation of this repo's own coding rule, and refactored `User::hasRole()`/`hasAnyRole()` for testability. Added 36 tests (group `auth`).
+
+### Fixed — real bug caught by writing the middleware test:
+- **`bootstrap/app.php`** — an unauthenticated guest hitting any `/admin/*` route was redirected to `/login` (the regular frontend user login) instead of `/admin/login`. Root cause: `Route::middleware(['auth:web', 'admin'])` runs Laravel's built-in `auth:web` **before** the custom `admin` (`AdminAccess`) alias; `auth:web`'s default guest-redirect always targets `route('login')`, so `AdminAccess::handle()`'s own "not authenticated → redirect to admin.login" branch was dead code, unreachable via the real route. Fixed with `$middleware->redirectGuestsTo(fn ($request) => $request->is('admin*') ? route('admin.login') : route('login'))`. Verified via real HTTP: `/admin` → `/admin/login`, `/portfolio` still → `/login` (no regression on the frontend path). Not a security hole (guests were still correctly blocked either way) — a UX/correctness bug.
+
+### Fixed — code-quality (this repo's own rule):
+- **`app/Frontend/Controllers/EmailVerificationController.php`** — `adminVerify()`/`adminUnverify()` checked `hasRole('admin')` (hardcoded string) instead of `hasRole(Role::ADMIN)`, violating the FORBIDDEN PATTERNS rule in `AGENTS.md`. Not exploitable (the route is already gated by `can:manage-users` at the route level), but inconsistent and fragile if the role name ever changed.
+
+### Refactored for testability:
+- **`app/Models/User.php`** — `hasRole()`/`hasAnyRole()` used `$this->roles()->where(...)->exists()` (method call — always issues a fresh query, ignores any already-loaded relation). Changed to use the `roles` relation **property** (`$this->roles->contains(...)` / `->pluck('name')->intersect(...)`), which transparently lazy-loads via query if not yet loaded, or reuses the cached collection if it is (e.g. after `$user->load('roles')`, or across repeated calls within one request — a minor perf win too). This is what makes the role checks unit-testable by constructing a `User` with `setRelation('roles', collect([...]))`, no database needed. Behavior verified unchanged against a real DB-backed admin account via tinker before/after.
+
+### Added (tests, group `auth`, 36 passing):
+- `tests/Unit/Models/UserTest.php` — `hasRole`, `hasAnyRole`, `canAccessBackend` (incl. zero-roles edge case), `getRoleNames`.
+- `tests/Unit/Models/RoleTest.php` — `canAccessBackend` per role name (incl. an unrecognized role name defaulting to `false`), `getBackendRoles()`.
+- `tests/Feature/Http/Middleware/AdminAccessTest.php` — guest → `admin.login` (this is the test that caught the bug above), non-backend role → `home`, admin/webadmin/adminsupport → pass-through, plain `user` role → blocked.
+- `tests/Feature/Providers/GatesTest.php` — all 4 Gates from `AppServiceProvider::defineGates()` against every role combination via `Gate::forUser()`.
+
+### Checked and found correct (no changes needed):
+CSRF present on all 3 auth forms (`auth/login`, `auth/register`, `backend/auth/login`); registration only mass-assigns validated fields (no privilege-escalation vector — role is always hardcoded to `Role::USER` server-side); email-verification gate on frontend login (`AuthController::login` logs an unverified user back out); session regenerated on both login flows (session-fixation protection); backend route middleware layering (`auth:web` → `admin` → `can:manage-*`) has no bypass path; login/register/admin-login all throttled `5,1`.
+
+### Known gaps surfaced, not fixed (flagged for the user to decide on):
+- **No password-reset ("forgot password") flow exists at all** — no routes, no controller, no `password_reset_tokens` usage. A user who forgets their password has no self-service recovery path. Out of scope for this audit (would be a new feature, not a fix), but worth prioritizing.
+- **`app/Backend/Controllers/AdminAuthController.php::activeSessions()`** is dead code — not registered in `routes/web.php`. If it's ever wired up without the `auth:web` middleware, `Auth::user()->hasRole(...)` will fatal-error on a null `Auth::user()` for guests. Left as-is since currently unreachable; flagging so it isn't wired up carelessly later.
+
+### Verified:
+`php artisan test --group=auth` → 36/36 passing. Full suite → 66/67 (only the pre-existing unrelated `Tests\Feature\ExampleTest` failure, see `docs/TESTING.md`). Real HTTP smoke test: `/login`, `/register`, `/admin/login` all return 200; `/admin` and `/portfolio` guest redirects verified via `curl -w "%{redirect_url}"`.
+
+---
+
 ## FIX_SCREENER_INLINE_CSS_AND_DATE_ICON_ROUND2 - September 14, 2026
 
 User reported both fixes from the previous entry were incomplete. Both were real gaps, not misunderstandings:

@@ -79,6 +79,7 @@ Run only the group for the feature you just touched. Don't run the whole suite u
 | `portfolioAlerts` | Target/stop-loss crossing detection, one-shot notify + reset, `sync:portfolio-prices` command, `PortfolioAlertNotification` mail content | `tests/Feature/Frontend/Services/PortfolioServiceTest.php`, `tests/Feature/Notifications/PortfolioAlertNotificationTest.php`, `tests/Feature/Console/Commands/SyncPortfolioPricesTest.php` |
 | `stockScreener` | `CompanyFinancialService::screenStocks()` — latest-year extraction, filtering, sorting | `tests/Feature/Frontend/Services/CompanyFinancialServiceTest.php` |
 | `exchangeRate` | `ExchangeRateService` — parsing Python stdout (banner-noise regression), DB-first caching, Python fallback + persist | `tests/Unit/Frontend/Services/ExchangeRateServiceTest.php`, `tests/Feature/Frontend/Services/ExchangeRateServiceTest.php` |
+| `auth` | `User`/`Role` role checks, all 4 Gates (`manage-users`, `manage-features`, `view-timeline`, `access-backend`), `AdminAccess` middleware (guest/non-backend/backend-role paths) | `tests/Unit/Models/UserTest.php`, `tests/Unit/Models/RoleTest.php`, `tests/Feature/Http/Middleware/AdminAccessTest.php`, `tests/Feature/Providers/GatesTest.php` |
 
 ## Adding a new feature's tests
 

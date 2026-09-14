@@ -16,6 +16,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminAccess::class,
         ]);
+
+        // auth:web runs before the 'admin' alias on /admin/* routes, so an
+        // unauthenticated guest was always redirected to the default /login
+        // (Laravel's built-in guest redirect target) instead of /admin/login
+        // — AdminAccess's own guest branch never got a chance to run.
+        $middleware->redirectGuestsTo(
+            fn ($request) => $request->is('admin*') ? route('admin.login') : route('login')
+        );
     })
     ->withSchedule(function (Schedule $schedule): void {
         // Pre-populate exchange rates before users visit (Vietcombank updates ~7-8 AM)
