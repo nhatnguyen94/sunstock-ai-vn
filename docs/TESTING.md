@@ -78,6 +78,7 @@ Run only the group for the feature you just touched. Don't run the whole suite u
 | `portfolioPrices` | `PortfolioService::fetchCurrentPrices()` sourcing real prices from `StockRepositoryInterface` (not `rand()`) | `tests/Unit/Frontend/Services/PortfolioServiceTest.php` |
 | `portfolioAlerts` | Target/stop-loss crossing detection, one-shot notify + reset, `sync:portfolio-prices` command, `PortfolioAlertNotification` mail content | `tests/Feature/Frontend/Services/PortfolioServiceTest.php`, `tests/Feature/Notifications/PortfolioAlertNotificationTest.php`, `tests/Feature/Console/Commands/SyncPortfolioPricesTest.php` |
 | `stockScreener` | `CompanyFinancialService::screenStocks()` — latest-year extraction, filtering, sorting | `tests/Feature/Frontend/Services/CompanyFinancialServiceTest.php` |
+| `exchangeRate` | `ExchangeRateService` — parsing Python stdout (banner-noise regression), DB-first caching, Python fallback + persist | `tests/Unit/Frontend/Services/ExchangeRateServiceTest.php`, `tests/Feature/Frontend/Services/ExchangeRateServiceTest.php` |
 
 ## Adding a new feature's tests
 

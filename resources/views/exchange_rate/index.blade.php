@@ -389,6 +389,7 @@ $keyRates = ['USD','EUR','JPY','GBP','CNY'];
 
 <script>
 window._exchangeRateUrl = '{{ route("exchange-rate.index") }}';
+window._chartRatesData = @json($chartRates ?? []);
 </script>
 @vite('resources/frontend/js/exchange_rate/index.js')
 @endsection

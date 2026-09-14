@@ -2,6 +2,27 @@
 
 ---
 
+## FIX_EXCHANGE_RATE_PAGE_BROKEN - September 14, 2026
+
+### Summary:
+`/exchange-rate` showed no data at all — no default latest-day rates, date search always empty, "Làm mới"/refresh looked broken. Root cause: `ExchangeRateService::fetchRatesFromPython()` concatenated every line of the Python script's stdout (`implode('', $output)`) before `json_decode()`. vnstock prints a promo banner and version-update notices to stdout before the actual JSON line, so the concatenated string was never valid JSON — parsing silently failed on every single call, always returning `[]`. The Python script itself and the underlying data were fine the whole time; this was a pure PHP-side parsing bug.
+
+### Fixed:
+- **`app/Frontend/Services/ExchangeRateService.php`** — `fetchRatesFromPython()` now scans `$output` backward for the last line starting with `{`/`[` (same pattern already used in `StockService`/`CompanyFinancialService`, documented in `docs/PYTHON_INTEGRATION.md`). Extracted into a new `parsePythonOutput(array $output, $daysOrDate): array` method specifically so it's unit-testable without invoking a real Python process.
+- **`resources/frontend/js/exchange_rate/index.js`** — the "Key Rates Bar Chart" (ApexCharts) was a dangling comment with no implementation (`#keyRatesChart` div stayed empty). Implemented it using the `$chartRates` data the Blade view already computed, passed to JS via `window._chartRatesData`.
+- **`resources/views/exchange_rate/index.blade.php`** — added the `window._chartRatesData = @json($chartRates ?? [])` inline data bridge for the above.
+
+### Added (tests):
+- `tests/Unit/Frontend/Services/ExchangeRateServiceTest.php` (group `exchangeRate`) — regression tests for the banner-noise parsing bug, malformed/empty output, invalid-input short-circuit.
+- `tests/Feature/Frontend/Services/ExchangeRateServiceTest.php` (group `exchangeRate`) — DB-first cache behavior and the Python-fallback-then-persist flow, using a Mockery partial mock of `ExchangeRateService` to stub `fetchRatesFromPython()` (so no real Python process runs, consistent with the Unit test file).
+
+### Verified:
+- `php artisan test --group=exchangeRate` → 10/10 passing; full suite 30/31 (only the pre-existing unrelated `Tests\Feature\ExampleTest` failure, see `docs/TESTING.md`).
+- Manually via `sync:exchange-rates`-equivalent service calls: `getLatestRates(3)` and `getRatesByDate()` both now return real, fresh Vietcombank data end-to-end; confirmed in the rendered page (3-day table + working date search).
+- The chart's client-side render could not be visually confirmed in this session's browser-automation tool — it blocks all `/build/assets/*` requests in its sandbox (`net::ERR_BLOCKED_BY_CLIENT` on every asset, environment-specific, unrelated to the app) — but the exact render logic was verified by running it manually in the page's console, and the built bundle was confirmed to contain the code.
+
+---
+
 ## MANDATORY_TESTING_RULE_AND_FIRST_TEST_SUITE - September 14, 2026
 
 ### Summary:

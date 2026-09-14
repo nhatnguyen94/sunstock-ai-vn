@@ -62,7 +62,35 @@ class ExchangeRateService
         $script = base_path('py/get_exchange_rate.py');
         $command = escapeshellarg($python) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg((string) $daysOrDate);
         exec($command, $output);
-        $json = implode('', $output);
+
+        return $this->parsePythonOutput($output, $daysOrDate);
+    }
+
+    /**
+     * Parse py/get_exchange_rate.py's stdout lines into [date => [item, item, ...], ...].
+     *
+     * Split out from fetchRatesFromPython() so it can be unit-tested directly with
+     * fixture $output arrays, without invoking a real Python process — exec() itself
+     * isn't mockable. See docs/TESTING.md.
+     *
+     * @param  array  $output  Raw stdout lines from exec(); vnstock prints promo
+     *                         banners/version notices before the JSON payload, so the
+     *                         JSON line must be found by scanning backward (same
+     *                         pattern as StockService/CompanyFinancialService — see
+     *                         docs/PYTHON_INTEGRATION.md).
+     * @param  int|string  $daysOrDate  The original argument passed to the script.
+     */
+    public function parsePythonOutput(array $output, $daysOrDate): array
+    {
+        $json = '';
+        for ($i = count($output) - 1; $i >= 0; $i--) {
+            $line = trim($output[$i]);
+            if (str_starts_with($line, '{') || str_starts_with($line, '[')) {
+                $json = $line;
+                break;
+            }
+        }
+
         $data = json_decode($json, true) ?? [];
         // Nếu truyền days, $data là mảng các ngày, mỗi ngày có 'date' và 'rates'
         // Nếu truyền date, $data là mảng các item

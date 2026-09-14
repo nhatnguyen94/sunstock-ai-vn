@@ -18,7 +18,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 
 - **Services**: `app/Frontend/Services/` - Business logic for Frontend
   - `StockService.php` - Call Python scripts to fetch/sync stock data, hot industries
-  - `ExchangeRateService.php` - Handle exchange rate data
+  - `ExchangeRateService.php` - Handle exchange rate data; DB-first cache with fallback to `py/get_exchange_rate.py`. `parsePythonOutput()` is split out from `fetchRatesFromPython()` for unit testing (scans exec() stdout backward for the JSON line — vnstock prints promo banners before it)
   - `AiService.php` - AI chat/prediction via Groq API (llama-3.3-70b-versatile, fallback chain, Redis cache 2h for predict, XSS-safe)
   - `NewsService.php` - Reads news from DB via NewsRepositoryInterface. getLatestNews(6) for homepage, getPaginatedNews for /news page.
   - `PortfolioService.php` - Portfolio management business logic. Injects both `PortfolioRepositoryInterface` and `StockRepositoryInterface` — no direct Eloquent queries, fully mockable. `fetchCurrentPrices()` delegates to `StockRepositoryInterface::getLatestPrices()`; `refreshAllPortfolioPrices()` (used by `sync:portfolio-prices`) updates every active portfolio and fires `PortfolioAlertNotification` once per target/stop-loss crossing via `PortfolioRepositoryInterface::setAlertFlag()`
