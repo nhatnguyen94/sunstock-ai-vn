@@ -13,7 +13,7 @@ use Tests\TestCase;
  */
 class SyncPortfolioPricesTest extends TestCase
 {
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_command_refreshes_portfolios_and_reports_the_count(): void
     {
         $mock = \Mockery::mock(PortfolioService::class);
@@ -25,7 +25,7 @@ class SyncPortfolioPricesTest extends TestCase
             ->assertExitCode(0);
     }
 
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_command_reports_zero_when_no_portfolios_need_refreshing(): void
     {
         $mock = \Mockery::mock(PortfolioService::class);

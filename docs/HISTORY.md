@@ -10,11 +10,11 @@ Added a mandatory testing rule to `AGENTS.md`/`GUIDELINES.md` (write tests tagge
 ### Added:
 - **`docs/TESTING.md`** — full testing guide: folder structure mirrors `app/`, the `#[Group(...)]` convention, why tests here can never touch the database (see below), current group list, how to add a new feature's tests.
 - **Tests** (19 total, all passing):
-  - `tests/Unit/Frontend/Services/PortfolioServiceTest.php` (group `portfolio-prices`) — pure PHPUnit, no Laravel boot.
-  - `tests/Feature/Frontend/Services/PortfolioServiceTest.php` (group `portfolio-alerts`) — needs the container for `Notification::fake()`.
-  - `tests/Feature/Frontend/Services/CompanyFinancialServiceTest.php` (group `stock-screener`) — needs the container for the `Cache` facade; also a regression test locking in the ROEA-vs-"4 quý gần nhất" fix from the previous session.
-  - `tests/Feature/Notifications/PortfolioAlertNotificationTest.php` (group `portfolio-alerts`) — needs the container for the `url()` helper.
-  - `tests/Feature/Console/Commands/SyncPortfolioPricesTest.php` (group `portfolio-alerts`) — uses `$this->artisan()` against the real kernel with `PortfolioService` swapped for a mock.
+  - `tests/Unit/Frontend/Services/PortfolioServiceTest.php` (group `portfolioPrices`) — pure PHPUnit, no Laravel boot.
+  - `tests/Feature/Frontend/Services/PortfolioServiceTest.php` (group `portfolioAlerts`) — needs the container for `Notification::fake()`.
+  - `tests/Feature/Frontend/Services/CompanyFinancialServiceTest.php` (group `stockScreener`) — needs the container for the `Cache` facade; also a regression test locking in the ROEA-vs-"4 quý gần nhất" fix from the previous session.
+  - `tests/Feature/Notifications/PortfolioAlertNotificationTest.php` (group `portfolioAlerts`) — needs the container for the `url()` helper.
+  - `tests/Feature/Console/Commands/SyncPortfolioPricesTest.php` (group `portfolioAlerts`) — uses `$this->artisan()` against the real kernel with `PortfolioService` swapped for a mock.
 
 ### Fixed / Refactored:
 - **`app/Frontend/Services/PortfolioService.php`** — had two direct Eloquent queries (`Stock::whereIn(...)` in `fetchCurrentPrices()`, `$item->saveQuietly()` in the alert-flag logic), which is both a `docs/GUIDELINES.md` Repository-pattern violation and untestable without a real database. Moved both into repositories:

@@ -49,7 +49,7 @@ class PortfolioServiceTest extends TestCase
         return $portfolio;
     }
 
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_notification_sent_once_when_item_crosses_target_price(): void
     {
         Notification::fake();
@@ -72,7 +72,7 @@ class PortfolioServiceTest extends TestCase
         Notification::assertSentTo($portfolio->user, PortfolioAlertNotification::class);
     }
 
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_notification_not_resent_while_still_above_target(): void
     {
         Notification::fake();
@@ -99,7 +99,7 @@ class PortfolioServiceTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_alert_flag_resets_when_price_moves_back_below_target(): void
     {
         Notification::fake();
@@ -125,7 +125,7 @@ class PortfolioServiceTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_notification_sent_when_item_crosses_stop_loss_price(): void
     {
         Notification::fake();
@@ -148,7 +148,7 @@ class PortfolioServiceTest extends TestCase
         Notification::assertSentTo($portfolio->user, PortfolioAlertNotification::class);
     }
 
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_refresh_all_portfolio_prices_iterates_every_active_portfolio(): void
     {
         Notification::fake();

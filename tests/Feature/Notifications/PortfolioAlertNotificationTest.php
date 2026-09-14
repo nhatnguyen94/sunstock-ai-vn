@@ -36,7 +36,7 @@ class PortfolioAlertNotificationTest extends TestCase
         return $item;
     }
 
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_via_uses_mail_channel_only(): void
     {
         $notification = new PortfolioAlertNotification($this->makeItem(), 'target');
@@ -44,7 +44,7 @@ class PortfolioAlertNotificationTest extends TestCase
         $this->assertSame(['mail'], $notification->via(new User()));
     }
 
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_target_alert_mail_mentions_symbol_and_target_price(): void
     {
         $item = $this->makeItem(['current_price' => 25, 'target_price' => 24]);
@@ -61,7 +61,7 @@ class PortfolioAlertNotificationTest extends TestCase
         $this->assertSame(url('/portfolio/5'), $mail->actionUrl);
     }
 
-    #[Group('portfolio-alerts')]
+    #[Group('portfolioAlerts')]
     public function test_stop_loss_alert_mail_mentions_symbol_and_stop_loss_price(): void
     {
         $item = $this->makeItem(['current_price' => 15, 'stop_loss_price' => 18]);

@@ -36,7 +36,7 @@ class PortfolioServiceTest extends TestCase
         return $item;
     }
 
-    #[Group('portfolio-prices')]
+    #[Group('portfolioPrices')]
     public function test_update_portfolio_prices_uses_real_prices_from_stock_repository_not_random(): void
     {
         $item = $this->makeItem('ACB');
@@ -65,7 +65,7 @@ class PortfolioServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
-    #[Group('portfolio-prices')]
+    #[Group('portfolioPrices')]
     public function test_update_portfolio_prices_returns_false_when_portfolio_not_found(): void
     {
         $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
@@ -79,7 +79,7 @@ class PortfolioServiceTest extends TestCase
         $this->assertFalse($service->updatePortfolioPrices(999, 1));
     }
 
-    #[Group('portfolio-prices')]
+    #[Group('portfolioPrices')]
     public function test_fetch_current_prices_skips_symbols_with_no_synced_price(): void
     {
         $itemWithPrice = $this->makeItem('ACB');

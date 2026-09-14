@@ -41,31 +41,32 @@ tests/
 
 If a future feature genuinely needs to hit the database in a test, fix the partition migration to be SQLite-compatible first (or write a lightweight `Schema::create()` setup in the test itself for just the tables you need) — don't reach for `RefreshDatabase` and expect it to work today.
 
-## The `#[Group('feature-name')]` convention
+## The `#[Group('featureName')]` convention
 
 Every test method (or class) must be tagged with a PHPUnit Group attribute:
 
 ```php
 use PHPUnit\Framework\Attributes\Group;
 
-#[Group('portfolio-alerts')]
+#[Group('portfolioAlerts')]
 public function test_notification_sent_once_when_item_crosses_target_price(): void
 {
     // ...
 }
 ```
 
+- **camelCase — mandatory, no exceptions.** `portfolioAlerts`, not `portfolio-alerts` or `portfolio_alerts` or `PortfolioAlerts`.
 - One group name per feature, reused across every test method/class that belongs to it — regardless of which folder (Unit or Feature) they live in.
-- Kebab-case, matches the feature name used in `docs/HISTORY.md` where practical.
+- Matches the feature name used in `docs/HISTORY.md` where practical (just camelCased instead of the doc's own casing there).
 
 ### Running a group
 
 ```bash
 # Inside the php container (recommended — matches the app's real PHP/extension versions)
-docker exec stock-app-php-1 php artisan test --group=portfolio-alerts
+docker exec stock-app-php-1 php artisan test --group=portfolioAlerts
 
 # Or, if running PHP directly on the host
-php artisan test --group=portfolio-alerts
+php artisan test --group=portfolioAlerts
 ```
 
 Run only the group for the feature you just touched. Don't run the whole suite unless the user explicitly asks for it (and remember `tests/Feature/ExampleTest.php` will fail regardless — see Known Issues below, it's unrelated to your change).
@@ -74,17 +75,17 @@ Run only the group for the feature you just touched. Don't run the whole suite u
 
 | Group | Covers | Test files |
 |---|---|---|
-| `portfolio-prices` | `PortfolioService::fetchCurrentPrices()` sourcing real prices from `StockRepositoryInterface` (not `rand()`) | `tests/Unit/Frontend/Services/PortfolioServiceTest.php` |
-| `portfolio-alerts` | Target/stop-loss crossing detection, one-shot notify + reset, `sync:portfolio-prices` command, `PortfolioAlertNotification` mail content | `tests/Feature/Frontend/Services/PortfolioServiceTest.php`, `tests/Feature/Notifications/PortfolioAlertNotificationTest.php`, `tests/Feature/Console/Commands/SyncPortfolioPricesTest.php` |
-| `stock-screener` | `CompanyFinancialService::screenStocks()` — latest-year extraction, filtering, sorting | `tests/Feature/Frontend/Services/CompanyFinancialServiceTest.php` |
+| `portfolioPrices` | `PortfolioService::fetchCurrentPrices()` sourcing real prices from `StockRepositoryInterface` (not `rand()`) | `tests/Unit/Frontend/Services/PortfolioServiceTest.php` |
+| `portfolioAlerts` | Target/stop-loss crossing detection, one-shot notify + reset, `sync:portfolio-prices` command, `PortfolioAlertNotification` mail content | `tests/Feature/Frontend/Services/PortfolioServiceTest.php`, `tests/Feature/Notifications/PortfolioAlertNotificationTest.php`, `tests/Feature/Console/Commands/SyncPortfolioPricesTest.php` |
+| `stockScreener` | `CompanyFinancialService::screenStocks()` — latest-year extraction, filtering, sorting | `tests/Feature/Frontend/Services/CompanyFinancialServiceTest.php` |
 
 ## Adding a new feature's tests
 
 1. Find (or create) the folder under `tests/Unit/` or `tests/Feature/` that mirrors where the code lives in `app/`.
 2. Name the test class `<ClassName>Test.php`, same name as the class under test.
-3. Pick ONE group name for the feature; tag every test method for it with `#[Group('your-feature-name')]`.
+3. Pick ONE **camelCase** group name for the feature; tag every test method for it with `#[Group('yourFeatureName')]`.
 4. Mock every `*RepositoryInterface` dependency with Mockery — never let a test hit the database (see above).
-5. Run just that group and make sure it's green before moving on: `docker exec stock-app-php-1 php artisan test --group=your-feature-name`.
+5. Run just that group and make sure it's green before moving on: `docker exec stock-app-php-1 php artisan test --group=yourFeatureName`.
 6. Add a row to the "Current groups" table above.
 
 ## Known issues (pre-existing, not caused by any of the above)

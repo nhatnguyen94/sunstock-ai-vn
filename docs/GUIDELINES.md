@@ -44,7 +44,7 @@ When adding ANY new feature (or changing an existing one):
 - [ ] Add Gate checks in Backend controllers (`Gate::authorize('manage-users')`)
 - [ ] Run `composer dump-autoload`
 - [ ] Test with `php artisan route:list`
-- [ ] **Write/update tests tagged `#[Group('feature-name')]`, then run just that group — `php artisan test --group=feature-name` — MANDATORY, all tests in the group must pass**
+- [ ] **Write/update tests tagged `#[Group('featureName')]` (camelCase — mandatory), then run just that group — `php artisan test --group=featureName` — MANDATORY, all tests in the group must pass**
 - [ ] Update documentation immediately
 
 ## ⚠️ Known Gotchas & Patterns
@@ -98,7 +98,8 @@ When adding ANY new feature (or changing an existing one):
 1. **Register service bindings** in `AppServiceProvider.php`.
 2. **Test routes** with `php artisan route:list`.
 3. **Run** `composer dump-autoload` after any namespace/file changes.
-4. **Write/update tests** for the feature or fix, tagged `#[Group('feature-name')]` (one group name per feature, shared by all its test methods/classes). Then **run only that group**: `php artisan test --group=feature-name` — MANDATORY for every task, new feature or existing one. All tests in the group must pass before the task is done. Don't run the full suite unless asked.
+4. **Write/update tests** for the feature or fix, tagged `#[Group('featureName')]` — **camelCase, mandatory** (one group name per feature, shared by all its test methods/classes). Then **run only that group**: `php artisan test --group=featureName` — MANDATORY for every task, new feature or existing one. All tests in the group must pass before the task is done. Don't run the full suite unless asked.
+5. **Commit message format — MANDATORY**: `[branch-name] <short summary> (<optional extra detail>)`, e.g. `[master] Add stock screener`. This repo currently only has `master`, so the prefix is always `[master]` unless a feature branch exists.
 
 ## 🧠 AI Behavioral Guidelines
 

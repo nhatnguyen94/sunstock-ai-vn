@@ -37,7 +37,7 @@ class CompanyFinancialServiceTest extends TestCase
         return array_merge(['item' => $item, 'unit' => '', 'levels' => 1], $yearValues);
     }
 
-    #[Group('stock-screener')]
+    #[Group('stockScreener')]
     public function test_screen_stocks_extracts_the_latest_year_column(): void
     {
         $record = $this->ratioRecord('ACB', [
@@ -60,7 +60,7 @@ class CompanyFinancialServiceTest extends TestCase
         $this->assertSame(6.5, $rows[0]['pe']); // must pick 2025, not an earlier year
     }
 
-    #[Group('stock-screener')]
+    #[Group('stockScreener')]
     public function test_screen_stocks_reads_roea_not_the_always_zero_quarterly_label(): void
     {
         // Regression test: vnstock's "ROE bình quân 4 quý gần nhất" is always 0
@@ -79,7 +79,7 @@ class CompanyFinancialServiceTest extends TestCase
         $this->assertSame(22.51, $rows[0]['roe']);
     }
 
-    #[Group('stock-screener')]
+    #[Group('stockScreener')]
     public function test_screen_stocks_filters_by_pe_range(): void
     {
         $cheap = $this->ratioRecord('CHEAP', [$this->row('Chỉ số giá thị trường trên thu nhập (P/E)', ['2025-Năm' => 5.0])]);
@@ -95,7 +95,7 @@ class CompanyFinancialServiceTest extends TestCase
         $this->assertSame('CHEAP', $rows[0]['symbol']);
     }
 
-    #[Group('stock-screener')]
+    #[Group('stockScreener')]
     public function test_screen_stocks_filters_by_roe_min(): void
     {
         $strong = $this->ratioRecord('STRONG', [$this->row('Tỷ suất lợi nhuận trên vốn chủ sở hữu bình quân (ROEA)', ['2025-Năm' => 25.0])]);
@@ -111,7 +111,7 @@ class CompanyFinancialServiceTest extends TestCase
         $this->assertSame('STRONG', $rows[0]['symbol']);
     }
 
-    #[Group('stock-screener')]
+    #[Group('stockScreener')]
     public function test_screen_stocks_sorts_by_requested_column_and_direction(): void
     {
         $low = $this->ratioRecord('LOW', [$this->row('Chỉ số giá thị trường trên thu nhập (P/E)', ['2025-Năm' => 5.0])]);
@@ -127,7 +127,7 @@ class CompanyFinancialServiceTest extends TestCase
         $this->assertSame(['HIGH', 'MID', 'LOW'], array_column($rows, 'symbol'));
     }
 
-    #[Group('stock-screener')]
+    #[Group('stockScreener')]
     public function test_screen_stocks_skips_records_with_no_recognized_metric(): void
     {
         $usable = $this->ratioRecord('OK', [$this->row('Chỉ số giá thị trường trên thu nhập (P/E)', ['2025-Năm' => 10.0])]);

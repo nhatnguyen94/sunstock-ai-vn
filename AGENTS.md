@@ -88,8 +88,10 @@ After reading, you MUST output this block verbatim with your own answers filled 
 | Update `docs/HISTORY.md` before coding | Update HISTORY.md as FINAL STEP | Documentation updated AFTER complete |
 | Forget `composer dump-autoload` | Run after ALL new files created | Autoloading won't work without this |
 | Use `dd()` in Services | Return only JSON or structured data | Python stdout must be clean JSON |
-| Ship a new or changed feature without tests | Write/update tests tagged `#[Group('feature-name')]`, then run `php artisan test --group=feature-name` | Untested changes are not considered done — see "AFTER EVERY TASK" |
+| Ship a new or changed feature without tests | Write/update tests tagged `#[Group('featureName')]`, then run `php artisan test --group=featureName` | Untested changes are not considered done — see "AFTER EVERY TASK" |
 | Test method/class with no `#[Group(...)]` tag | Every test MUST have a feature group so it can be run in isolation | Lets you verify just your change without running the full (slow) suite |
+| Group name in kebab-case, e.g. `#[Group('portfolio-alerts')]` | **camelCase only**, e.g. `#[Group('portfolioAlerts')]` | Mandatory naming convention — kebab-case groups will be rejected |
+| Commit message without a `[branch-name]` prefix | `[master] <summary> (<detail>)` — e.g. `[master] Add stock screener` | Mandatory commit format — see "AFTER EVERY TASK" |
 
 ---
 
@@ -125,13 +127,14 @@ After reading, you MUST output this block verbatim with your own answers filled 
 > [!IMPORTANT]
 > **MANDATORY — NO EXCEPTIONS**: Step 1 below applies to every feature you touch, whether it's brand new or already existed before your change. A task is NOT complete until it passes.
 
-1. **Write or update unit/feature tests** covering the feature/fix you just built or changed. Every test (new or existing) MUST be tagged with a PHPUnit **Group** named after the feature it belongs to, using the `#[Group('feature-name')]` attribute — e.g. `#[Group('portfolio-alerts')]`. Use one consistent group name per feature across all its test methods/classes so they can be run together. Full details (folder structure, why tests can't touch the DB here, current group list) → **[docs/TESTING.md](docs/TESTING.md)**.
-   Then **run only that feature's group** — not the full suite: `docker exec stock-app-php-1 php artisan test --group=feature-name` (or `php artisan test --group=feature-name` outside Docker). Every test in the group must pass — fix failures before moving on, don't skip or comment them out.
+1. **Write or update unit/feature tests** covering the feature/fix you just built or changed. Every test (new or existing) MUST be tagged with a PHPUnit **Group** named after the feature it belongs to, using the `#[Group('featureName')]` attribute — **group names are camelCase, mandatory, no exceptions** (e.g. `#[Group('portfolioAlerts')]`, NOT `portfolio-alerts`). Use one consistent group name per feature across all its test methods/classes so they can be run together. Full details (folder structure, why tests can't touch the DB here, current group list) → **[docs/TESTING.md](docs/TESTING.md)**.
+   Then **run only that feature's group** — not the full suite: `docker exec stock-app-php-1 php artisan test --group=featureName` (or `php artisan test --group=featureName` outside Docker). Every test in the group must pass — fix failures before moving on, don't skip or comment them out.
 2. `composer dump-autoload`
 3. Update **[docs/HISTORY.md](docs/HISTORY.md)** — LAST step, never first
 4. Update **[docs/STRUCTURE.md](docs/STRUCTURE.md)** — if new files/components added
 5. Update **[docs/ROUTES_MAP.md](docs/ROUTES_MAP.md)** — if new routes added
 6. Update **[docs/BINDINGS.md](docs/BINDINGS.md)** — if new DI bindings added
+7. **Commit message format — MANDATORY**: `[branch-name] <short summary> (<optional extra detail>)`. `branch-name` is the actual branch you're committing to — this repo currently only has `master`, so it's always `[master]` unless a feature branch exists. Example: `[master] Update feature (fix portfolio price sync)`.
 
 > Full QA checklist (code quality, RBAC, migrations, testing) → **[docs/GUIDELINES.md](docs/GUIDELINES.md)**
 
@@ -145,4 +148,4 @@ Rules there are **supplemental only** — project architecture always takes prio
 ---
 
 **Last Updated**: September 14, 2026  
-**Revision**: 3.2 (mandatory tests per feature, tagged `#[Group(...)]` and run in isolation — see docs/TESTING.md)
+**Revision**: 3.3 (mandatory tests per feature tagged `#[Group(...)]` camelCase, run in isolation — see docs/TESTING.md; mandatory `[branch-name]` commit message format)
