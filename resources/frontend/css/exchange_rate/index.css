@@ -165,7 +165,10 @@
 
     .search-input[type="date"].has-value {
         border-color: #10b981;
-        background: #f0fdf4;
+        /* background-color only (not the `background` shorthand) — the
+           shorthand would reset the custom calendar-icon background-image
+           set above, making the icon invisible after a date is picked. */
+        background-color: #f0fdf4;
         color: #1f2937;
         font-weight: 600;
     }

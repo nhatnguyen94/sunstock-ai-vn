@@ -2,6 +2,25 @@
 
 ---
 
+## FIX_SCREENER_UIUX_AND_EXCHANGE_RATE_DATEPICKER - September 14, 2026
+
+### Issue 1 — Stock Screener UI/UX redesign:
+The screener page (`/stock/screener`) was shipped with unaccented Vietnamese text throughout, an inline `<style>` block instead of a dedicated CSS file (inconsistent with `docs/FRONTEND_VIEWS.md` convention), a raw internal artisan command name (`sync:company-financials`) leaking into a user-facing footnote, and flat/low-contrast styling that didn't match the rest of the site (home, exchange-rate).
+
+- **Added** `resources/frontend/css/stock/screener.css` — full redesign matching `exchange_rate/index.css`'s design language: white cards with a top gradient bar, `.screener-stat-card` result-count strip, `.screener-symbol-badge` gradient pills (same pattern as `.currency-code`), color-coded `.screener-pill` (green/red/neutral) for ROE, dividend yield, and debt/equity based on value thresholds, sort-arrow indicators on sortable table headers.
+- **Rewrote** `resources/views/stock/screener.blade.php` — proper Vietnamese diacritics throughout, removed the inline `<style>` block in favor of `@vite('resources/frontend/css/stock/screener.css')`, footnote reworded to drop the internal command name, fixed a scale bug in the "Nợ/VCSH tối đa" filter placeholder (was `1.5` implying a ratio scale like `1.0 = 100%`; the underlying data is already percentage-scale — e.g. `112.83` — so the filter never meaningfully matched anything at that placeholder value; now `150`).
+- **Updated** `docs/FRONTEND_VIEWS.md` Blade→asset mapping table with the new row.
+
+### Issue 2 — Exchange-rate date picker icon disappearing after first pick:
+`resources/frontend/css/exchange_rate/index.css`'s `.search-input[type="date"].has-value` rule set `background: #f0fdf4` using the `background` **shorthand**, which resets `background-image` to `none` for every property not explicitly given — wiping out the custom calendar-icon `background-image` set on the base `.search-input[type="date"]` rule the moment a date was picked (`has-value` gets added by JS on `change`). The icon didn't just look different, it visually vanished, even though the underlying (invisible, opacity:0) native `::-webkit-calendar-picker-indicator` hit-area was still there — so users had no visual cue for where to click to change the date again.
+
+- **Fixed**: changed to `background-color: #f0fdf4` (not the shorthand), preserving the inherited `background-image` so the calendar icon stays visible after a date is selected.
+
+### Verification notes:
+Both fixes are pure CSS/Blade with no new PHP logic, so no new test group was added (per `docs/TESTING.md`, tests cover Service/Notification/Command logic, not static markup/styling). Rendered output verified via `Route::screener()`'s Blade output (diacritics intact, old command-name text gone, new CSS classes present) and via browser page-text (filter + sort + stat count all correct). The actual visual rendering (colors, icon disappearing) could **not** be visually confirmed in this session's browser-automation tool, which blocks all `/build/assets/*` requests in its sandbox — ask the user to verify visually in a real browser.
+
+---
+
 ## FIX_EXCHANGE_RATE_PAGE_BROKEN - September 14, 2026
 
 ### Summary:

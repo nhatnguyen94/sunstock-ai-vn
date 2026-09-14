@@ -80,6 +80,7 @@ resources/
 | `news/index.blade.php` | `css/news/index.css` | *(none)* |
 | `stock/stock.blade.php` | `css/stock/stock.css` | `js/stock/stock.js` |
 | `stock/compare.blade.php` | `css/stock/compare.css` | `js/stock/compare.js` |
+| `stock/screener.blade.php` | `css/stock/screener.css` | *(none)* |
 | `portfolio/index.blade.php` | `css/portfolio/index.css` | *(none)* |
 | `portfolio/create.blade.php` | `css/portfolio/create.css` | *(none)* |
 | `portfolio/edit.blade.php` | `css/portfolio/edit.css` | *(none)* |
