@@ -8,7 +8,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 ### Frontend (User Interface)
 - **Controllers**: `app/Frontend/Controllers/` - Handle requests from regular users
   - `Controller.php` - Base controller (extends `Illuminate\Routing\Controller`)
-  - `StockController.php` - Homepage, stock chart view, stock search, AI chat, compare, company financials API (`finance`)
+  - `StockController.php` - Homepage, stock chart view, stock search, AI chat, compare, company financials API (`finance`), ratio-based stock screener (`screener`)
   - `AuthController.php` - User login/registration/logout with validation
   - `EmailVerificationController.php` - Email verification flow (notice, resend, verify, admin verify/unverify)
   - `ProfileController.php` - User profile management (show/edit/update)
@@ -21,25 +21,25 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `ExchangeRateService.php` - Handle exchange rate data
   - `AiService.php` - AI chat/prediction via Groq API (llama-3.3-70b-versatile, fallback chain, Redis cache 2h for predict, XSS-safe)
   - `NewsService.php` - Reads news from DB via NewsRepositoryInterface. getLatestNews(6) for homepage, getPaginatedNews for /news page.
-  - `PortfolioService.php` - Portfolio management business logic
-  - `CompanyFinancialService.php` - Fetches company financials (income/balance/cashflow/ratio) via Python; DB-cached, falls back to live Python on miss
+  - `PortfolioService.php` - Portfolio management business logic. `fetchCurrentPrices()` reads real latest close via `Stock::latestPrice`; `refreshAllPortfolioPrices()` (used by `sync:portfolio-prices`) updates every active portfolio and fires `PortfolioAlertNotification` once per target/stop-loss crossing
+  - `CompanyFinancialService.php` - Fetches company financials (income/balance/cashflow/ratio) via Python; DB-cached, falls back to live Python on miss. `screenStocks(filters)` parses cached ratio JSON into a filterable/sortable screener dataset (cached 1h as `screener_ratio_metrics`)
 
 - **Repositories**: `app/Frontend/Repositories/` - Database access for Frontend
   - `StockRepository.php` - CRUD operations for stock data
   - `ExchangeRateRepository.php` - CRUD operations for exchange rate data
   - `UserProfileRepository.php` - CRUD operations for user profiles
-  - `PortfolioRepository.php` - CRUD operations for portfolios and portfolio items
+  - `PortfolioRepository.php` - CRUD operations for portfolios and portfolio items; `getAllActivePortfolios()` for the scheduled bulk price refresh
   - `NewsRepository.php` - Reads news from DB: getLatest, paginate (filter by category slug/search), getCategories
-  - `CompanyFinancialRepository.php` - DB cache for company financials: find(symbol, type, period), upsert
+  - `CompanyFinancialRepository.php` - DB cache for company financials: find(symbol, type, period), upsert, getAllRatiosByPeriod(period) for the screener
 
 - **Interfaces**: `app/Frontend/Interfaces/` - Contracts for Frontend
   - `StockRepositoryInterface.php`
   - `ExchangeRateRepositoryInterface.php`
   - `UserProfileRepositoryInterface.php`
-  - `PortfolioRepositoryInterface.php`
+  - `PortfolioRepositoryInterface.php` — includes `getAllActivePortfolios()` for the scheduled bulk price refresh
   - `NewsServiceInterface.php` — getLatestNews, getPaginatedNews, getCategories
   - `NewsRepositoryInterface.php` — getLatest, paginate, getCategories
-  - `CompanyFinancialRepositoryInterface.php` — find, upsert
+  - `CompanyFinancialRepositoryInterface.php` — find, upsert, getAllRatiosByPeriod(period)
 
 ### Backend (Administration)
 - **Controllers**: `app/Backend/Controllers/` - Handle admin requests
@@ -92,6 +92,9 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 ### Support Classes
 - `app/Support/ActivityLogger.php` - Static helper `ActivityLogger::log(eventType, description, properties, user)`. Swallows all Throwable — never crashes calling code. Used in controllers for audit trail.
 
+### Notifications
+- `app/Notifications/PortfolioAlertNotification.php` - `ShouldQueue` mail notification; sent once when a `PortfolioItem` crosses `target_price` or `stop_loss_price`. Always queued `onQueue('high')` so it isn't delayed by heavy `default`-queue sync jobs.
+
 ### Middleware
 - `app/Http/Middleware/AdminAccess.php` - Blocks non-backend users; registered as alias `admin` in `bootstrap/app.php`
 
@@ -104,6 +107,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Console/Commands/SyncHotIndustries.php` - Sync hot industry stock list from Python/vnstock
 - `app/Console/Commands/SyncExchangeRates.php` - Sync VCB exchange rates via Python
 - `app/Console/Commands/SyncCompanyFinancials.php` - Sync company financials to DB cache; `--dispatch` mode pre-filters fully-fresh symbols
+- `app/Console/Commands/SyncPortfolioPrices.php` - `sync:portfolio-prices`: refresh every active portfolio's `current_price` from the latest `StockPrice` and fire target/stop-loss email alerts
 - `app/Console/Commands/RegisterVnstockApiKey.php` - Register vnstock API key via Python script
 
 ### Jobs

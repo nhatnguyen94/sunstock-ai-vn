@@ -2,6 +2,30 @@
 
 ---
 
+## PORTFOLIO_REAL_PRICES_ALERTS_AND_SCREENER - September 14, 2026
+
+### Summary:
+Fixed portfolio prices (was mocked with `rand()`), added target/stop-loss email alerts, and added a stock screener filtered by cached financial ratios.
+
+### Added:
+- **`app/Notifications/PortfolioAlertNotification.php`** — `ShouldQueue` mail notification sent once when a `PortfolioItem` crosses its `target_price` or `stop_loss_price`. Dispatched on the `high` queue so it's never stuck behind heavy Python-backed sync jobs.
+- **`app/Console/Commands/SyncPortfolioPrices.php`** — `sync:portfolio-prices`: refreshes `current_price` for every active portfolio's items from the latest cached `StockPrice` and checks alerts. Scheduled daily at 16:00 (30 min after `sync:stock-prices`) and run once on every `docker compose up` via `docker/php/scheduler-entrypoint.sh`.
+- **Migration** `2026_09_14_153154_add_alert_tracking_to_portfolio_items_table.php` — adds `target_alerted_at`, `stop_loss_alerted_at` (nullable timestamps) to `portfolio_items`, so each threshold only notifies once until price moves back past it.
+- **Route** `GET /stock/screener` (`stock.screener`) → `StockController@screener` — filters cached ratio data (P/E, P/B, ROE, ROA, dividend yield, debt/equity) with sortable columns. View: `resources/views/stock/screener.blade.php`. Linked from the navbar "Cổ phiếu" dropdown and footer.
+- **`CompanyFinancialService::screenStocks()`** — parses the latest-year column out of each cached `company_financials` ratio JSON blob (`SCREENER_METRICS` label map), cached under `screener_ratio_metrics` (1h) since the source table is small.
+- **`PortfolioRepositoryInterface::getAllActivePortfolios()`** / **`CompanyFinancialRepositoryInterface::getAllRatiosByPeriod()`** — new repository methods backing the above.
+
+### Fixed:
+- **`app/Frontend/Services/PortfolioService.php`** — `fetchCurrentPrices()` previously returned `rand(10000, 50000) / 100` (mock data). Now reads the real latest close from `Stock::latestPrice` (existing `latestOfMany` relation), so portfolio P&L and target/stop-loss checks reflect actual synced prices.
+
+### Infra:
+- **`docker/php/supervisord.conf`** — redis queue workers now run `queue:work redis --queue=high,default` (was `--queue` unset ⇒ `default` only), so a stuck/slow default-queue job (e.g. a `ProcessStockPriceSync` chunk hitting a VCI timeout) can never delay a time-sensitive notification.
+
+### Known issue observed while testing (not caused by this change):
+- `trading.vietcap.com.vn` (VCI, vnstock's price source) was intermittently timing out, causing `ProcessStockPriceSync` jobs to hang near their 600s timeout and tying up all 3 queue workers. Pre-existing — same root cause as the ~594 old rows already in `failed_jobs`. Not fixed here; flagged for a future look if it recurs.
+
+---
+
 ## BACKEND_ADMIN_UPGRADE - June 27, 2026
 
 ### Summary:

@@ -11,6 +11,7 @@
 | GET | `/stock/compare` | `stock.compare` | `StockController` | `compare` |
 | GET | `/stock/compare-data` | `stock.compare-data` | `StockController` | `compareData` |
 | GET | `/stock/finance` | `stock.finance` | `StockController` | `finance` |
+| GET | `/stock/screener` | `stock.screener` | `StockController` | `screener` |
 | GET | `/stocks-list` | *(none)* | `StockController` | `getStockSymbols` |
 | POST | `/search` | `stock.search` | `StockController` | `search` |
 | GET | `/news` | `news.index` | `NewsController` (Frontend) | `index` |

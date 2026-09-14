@@ -5,6 +5,8 @@ namespace App\Frontend\Services;
 use App\Frontend\Interfaces\PortfolioRepositoryInterface;
 use App\Models\Portfolio;
 use App\Models\PortfolioItem;
+use App\Models\Stock;
+use App\Notifications\PortfolioAlertNotification;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
@@ -190,11 +192,17 @@ class PortfolioService
         }
 
         try {
-            // Get current prices from external API or database
+            // Get current prices from the database (synced from vnstock via Python)
             $symbols = $portfolio->items->pluck('stock_symbol')->toArray();
             $priceData = $this->fetchCurrentPrices($symbols);
 
-            return $this->portfolioRepository->updateItemsPrices($portfolio, $priceData);
+            $success = $this->portfolioRepository->updateItemsPrices($portfolio, $priceData);
+
+            if ($success) {
+                $this->checkPriceAlerts($portfolio);
+            }
+
+            return $success;
         } catch (\Exception $e) {
             Log::error('Failed to update portfolio prices', [
                 'portfolio_id' => $portfolioId,
@@ -217,6 +225,52 @@ class PortfolioService
         }
 
         return $updated;
+    }
+
+    /**
+     * Refresh prices + fire target/stop-loss alerts for every active portfolio
+     * across all users. Intended to run from the scheduler after sync:stock-prices.
+     */
+    public function refreshAllPortfolioPrices(): int
+    {
+        $updated = 0;
+
+        foreach ($this->portfolioRepository->getAllActivePortfolios() as $portfolio) {
+            if ($this->updatePortfolioPrices($portfolio->id, $portfolio->user_id)) {
+                $updated++;
+            }
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Notify the owner once when an item crosses its target/stop-loss price,
+     * and reset the alert flag once the price moves back past the threshold
+     * so a future crossing notifies again.
+     */
+    private function checkPriceAlerts(Portfolio $portfolio): void
+    {
+        foreach ($portfolio->items as $item) {
+            $this->checkSingleAlert($portfolio, $item, 'target', $item->is_at_target, $item->target_alerted_at);
+            $this->checkSingleAlert($portfolio, $item, 'stop_loss', $item->is_at_stop_loss, $item->stop_loss_alerted_at);
+        }
+    }
+
+    private function checkSingleAlert(Portfolio $portfolio, PortfolioItem $item, string $type, bool $isTriggered, $alertedAt): void
+    {
+        $column = $type === 'target' ? 'target_alerted_at' : 'stop_loss_alerted_at';
+
+        if ($isTriggered && ! $alertedAt) {
+            if ($portfolio->user) {
+                $portfolio->user->notify((new PortfolioAlertNotification($item, $type))->onQueue('high'));
+            }
+            $item->{$column} = now();
+            $item->saveQuietly();
+        } elseif (! $isTriggered && $alertedAt) {
+            $item->{$column} = null;
+            $item->saveQuietly();
+        }
     }
 
     /**
@@ -277,13 +331,20 @@ class PortfolioService
 
     private function fetchCurrentPrices(array $symbols): array
     {
-        // Mock implementation - integrate with actual stock API
+        if (empty($symbols)) {
+            return [];
+        }
+
         $prices = [];
 
-        foreach ($symbols as $symbol) {
-            // Simulate price fetch from external API or database
-            $prices[$symbol] = rand(10000, 50000) / 100; // Random price for demo
-        }
+        Stock::whereIn('symbol', $symbols)
+            ->with('latestPrice')
+            ->get()
+            ->each(function (Stock $stock) use (&$prices) {
+                if ($stock->latestPrice) {
+                    $prices[$stock->symbol] = (float) $stock->latestPrice->close;
+                }
+            });
 
         return $prices;
     }

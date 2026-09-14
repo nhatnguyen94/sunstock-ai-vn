@@ -4,6 +4,7 @@ namespace App\Frontend\Repositories;
 
 use App\Frontend\Interfaces\CompanyFinancialRepositoryInterface;
 use App\Models\CompanyFinancial;
+use Illuminate\Database\Eloquent\Collection;
 
 class CompanyFinancialRepository implements CompanyFinancialRepositoryInterface
 {
@@ -21,5 +22,12 @@ class CompanyFinancialRepository implements CompanyFinancialRepositoryInterface
             ['symbol' => $symbol, 'type' => $type, 'period' => $period],
             ['raw_data' => $rawData, 'synced_at' => now()]
         );
+    }
+
+    public function getAllRatiosByPeriod(string $period): Collection
+    {
+        return CompanyFinancial::where('type', 'ratio')
+            ->where('period', $period)
+            ->get(['symbol', 'raw_data', 'synced_at']);
     }
 }

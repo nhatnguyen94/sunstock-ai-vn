@@ -38,6 +38,13 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping()
             ->runInBackground();
 
+        // Refresh portfolio current_price + send target/stop-loss alerts.
+        // Runs 30 min after sync:stock-prices to give the queue workers time
+        // to finish processing the dispatched price-sync jobs.
+        $schedule->command('sync:portfolio-prices')->dailyAt('16:00')
+            ->withoutOverlapping()
+            ->runInBackground();
+
         // Regenerate monthly summaries after daily price sync completes (~1 hour after)
         // Summaries power multi-year chart views without querying millions of daily rows
         $schedule->command('generate:price-summaries')->dailyAt('17:00')

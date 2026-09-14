@@ -29,6 +29,11 @@ interface PortfolioRepositoryInterface
     public function paginate(int $userId, int $perPage = 10): LengthAwarePaginator;
 
     /**
+     * All active portfolios across all users (for scheduled bulk price refresh).
+     */
+    public function getAllActivePortfolios(): Collection;
+
+    /**
      * Portfolio Item methods
      */
     public function findItemById(int $id): ?PortfolioItem;

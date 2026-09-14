@@ -20,6 +20,8 @@ class PortfolioItem extends Model
         'buy_date',
         'target_price',
         'stop_loss_price',
+        'target_alerted_at',
+        'stop_loss_alerted_at',
         'notes',
     ];
 
@@ -29,6 +31,8 @@ class PortfolioItem extends Model
         'current_price' => 'decimal:2',
         'target_price' => 'decimal:2',
         'stop_loss_price' => 'decimal:2',
+        'target_alerted_at' => 'datetime',
+        'stop_loss_alerted_at' => 'datetime',
         'buy_date' => 'date',
     ];
 

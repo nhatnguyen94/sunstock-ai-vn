@@ -263,6 +263,20 @@ class StockController extends Controller
         );
     }
 
+    /**
+     * Stock screener — filter cached financial ratios (P/E, P/B, ROE, dividend yield, debt/equity).
+     */
+    public function screener(Request $request): View
+    {
+        $filters = $request->only([
+            'pe_min', 'pe_max', 'pb_min', 'pb_max', 'roe_min', 'dividend_yield_min', 'debt_equity_max', 'sort', 'dir',
+        ]);
+
+        $results = $this->financialService->screenStocks($filters);
+
+        return view('stock.screener', compact('results', 'filters'));
+    }
+
     public function aiChat(Request $request, AiService $aiService)
     {
         $request->validate([

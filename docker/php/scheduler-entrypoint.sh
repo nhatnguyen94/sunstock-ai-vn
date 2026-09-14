@@ -15,6 +15,7 @@ php artisan sync:hot-industries --limit=100 || echo "[scheduler-entrypoint] sync
 php artisan sync:news                    || echo "[scheduler-entrypoint] sync:news failed, continuing"
 php artisan sync:stock-prices            || echo "[scheduler-entrypoint] sync:stock-prices failed, continuing"
 php artisan generate:price-summaries     || echo "[scheduler-entrypoint] generate:price-summaries failed, continuing"
+php artisan sync:portfolio-prices        || echo "[scheduler-entrypoint] sync:portfolio-prices failed, continuing"
 php artisan sync:company-financials --stale --dispatch --limit=50 || echo "[scheduler-entrypoint] sync:company-financials failed, continuing"
 
 echo "[scheduler-entrypoint] Startup sync dispatched. Starting scheduler loop..."

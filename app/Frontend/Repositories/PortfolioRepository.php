@@ -68,6 +68,11 @@ class PortfolioRepository implements PortfolioRepositoryInterface
             ->paginate($perPage);
     }
 
+    public function getAllActivePortfolios(): Collection
+    {
+        return Portfolio::active()->get(['id', 'user_id']);
+    }
+
     /**
      * Portfolio Item methods
      */

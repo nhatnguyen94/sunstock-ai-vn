@@ -52,10 +52,22 @@
                             <i class="bi bi-house-door"></i> Trang chủ
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('stock*') ? 'active' : '' }}" href="{{ url('/stock') }}">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->is('stock*') ? 'active' : '' }}"
+                           href="{{ url('/stock') }}" id="stockDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <i class="bi bi-graph-up"></i> Cổ phiếu
                         </a>
+                        <div class="dropdown-menu" aria-labelledby="stockDropdown">
+                            <a class="dropdown-item" href="{{ url('/stock') }}">
+                                <i class="bi bi-search text-primary"></i> Tra cứu cổ phiếu
+                            </a>
+                            <a class="dropdown-item" href="{{ url('/stock/compare') }}">
+                                <i class="bi bi-intersect text-primary"></i> So sánh cổ phiếu
+                            </a>
+                            <a class="dropdown-item" href="{{ route('stock.screener') }}">
+                                <i class="bi bi-funnel text-primary"></i> Stock Screener
+                            </a>
+                        </div>
                     </li>
                     @auth
                         <li class="nav-item">
@@ -229,6 +241,7 @@
                         @endauth
                         <a href="{{ url('/stock?symbol=VN30F1M') }}" class="footer-link"><i class="bi bi-bar-chart"></i> VN30 Futures</a>
                         <a href="{{ url('/stock/compare') }}" class="footer-link"><i class="bi bi-intersect"></i> So sánh cổ phiếu</a>
+                        <a href="{{ route('stock.screener') }}" class="footer-link"><i class="bi bi-funnel"></i> Stock Screener</a>
                     </div>
 
                     <!-- Popular stocks -->

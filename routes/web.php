@@ -28,6 +28,7 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::get('/stock/compare', [StockController::class, 'compare'])->name('stock.compare');
     Route::get('/stock/compare-data', [StockController::class, 'compareData'])->name('stock.compare-data');
     Route::get('/stock/finance', [StockController::class, 'finance'])->name('stock.finance');
+    Route::get('/stock/screener', [StockController::class, 'screener'])->name('stock.screener');
 
     Route::get('/stocks-list', [StockController::class, 'getStockSymbols']);
 
