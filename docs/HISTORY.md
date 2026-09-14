@@ -2,6 +2,32 @@
 
 ---
 
+## FIX_SCREENER_INLINE_CSS_AND_DATE_ICON_ROUND2 - September 14, 2026
+
+User reported both fixes from the previous entry were incomplete. Both were real gaps, not misunderstandings:
+
+### Issue 1 — Screener still had inline CSS (the hero header):
+The previous redesign only rewrote the filter/stats/table sections; the hero header (badge, title, subtitle, "Trang chủ" button) was untouched and still used `style="..."` attributes copied from `stock/compare.blade.php`. Worse: it used `class="compare-header"`, which is **only defined in `stock/compare.css`** — a stylesheet this page never loads — so the header was silently rendering completely unstyled (no gradient, no proper spacing) the whole time. Same problem for `class="back-button"` and `class="main-content"`, both only defined in other pages' CSS files.
+
+- **Added** proper scoped classes to `resources/frontend/css/stock/screener.css`: `.screener-header`, `.screener-header-row`, `.screener-badge`, `.screener-title`, `.screener-subtitle`, `.screener-header-actions`, `.back-button`, `.screener-main`, `.screener-actions`, `.screener-stat-icon`, and extended `.screener-stat-label` to cover what was previously an inline `display:block;margin-top`.
+- **`resources/views/stock/screener.blade.php`** now has zero `style="..."` attributes in its own content (verified by rendering the view and checking; the layout's navbar/footer still use inline styles site-wide — that's an existing, unrelated pattern used on every page, not specific to this one).
+
+### Issue 2 — Exchange-rate date icon: previous fix was incomplete.
+The last fix only addressed `.has-value`. Found four more places doing the exact same thing (using the `background` **shorthand**, which resets `background-image` to `none`, wiping the calendar icon):
+- CSS `.search-input[type="date"]:focus { background: white; }` — fires on the *first click* (focusing the input), before any date is even picked. This was the actual primary trigger for "click once and it disappears."
+- JS: `dateInput.style.background = '#f8fafc'` in `updateDateDisplay()`'s clear branch, and the `focus`/`blur` listeners, and the validation-error branch (4 spots) — **inline styles set via JS beat any CSS rule** (highest specificity), so even after the CSS fix, clearing the date via the ✕ button re-broke the icon through these.
+
+- **Fixed**: CSS `:focus` rule changed to `background-color`. All five JS `.style.background = ...` assignments targeting the date input changed to `.style.backgroundColor = ...` (the two unrelated ones on `.rate-value` copy-feedback elements were left alone — no icon dependency there).
+
+### Verified:
+- `grep 'style="'` on the screener Blade source: zero matches.
+- Rendered the screener view via `StockController::screener()`: content section between the header and footnote contains no inline styles; `compare-header` class reference is gone.
+- Built bundle (`index-*.js` for exchange_rate) confirmed to contain 5 `backgroundColor` assignments and only the 2 legitimate unrelated `background` ones (copy-feedback).
+- `php artisan test`: 30/31 passing, same pre-existing unrelated failure as before — no regression.
+- Visual confirmation still blocked by this session's browser-automation sandbox (it refuses all `/build/assets/*` requests, unrelated to the app) — ask the user to verify in a real browser.
+
+---
+
 ## FIX_SCREENER_UIUX_AND_EXCHANGE_RATE_DATEPICKER - September 14, 2026
 
 ### Issue 1 — Stock Screener UI/UX redesign:

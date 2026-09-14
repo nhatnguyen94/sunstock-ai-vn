@@ -5,20 +5,20 @@
 @endsection
 
 @section('content')
-<section class="compare-header">
+<section class="screener-header">
     <div class="container">
-        <div class="row align-items-center" style="position:relative;z-index:1;padding-bottom:2rem;">
+        <div class="row align-items-center screener-header-row">
             <div class="col-md-8">
-                <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:30px;padding:5px 16px;margin-bottom:1rem;font-size:0.8rem;font-weight:600;">
+                <div class="screener-badge">
                     <i class="bi bi-funnel"></i>
                     Lọc theo chỉ số tài chính
                 </div>
-                <h1 style="font-size:2.4rem;font-weight:800;margin-bottom:0.5rem;color:white;line-height:1.2;">
+                <h1 class="screener-title">
                     <i class="bi bi-funnel-fill"></i> Stock Screener
                 </h1>
-                <p style="opacity:0.85;font-size:1rem;margin:0;">Tìm cổ phiếu theo P/E, P/B, ROE, tỷ suất cổ tức, nợ/vốn chủ sở hữu... dựa trên báo cáo tài chính đã đồng bộ</p>
+                <p class="screener-subtitle">Tìm cổ phiếu theo P/E, P/B, ROE, tỷ suất cổ tức, nợ/vốn chủ sở hữu... dựa trên báo cáo tài chính đã đồng bộ</p>
             </div>
-            <div class="col-md-4 text-md-right" style="position:relative;z-index:2;">
+            <div class="col-md-4 text-md-right screener-header-actions">
                 <a href="{{ url('/') }}" class="back-button">
                     <i class="bi bi-house"></i> Trang chủ
                 </a>
@@ -27,7 +27,7 @@
     </div>
 </section>
 
-<div class="main-content" style="padding-top:0;">
+<div class="screener-main">
     <div class="container">
         <form method="GET" action="{{ route('stock.screener') }}" class="screener-filter-panel">
             <h3 class="screener-filter-title">
@@ -65,7 +65,7 @@
                     <label>Nợ/VCSH tối đa (%)</label>
                     <input type="number" step="1" name="debt_equity_max" value="{{ $filters['debt_equity_max'] ?? '' }}" class="form-control" placeholder="150">
                 </div>
-                <div class="col-12 col-md-9 form-group mb-0 d-flex" style="gap:0.75rem;padding-top:0.5rem;">
+                <div class="col-12 col-md-9 form-group mb-0 screener-actions">
                     <button type="submit" class="screener-apply-btn">
                         <i class="bi bi-search"></i> Lọc
                     </button>
@@ -82,8 +82,8 @@
                 <span class="screener-stat-label">Mã phù hợp</span>
             </div>
             <div class="screener-stat-card">
-                <i class="bi bi-bank" style="font-size:1.6rem;color:var(--primary-blue);"></i>
-                <span class="screener-stat-label" style="display:block;margin-top:0.4rem;">Nguồn: VNStock</span>
+                <i class="bi bi-bank screener-stat-icon"></i>
+                <span class="screener-stat-label">Nguồn: VNStock</span>
             </div>
         </div>
 

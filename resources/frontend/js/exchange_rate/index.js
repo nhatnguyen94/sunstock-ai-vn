@@ -113,9 +113,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearDateBtn.classList.remove('show');
                 dateInput.classList.remove('has-value');
                 
-                // Reset input styling
+                // Reset input styling (backgroundColor only — `background` is the
+                // shorthand and would wipe the CSS calendar-icon background-image)
                 dateInput.style.borderColor = '#e5e7eb';
-                dateInput.style.background = '#f8fafc';
+                dateInput.style.backgroundColor = '#f8fafc';
                 
                 // Update button
                 searchBtn.innerHTML = '<i class="bi bi-search"></i> Tìm kiếm';
@@ -166,13 +167,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fix for browsers that don't show date value
         dateInput.addEventListener('focus', function() {
             this.style.borderColor = 'var(--primary-blue)';
-            this.style.background = 'white';
+            this.style.backgroundColor = 'white';
         });
-        
+
         dateInput.addEventListener('blur', function() {
             if (!this.value) {
                 this.style.borderColor = '#e5e7eb';
-                this.style.background = '#f8fafc';
+                this.style.backgroundColor = '#f8fafc';
             }
         });
     }
@@ -187,14 +188,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Show error feedback
                 dateInput.style.borderColor = '#ef4444';
-                dateInput.style.background = '#fef2f2';
-                
+                dateInput.style.backgroundColor = '#fef2f2';
+
                 // Add shake animation
                 dateInput.style.animation = 'shake 0.5s';
                 setTimeout(() => {
                     dateInput.style.animation = '';
                     dateInput.style.borderColor = '#e5e7eb';
-                    dateInput.style.background = '#f8fafc';
+                    dateInput.style.backgroundColor = '#f8fafc';
                 }, 2000);
                 
                 // Show error message
