@@ -27,6 +27,7 @@
 | Frontend JS/CSS/Blade assets | **[docs/FRONTEND_VIEWS.md](docs/FRONTEND_VIEWS.md)** |
 | Docker / infrastructure / env | **[docs/DOCKER.md](docs/DOCKER.md)** |
 | Database migrations | **[docs/HISTORY.md](docs/HISTORY.md)** (check existing migrations) |
+| Writing/running tests (every task — see mandatory rule below) | **[docs/TESTING.md](docs/TESTING.md)** — folder structure, `#[Group(...)]` convention, why the DB can't be used in tests |
 | Anything unclear | **[docs/QUICKSTART.md](docs/QUICKSTART.md)** |
 
 ### Step 3 — Confirmation Block (REQUIRED before writing any code)
@@ -87,6 +88,8 @@ After reading, you MUST output this block verbatim with your own answers filled 
 | Update `docs/HISTORY.md` before coding | Update HISTORY.md as FINAL STEP | Documentation updated AFTER complete |
 | Forget `composer dump-autoload` | Run after ALL new files created | Autoloading won't work without this |
 | Use `dd()` in Services | Return only JSON or structured data | Python stdout must be clean JSON |
+| Ship a new or changed feature without tests | Write/update tests tagged `#[Group('feature-name')]`, then run `php artisan test --group=feature-name` | Untested changes are not considered done — see "AFTER EVERY TASK" |
+| Test method/class with no `#[Group(...)]` tag | Every test MUST have a feature group so it can be run in isolation | Lets you verify just your change without running the full (slow) suite |
 
 ---
 
@@ -109,20 +112,26 @@ After reading, you MUST output this block verbatim with your own answers filled 
 7. **[docs/FRONTEND_VIEWS.md](docs/FRONTEND_VIEWS.md)** — CSS/JS file locations, Blade → asset mapping, data-init pattern, CDN deps
 8. **[docs/DOCKER.md](docs/DOCKER.md)** — 6-container stack, daily commands, troubleshooting, production notes
 9. **[docs/QUICKSTART.md](docs/QUICKSTART.md)** — Setup, env config, migration, seed, artisan commands
+10. **[docs/TESTING.md](docs/TESTING.md)** — Test folder structure (mirrors `app/`), the `#[Group(...)]` convention, why tests can't touch the DB here
 
 ### 🟢 Reference Only (update as FINAL step)
 
-10. **[docs/HISTORY.md](docs/HISTORY.md)** — Feature log. **Read to understand what exists. UPDATE LAST.**
+11. **[docs/HISTORY.md](docs/HISTORY.md)** — Feature log. **Read to understand what exists. UPDATE LAST.**
 
 ---
 
 ## ✅ AFTER EVERY TASK
 
-1. `composer dump-autoload`
-2. Update **[docs/HISTORY.md](docs/HISTORY.md)** — LAST step, never first
-3. Update **[docs/STRUCTURE.md](docs/STRUCTURE.md)** — if new files/components added
-4. Update **[docs/ROUTES_MAP.md](docs/ROUTES_MAP.md)** — if new routes added
-5. Update **[docs/BINDINGS.md](docs/BINDINGS.md)** — if new DI bindings added
+> [!IMPORTANT]
+> **MANDATORY — NO EXCEPTIONS**: Step 1 below applies to every feature you touch, whether it's brand new or already existed before your change. A task is NOT complete until it passes.
+
+1. **Write or update unit/feature tests** covering the feature/fix you just built or changed. Every test (new or existing) MUST be tagged with a PHPUnit **Group** named after the feature it belongs to, using the `#[Group('feature-name')]` attribute — e.g. `#[Group('portfolio-alerts')]`. Use one consistent group name per feature across all its test methods/classes so they can be run together. Full details (folder structure, why tests can't touch the DB here, current group list) → **[docs/TESTING.md](docs/TESTING.md)**.
+   Then **run only that feature's group** — not the full suite: `docker exec stock-app-php-1 php artisan test --group=feature-name` (or `php artisan test --group=feature-name` outside Docker). Every test in the group must pass — fix failures before moving on, don't skip or comment them out.
+2. `composer dump-autoload`
+3. Update **[docs/HISTORY.md](docs/HISTORY.md)** — LAST step, never first
+4. Update **[docs/STRUCTURE.md](docs/STRUCTURE.md)** — if new files/components added
+5. Update **[docs/ROUTES_MAP.md](docs/ROUTES_MAP.md)** — if new routes added
+6. Update **[docs/BINDINGS.md](docs/BINDINGS.md)** — if new DI bindings added
 
 > Full QA checklist (code quality, RBAC, migrations, testing) → **[docs/GUIDELINES.md](docs/GUIDELINES.md)**
 
@@ -135,5 +144,5 @@ Rules there are **supplemental only** — project architecture always takes prio
 
 ---
 
-**Last Updated**: May 30, 2026  
-**Revision**: 3.0 (SRP refactor — router-only, content moved to specialized docs)
+**Last Updated**: September 14, 2026  
+**Revision**: 3.2 (mandatory tests per feature, tagged `#[Group(...)]` and run in isolation — see docs/TESTING.md)

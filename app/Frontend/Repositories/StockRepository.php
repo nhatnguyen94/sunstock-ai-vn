@@ -176,4 +176,24 @@ public function updateStockPriceFromPython(string $symbol): void
             ->get()
             ->toArray();
     }
+
+    public function getLatestPrices(array $symbols): array
+    {
+        if (empty($symbols)) {
+            return [];
+        }
+
+        $prices = [];
+
+        Stock::whereIn('symbol', $symbols)
+            ->with('latestPrice')
+            ->get()
+            ->each(function (Stock $stock) use (&$prices) {
+                if ($stock->latestPrice) {
+                    $prices[$stock->symbol] = (float) $stock->latestPrice->close;
+                }
+            });
+
+        return $prices;
+    }
 }

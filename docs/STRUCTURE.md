@@ -21,22 +21,22 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `ExchangeRateService.php` - Handle exchange rate data
   - `AiService.php` - AI chat/prediction via Groq API (llama-3.3-70b-versatile, fallback chain, Redis cache 2h for predict, XSS-safe)
   - `NewsService.php` - Reads news from DB via NewsRepositoryInterface. getLatestNews(6) for homepage, getPaginatedNews for /news page.
-  - `PortfolioService.php` - Portfolio management business logic. `fetchCurrentPrices()` reads real latest close via `Stock::latestPrice`; `refreshAllPortfolioPrices()` (used by `sync:portfolio-prices`) updates every active portfolio and fires `PortfolioAlertNotification` once per target/stop-loss crossing
+  - `PortfolioService.php` - Portfolio management business logic. Injects both `PortfolioRepositoryInterface` and `StockRepositoryInterface` — no direct Eloquent queries, fully mockable. `fetchCurrentPrices()` delegates to `StockRepositoryInterface::getLatestPrices()`; `refreshAllPortfolioPrices()` (used by `sync:portfolio-prices`) updates every active portfolio and fires `PortfolioAlertNotification` once per target/stop-loss crossing via `PortfolioRepositoryInterface::setAlertFlag()`
   - `CompanyFinancialService.php` - Fetches company financials (income/balance/cashflow/ratio) via Python; DB-cached, falls back to live Python on miss. `screenStocks(filters)` parses cached ratio JSON into a filterable/sortable screener dataset (cached 1h as `screener_ratio_metrics`)
 
 - **Repositories**: `app/Frontend/Repositories/` - Database access for Frontend
-  - `StockRepository.php` - CRUD operations for stock data
+  - `StockRepository.php` - CRUD operations for stock data. `getLatestPrices(symbols)` — batch latest-close lookup via `Stock::latestPrice`, used by `PortfolioService`
   - `ExchangeRateRepository.php` - CRUD operations for exchange rate data
   - `UserProfileRepository.php` - CRUD operations for user profiles
-  - `PortfolioRepository.php` - CRUD operations for portfolios and portfolio items; `getAllActivePortfolios()` for the scheduled bulk price refresh
+  - `PortfolioRepository.php` - CRUD operations for portfolios and portfolio items; `getAllActivePortfolios()` for the scheduled bulk price refresh; `setAlertFlag()` persists target/stop-loss alert timestamps
   - `NewsRepository.php` - Reads news from DB: getLatest, paginate (filter by category slug/search), getCategories
   - `CompanyFinancialRepository.php` - DB cache for company financials: find(symbol, type, period), upsert, getAllRatiosByPeriod(period) for the screener
 
 - **Interfaces**: `app/Frontend/Interfaces/` - Contracts for Frontend
-  - `StockRepositoryInterface.php`
+  - `StockRepositoryInterface.php` — includes `getLatestPrices(symbols)`
   - `ExchangeRateRepositoryInterface.php`
   - `UserProfileRepositoryInterface.php`
-  - `PortfolioRepositoryInterface.php` — includes `getAllActivePortfolios()` for the scheduled bulk price refresh
+  - `PortfolioRepositoryInterface.php` — includes `getAllActivePortfolios()` for the scheduled bulk price refresh, `setAlertFlag(item, column, value)` for target/stop-loss timestamps
   - `NewsServiceInterface.php` — getLatestNews, getPaginatedNews, getCategories
   - `NewsRepositoryInterface.php` — getLatest, paginate, getCategories
   - `CompanyFinancialRepositoryInterface.php` — find, upsert, getAllRatiosByPeriod(period)

@@ -35,7 +35,7 @@
 5. Use `Gate::authorize()` inside controller actions for granular permission checks
 
 ## ⚡ Quick Checklist for AI
-When adding ANY new feature:
+When adding ANY new feature (or changing an existing one):
 - [ ] Use correct `App\Frontend\*` or `App\Backend\*` namespace
 - [ ] Controller extends proper base `Controller` class
 - [ ] Create Interface for Repository/Service if DB access needed
@@ -44,6 +44,7 @@ When adding ANY new feature:
 - [ ] Add Gate checks in Backend controllers (`Gate::authorize('manage-users')`)
 - [ ] Run `composer dump-autoload`
 - [ ] Test with `php artisan route:list`
+- [ ] **Write/update tests tagged `#[Group('feature-name')]`, then run just that group — `php artisan test --group=feature-name` — MANDATORY, all tests in the group must pass**
 - [ ] Update documentation immediately
 
 ## ⚠️ Known Gotchas & Patterns
@@ -97,6 +98,7 @@ When adding ANY new feature:
 1. **Register service bindings** in `AppServiceProvider.php`.
 2. **Test routes** with `php artisan route:list`.
 3. **Run** `composer dump-autoload` after any namespace/file changes.
+4. **Write/update tests** for the feature or fix, tagged `#[Group('feature-name')]` (one group name per feature, shared by all its test methods/classes). Then **run only that group**: `php artisan test --group=feature-name` — MANDATORY for every task, new feature or existing one. All tests in the group must pass before the task is done. Don't run the full suite unless asked.
 
 ## 🧠 AI Behavioral Guidelines
 

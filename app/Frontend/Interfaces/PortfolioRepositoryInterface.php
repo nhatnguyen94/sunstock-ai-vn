@@ -60,4 +60,9 @@ interface PortfolioRepositoryInterface
     public function getItemsAtStopLoss(Portfolio $portfolio): Collection;
 
     public function updateItemsPrices(Portfolio $portfolio, array $priceData): bool;
+
+    /**
+     * Persist a target/stop-loss alert timestamp column (or clear it with null) on one item.
+     */
+    public function setAlertFlag(PortfolioItem $item, string $column, ?\DateTimeInterface $value): void;
 }

@@ -3,9 +3,9 @@
 namespace App\Frontend\Services;
 
 use App\Frontend\Interfaces\PortfolioRepositoryInterface;
+use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Models\Portfolio;
 use App\Models\PortfolioItem;
-use App\Models\Stock;
 use App\Notifications\PortfolioAlertNotification;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\Log;
 class PortfolioService
 {
     public function __construct(
-        private PortfolioRepositoryInterface $portfolioRepository
+        private PortfolioRepositoryInterface $portfolioRepository,
+        private StockRepositoryInterface $stockRepository
     ) {}
 
     /**
@@ -265,11 +266,9 @@ class PortfolioService
             if ($portfolio->user) {
                 $portfolio->user->notify((new PortfolioAlertNotification($item, $type))->onQueue('high'));
             }
-            $item->{$column} = now();
-            $item->saveQuietly();
+            $this->portfolioRepository->setAlertFlag($item, $column, now());
         } elseif (! $isTriggered && $alertedAt) {
-            $item->{$column} = null;
-            $item->saveQuietly();
+            $this->portfolioRepository->setAlertFlag($item, $column, null);
         }
     }
 
@@ -335,17 +334,6 @@ class PortfolioService
             return [];
         }
 
-        $prices = [];
-
-        Stock::whereIn('symbol', $symbols)
-            ->with('latestPrice')
-            ->get()
-            ->each(function (Stock $stock) use (&$prices) {
-                if ($stock->latestPrice) {
-                    $prices[$stock->symbol] = (float) $stock->latestPrice->close;
-                }
-            });
-
-        return $prices;
+        return $this->stockRepository->getLatestPrices($symbols);
     }
 }

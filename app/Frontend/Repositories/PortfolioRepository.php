@@ -73,6 +73,12 @@ class PortfolioRepository implements PortfolioRepositoryInterface
         return Portfolio::active()->get(['id', 'user_id']);
     }
 
+    public function setAlertFlag(PortfolioItem $item, string $column, ?\DateTimeInterface $value): void
+    {
+        $item->{$column} = $value;
+        $item->saveQuietly();
+    }
+
     /**
      * Portfolio Item methods
      */

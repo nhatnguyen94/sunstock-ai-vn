@@ -21,4 +21,9 @@ interface StockRepositoryInterface
     public function getOrUpdateSymbols(): void;
 
     public function searchSymbols(string $query): array;
+
+    /**
+     * Latest close price for each symbol, as [symbol => close]. Symbols with no price yet are omitted.
+     */
+    public function getLatestPrices(array $symbols): array;
 }
