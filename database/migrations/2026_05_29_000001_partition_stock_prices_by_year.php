@@ -22,6 +22,14 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Partitioning is MySQL-specific syntax — no-op on other drivers
+        // (sqlite in tests). The table already has a usable structure from
+        // create_stock_prices_table; tests just don't get the partitioning
+        // optimization, which doesn't matter at test data volumes.
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         // Step 1: Drop FK — MySQL does not support FK on partitioned tables
         DB::statement('ALTER TABLE stock_prices DROP FOREIGN KEY stock_prices_stock_id_foreign');
 
@@ -56,6 +64,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         // Reverse: remove partitioning, restore PK, timestamps, and FK
         DB::statement('ALTER TABLE stock_prices REMOVE PARTITIONING');
         DB::statement('ALTER TABLE stock_prices DROP PRIMARY KEY, ADD PRIMARY KEY (id)');

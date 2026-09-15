@@ -2,6 +2,23 @@
 
 ---
 
+## FIX_TEST_SUITE_LAST_FAILURE - September 15, 2026
+
+### Summary:
+The one test that had been failing throughout this session's work (`Tests\Feature\ExampleTest`, documented repeatedly as a "pre-existing, unrelated" known issue) is now fixed — full suite is 93/93 green. Root cause was exactly what `docs/TESTING.md` already suspected: the `stock_prices` partition migration's raw MySQL-only SQL halted every migration after it whenever something tried to actually migrate the sqlite test DB, and `RefreshDatabase` was commented out in the test besides.
+
+### Fixed:
+- **`database/migrations/2026_05_29_000001_partition_stock_prices_by_year.php`** — both `up()` and `down()` now return immediately when `DB::connection()->getDriverName() !== 'mysql'`. Partitioning is a MySQL-only optimization (irrelevant at test data volumes); production behavior on MySQL is completely unchanged. This unblocks `RefreshDatabase`/`artisan migrate` against sqlite for the whole project going forward, not just this one test.
+- **`tests/Feature/ExampleTest.php`** — un-commented `use RefreshDatabase;`. Running it revealed a second issue: against an otherwise-empty freshly-migrated DB, `StockController::home()` fell through to *real* Python/vnstock subprocess calls (hot industries and exchange rates each have a "DB empty → fetch live" first-run fallback) — the test passed, but slowly (~12s) and with a live network dependency, which is exactly the kind of flakiness this project's tests otherwise avoid. Fixed by seeding one `HotIndustry` row and one `ExchangeRate` row (for today's date) before the request, so neither fallback triggers. Runs in ~0.6s now.
+
+### Docs:
+- **`docs/TESTING.md`** — rewrote the "why tests never touch a real database" section (renamed to reflect that `RefreshDatabase` is now available, with guidance on when to actually reach for it — the mocking-first default for everything else stands, mainly for speed and to keep Services going through the Repository pattern rather than touching Eloquent directly). Removed the now-obsolete "Known issues" section and the "ExampleTest will fail regardless" caveat.
+
+### Verified:
+`php artisan test`: **93/93 passing**, full suite in 4.77s (down from ~7s pre-fix, since the previously-failing test no longer aborts early either).
+
+---
+
 ## PROFILE_EXTENDED_FIELDS - September 15, 2026
 
 ### Summary:

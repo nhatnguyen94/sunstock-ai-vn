@@ -33,15 +33,17 @@ tests/
 
 † `now()` is fine to use *inside a test* to build fixture data even in a Unit test (it's just `\Carbon\Carbon::now()` under the hood when called directly), but if the **code under test** calls the `now()` *helper function*, that helper resolves through the `Date` facade, which needs a booted app.
 
-## Why tests here never touch a real database
+## Prefer mocking over a real database — but `RefreshDatabase` does work now
 
-`phpunit.xml` points `DB_CONNECTION` at `sqlite` / `:memory:`. That's fine for a fresh Laravel app, but **this project can't run `php artisan migrate` against SQLite**: `database/migrations/2026_05_29_000001_partition_stock_prices_by_year.php` uses raw MySQL-only SQL (`ALTER TABLE ... DROP FOREIGN KEY`, `PARTITION BY RANGE`), which SQLite doesn't support. So `RefreshDatabase` / `$this->artisan('migrate')` will blow up on that migration.
+`phpunit.xml` points `DB_CONNECTION` at `sqlite` / `:memory:`, and **`php artisan migrate` / `RefreshDatabase` now runs cleanly against it**: `database/migrations/2026_05_29_000001_partition_stock_prices_by_year.php` used to be raw MySQL-only SQL (`ALTER TABLE ... DROP FOREIGN KEY`, `PARTITION BY RANGE`), which halted every migration after it on SQLite. That migration is now a no-op on any driver other than `mysql` (`DB::connection()->getDriverName() !== 'mysql'` guard) — partitioning is a MySQL-only optimization, irrelevant at test data volumes, and production behavior is unchanged.
 
-**Workaround used everywhere in this suite**: never touch the DB in a test. Every Service depends only on `*RepositoryInterface` contracts (per `docs/GUIDELINES.md`'s Repository pattern) — mock the interface with Mockery and the Service under test never issues a real query. Eloquent models (`PortfolioItem`, `Portfolio`, `CompanyFinancial`, `User`...) can still be constructed in plain PHP (`new PortfolioItem([...])`) and passed around — that's just object construction, no DB involved, as long as you never call `->save()`/`->find()`/etc. on them.
+That said, **every test in this suite still mocks its `*RepositoryInterface` dependencies instead of using `RefreshDatabase`**, and that stays the default going forward — it's faster (no migration cost per test), and forces the Service under test to go through the Repository pattern (per `docs/GUIDELINES.md`) rather than touching Eloquent directly. Eloquent models (`PortfolioItem`, `Portfolio`, `CompanyFinancial`, `User`...) can still be constructed in plain PHP (`new PortfolioItem([...])`) and passed around — that's just object construction, no DB involved, as long as you never call `->save()`/`->find()`/etc. on them.
 
-If a future feature genuinely needs to hit the database in a test, fix the partition migration to be SQLite-compatible first (or write a lightweight `Schema::create()` setup in the test itself for just the tables you need) — don't reach for `RefreshDatabase` and expect it to work today.
+Reach for `RefreshDatabase` only when a test genuinely needs a real end-to-end DB round-trip (e.g. an HTTP route that queries several tables together, like `tests/Feature/ExampleTest.php`). If you do:
+- Add `use RefreshDatabase;` to the test class — it migrates a fresh sqlite `:memory:` DB per test.
+- **Seed only what the code path needs**, or you may unknowingly trigger a real external call. `tests/Feature/ExampleTest.php` is the cautionary example: hitting `/` with an otherwise-empty DB made `StockController::home()` fall through to a *real* Python/vnstock subprocess call for hot industries and exchange rates (each table's "first-run, DB is empty → fetch live" fallback) — the test still passed, just slowly (~12s) and with a live network dependency. Seeding one `HotIndustry` row and one `ExchangeRate` row (for today's date) avoids both fallbacks entirely; see that file for the pattern.
 
-**A second, separate trap**: even with the DB issue aside, a real `$this->get(...)`/`$this->post(...)` HTTP request to **any route whose view extends `layouts.app`** will `500` in this suite, because `layouts/app.blade.php`'s navbar runs `NewsCategory::orderBy('name')->get()` directly in the Blade template on every page load — another DB query, unrelated to whatever the test is about. Validation-failure tests are unaffected (a failed `$request->validate()` redirects with a 302, never rendering the layout), but a "show me the page and assert 200" test will hit this. Workaround: call the controller method directly (e.g. `(new SomeController())->showThing()`) and assert on the returned `View`'s name/data without calling `->render()` — see `tests/Feature/Frontend/Controllers/PasswordResetControllerTest.php` for the pattern.
+**A second, separate trap**: a real `$this->get(...)`/`$this->post(...)` HTTP request to **any route whose view extends `layouts.app`** touches the DB regardless of whether the route itself needs to, because `layouts/app.blade.php`'s navbar runs `NewsCategory::orderBy('name')->get()` directly in the Blade template on every page load. Without `RefreshDatabase`, that 500s (no such table); with it, it just runs against an empty (or seeded) `news_categories` table — no crash, but still a query you didn't ask for. Validation-failure tests are unaffected either way (a failed `$request->validate()` redirects with a 302, never rendering the layout). If you don't want `RefreshDatabase` for a "show me the page and assert 200" test, call the controller method directly (e.g. `(new SomeController())->showThing()`) and assert on the returned `View`'s name/data without calling `->render()` — see `tests/Feature/Frontend/Controllers/PasswordResetControllerTest.php` for that pattern.
 
 ## The `#[Group('featureName')]` convention
 
@@ -71,7 +73,7 @@ docker exec stock-app-php-1 php artisan test --group=portfolioAlerts
 php artisan test --group=portfolioAlerts
 ```
 
-Run only the group for the feature you just touched. Don't run the whole suite unless the user explicitly asks for it (and remember `tests/Feature/ExampleTest.php` will fail regardless — see Known Issues below, it's unrelated to your change).
+Run only the group for the feature you just touched. Don't run the whole suite unless the user explicitly asks for it.
 
 ## Current groups
 
@@ -93,7 +95,3 @@ Run only the group for the feature you just touched. Don't run the whole suite u
 4. Mock every `*RepositoryInterface` dependency with Mockery — never let a test hit the database (see above).
 5. Run just that group and make sure it's green before moving on: `docker exec stock-app-php-1 php artisan test --group=yourFeatureName`.
 6. Add a row to the "Current groups" table above.
-
-## Known issues (pre-existing, not caused by any of the above)
-
-- `tests/Feature/ExampleTest.php` (Laravel's default scaffold test) fails: it hits `/`, which queries the `stocks` table, but no migrations have run against the in-memory SQLite DB (and can't — see "Why tests here never touch a real database"). This predates the groups above; not fixed as part of adding them since it's a pre-existing infra gap, not a regression.
