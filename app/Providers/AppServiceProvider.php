@@ -44,6 +44,10 @@ use App\Backend\Repositories\RoleRepository;
 use App\Backend\Repositories\PermissionRepository;
 use App\Backend\Services\RoleService;
 use App\Backend\Services\PermissionService;
+use App\Backend\Interfaces\QueueMonitorRepositoryInterface;
+use App\Backend\Interfaces\QueueMonitorServiceInterface;
+use App\Backend\Repositories\QueueMonitorRepository;
+use App\Backend\Services\QueueMonitorService;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -126,6 +130,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             PermissionServiceInterface::class,
             PermissionService::class
+        );
+        $this->app->bind(
+            QueueMonitorRepositoryInterface::class,
+            QueueMonitorRepository::class
+        );
+        $this->app->bind(
+            QueueMonitorServiceInterface::class,
+            QueueMonitorService::class
         );
     }
 

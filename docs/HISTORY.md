@@ -2,6 +2,38 @@
 
 ---
 
+## QUEUE_MONITOR_CUSTOM_PAGE - September 16, 2026
+
+### Summary:
+User tried the Horizon dashboard from the previous task and found it genuinely harder to read than expected for an app this size ("cái horizon này khó theo dõi quá"). Asked directly: is Redis actually better than the `database` queue driver, and would reverting to `database` + a custom monitoring page be more sensible? Answer (given before touching any code): keep Redis — it avoids the exact deadlocks this app hit in May with the `database` driver, and job runtime is bottlenecked by external API calls either way, not the queue driver — but replace Horizon's SPA with a small custom page built in this app's own established Backend Controller/Service/Repository + Tabler pattern (same as Roles/Permissions/Sync Status), since Horizon itself — not Redis — was the actual source of the complexity complaint. User agreed.
+
+### Removed — Laravel Horizon:
+- `composer remove laravel/horizon` (also removed the transitive `laravel/sentinel` dependency).
+- Deleted `config/horizon.php`, `app/Providers/HorizonServiceProvider.php`, `tests/Feature/Providers/HorizonServiceProviderTest.php`.
+- `bootstrap/providers.php` — removed `HorizonServiceProvider` registration.
+- `bootstrap/app.php` — removed the `horizon:snapshot` schedule entry (was only needed for Horizon's own metrics graphs).
+- `docker/php/supervisord.conf` — back to `[program:queue-worker-redis]` running plain `queue:work redis --queue=high,default --tries=3 --timeout=600` ×3 processes (the `retry_after`/`--timeout` sync-up fix from the Horizon task carries forward unchanged — still correct, still needed regardless of which process manages the workers).
+
+### Added — custom Queue Monitor page (reuses the existing `manage-queue` permission, no seeder change needed):
+- **Interfaces**: `App\Backend\Interfaces\QueueMonitorRepositoryInterface` / `QueueMonitorServiceInterface`.
+- **`App\Backend\Repositories\QueueMonitorRepository`** — per-queue counts via Laravel's own `Queue::connection('redis')->pendingSize()/delayedSize()/reservedSize()` (no manual Redis key/prefix guessing — these are public methods on `RedisQueue` that already know the correct key naming); `failed_jobs` table queries (list/paginate/find by uuid) plus retry/delete/retry-all via `Artisan::call('queue:retry'|'queue:forget')` — reuses Laravel's own battle-tested command logic instead of reimplementing the requeue/forget mechanics.
+- **`App\Backend\Services\QueueMonitorService`** — decorates each failed-job row with `job_class` (parsed from the JSON payload's `displayName`) and a truncated `short_exception`; `retryFailedJob()`/`deleteFailedJob()` return `false` for an unknown uuid instead of erroring, so the controller can respond 404 cleanly.
+- **`App\Backend\Controllers\QueueMonitorController`** — `index` (page), `stats` (JSON, polled by the page every 5s for live numbers without a full reload), `retry`/`destroy` (single job), `retryAll`. Gate: `manage-queue` (unchanged from the Horizon task).
+- **`resources/views/backend/queue-monitor/index.blade.php`** — Tabler cards per queue (pending/reserved/delayed, auto-refreshing), failed-jobs table with Retry/Xoá per row + "Retry tất cả", plain `fetch()` + toast — exactly the same vanilla-JS AJAX pattern as `backend/sync-status/index.blade.php`, deliberately not a JS framework.
+- **`routes/web.php`** — `admin.queue.*` routes under `can:manage-queue`.
+- **`resources/views/layouts/admin.blade.php`** — sidebar link now points to the internal `admin.queue.index` route (no more `target="_blank"` — it's part of the same Blade app now, not a separate SPA to escape to).
+- Tests (group `queueMonitor`, 8 — replacing the 3 `HorizonServiceProviderTest` ones): `tests/Feature/Backend/Controllers/QueueMonitorControllerTest.php`. Real end-to-end (`RefreshDatabase` + the real Redis connection already available in this environment, not mocked) — genuinely needed since the whole point is verifying the real `Queue::connection('redis')` counts and real `queue:retry`/`queue:forget` round-trips. Fixture failed jobs use `queue => 'test'` (not `high`/`default`) so a retried job sits harmlessly in Redis instead of being picked up and actually executed by the live queue workers running alongside the test suite.
+
+### Verified:
+- `php artisan test --group=queueMonitor`: 8/8 passing. Full suite: **121/121 passing** (113 baseline + 8 new, the 3 Horizon tests removed).
+- Live in the real dev environment: `/admin/queue` renders correctly in a real browser session (confirmed via `get_page_text` — both queue cards with real numbers, the full paginated failed-jobs table, 593→592 after a live delete test) — no SPA, no blocked-by-sandbox API calls this time, since it's plain server-rendered Blade + same-origin `fetch()` (the browser sandbox's ad-blocker-style filter that blocked `/horizon/api/*` and `/admin/queue/stats` in this tool's own sandboxed session is a known limitation documented in `docs/TESTING.md` — verified the actual retry/delete logic instead via `QueueMonitorService` calls directly in tinker: delete correctly removed a row (593→592 in `failed_jobs`), retry/delete both correctly return `false`/404 for an unknown uuid).
+- `manage-queue` permission's `display_name` (seeded during the Horizon task as "Giám sát Queue (Horizon)") updated live to drop the now-inaccurate "(Horizon)" suffix; `PermissionSeeder`'s own default text updated to match for any future fresh install (existing installs keep their DB value — the seeder uses `firstOrCreate`, deliberately not overwriting an admin's own edits to `display_name` on reseed).
+
+### Docs:
+`docs/RBAC.md`, `docs/STRUCTURE.md`, `docs/DOCKER.md`, `docs/TESTING.md`, `docs/QUICKSTART.md`, `README.md` (both languages) — every Horizon reference from the previous task replaced with the custom page's actual routes/files/behavior.
+
+---
+
 ## QUEUE_MONITORING_HORIZON - September 15, 2026
 
 ### Summary:

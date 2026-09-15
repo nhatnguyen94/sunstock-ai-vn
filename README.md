@@ -46,7 +46,7 @@
 - **AI Chat & Prediction** — Ask financial questions and get market predictions, powered by the Groq API (free tier, ~0.4s responses).
 - **User Accounts** — Register, log in, email verification, forgot/reset password, profile management (avatar, birthday, gender, address, bio).
 - **Role-Based Access Control (RBAC)** — Separate admin login; roles and fine-grained permissions are managed entirely from the backend UI (**Admin > Vai trò / Quyền hạn**) — new roles and overlapping permissions don't require any code change. See [docs/RBAC.md](docs/RBAC.md).
-- **Admin Panel** — Manage users, roles & permissions, stocks, news, portfolios, sync status, an activity timeline, and a live queue monitoring dashboard (Laravel Horizon).
+- **Admin Panel** — Manage users, roles & permissions, stocks, news, portfolios, sync status, an activity timeline, and a live queue monitoring dashboard.
 
 ## 🛠️ Tech Stack
 
@@ -61,7 +61,7 @@
 | Admin Panel | Blade Templates + Tabler / Bootstrap 5 (CDN) |
 | Authorization | Custom RBAC (`roles`) + DB-driven permissions (`permissions`/`permission_role`) — see [docs/RBAC.md](docs/RBAC.md) |
 | Architecture | SOLID — Controller / Service / Repository / Interface, strict Frontend/Backend namespace separation |
-| Queue | Redis Queue via Laravel Horizon — 3 auto-balanced workers, dashboard at `/horizon` |
+| Queue | Redis Queue — 3 workers (Docker supervisor), custom monitoring dashboard at `/admin/queue` |
 
 ## 🔐 Security & environment variables
 
@@ -180,7 +180,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
-| 2026-09-15 | **Queue monitoring (Horizon)** — replaced manual `queue:work` supervisor processes with Laravel Horizon; new `/horizon` dashboard (gate `manage-queue`); fixed a real `retry_after` < `timeout` misconfiguration that was silently duplicating and failing long-running sync jobs |
+| 2026-09-15 | **Queue monitoring dashboard** — custom-built (Laravel Horizon was tried, then dropped for being harder to read than this app needs) at `/admin/queue` (gate `manage-queue`): per-queue live counts, failed-job retry/delete; fixed a real `retry_after` < `timeout` misconfiguration that was silently duplicating and failing long-running sync jobs |
 | 2026-09-15 | **Scalable permissions system** — DB-driven `permissions`/`permission_role` tables replace hardcoded per-ability Gates; new **Admin > Vai trò / Quyền hạn** UI lets admins create roles and overlapping permissions without touching code |
 | 2026-09-15 | Forgot/reset password flow; extended profile fields (avatar upload, birthday, gender, address, bio); auth/authorization audit + test coverage; Portfolio totals hardening |
 | 2026-09-14 | **Stock Screener** redesign, Exchange Rate page fixes (date picker, search, live rates), portfolio real-price sync + target/stop-loss email alerts; mandatory test-per-feature workflow adopted |
@@ -231,7 +231,7 @@ MIT License © 2025–2026
 - **AI Chat & Dự đoán** — Hỏi đáp tài chính và dự đoán thị trường qua Groq API (miễn phí, phản hồi ~0.4s).
 - **Tài khoản người dùng** — Đăng ký, đăng nhập, xác thực email, quên/đặt lại mật khẩu, quản lý hồ sơ (avatar, ngày sinh, giới tính, địa chỉ, tiểu sử).
 - **Phân quyền (RBAC)** — Đăng nhập admin riêng biệt; vai trò và quyền hạn chi tiết được quản lý hoàn toàn từ giao diện backend (**Admin > Vai trò / Quyền hạn**) — thêm role mới, gán quyền chồng chéo không cần sửa code. Xem [docs/RBAC.md](docs/RBAC.md).
-- **Trang quản trị** — Quản lý người dùng, vai trò & quyền hạn, cổ phiếu, tin tức, danh mục, trạng thái đồng bộ, nhật ký hoạt động, và dashboard giám sát queue real-time (Laravel Horizon).
+- **Trang quản trị** — Quản lý người dùng, vai trò & quyền hạn, cổ phiếu, tin tức, danh mục, trạng thái đồng bộ, nhật ký hoạt động, và dashboard giám sát queue real-time.
 
 ## 🛠️ Công nghệ sử dụng
 
@@ -245,7 +245,7 @@ MIT License © 2025–2026
 | Trang quản trị | Blade Templates + Tabler / Bootstrap 5 (CDN) |
 | Phân quyền | RBAC tự viết (`roles`) + hệ thống permission lưu DB (`permissions`/`permission_role`) — xem [docs/RBAC.md](docs/RBAC.md) |
 | Kiến trúc | SOLID — Controller / Service / Repository / Interface, tách namespace Frontend/Backend nghiêm ngặt |
-| Queue | Redis Queue qua Laravel Horizon — 3 worker tự cân bằng, dashboard tại `/horizon` |
+| Queue | Redis Queue — 3 worker (Docker supervisor), dashboard giám sát riêng tại `/admin/queue` |
 
 ## 🔐 Bảo mật & biến môi trường
 
@@ -332,7 +332,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
-| 2026-09-15 | **Giám sát Queue (Horizon)** — thay toàn bộ `queue:work` thủ công bằng Laravel Horizon; dashboard mới `/horizon` (gate `manage-queue`); fix lỗi cấu hình thật `retry_after` < `timeout` khiến job sync chạy lâu bị nhân đôi và fail oan |
+| 2026-09-15 | **Dashboard giám sát Queue** — tự viết (Laravel Horizon từng thử rồi bỏ vì khó theo dõi hơn mức app này cần) tại `/admin/queue` (gate `manage-queue`): số liệu live theo từng queue, retry/xoá job fail; fix lỗi cấu hình thật `retry_after` < `timeout` khiến job sync chạy lâu bị nhân đôi và fail oan |
 | 2026-09-15 | **Hệ thống phân quyền có thể scale** — bảng `permissions`/`permission_role` lưu DB thay cho Gate hardcode từng ability; giao diện **Admin > Vai trò / Quyền hạn** mới cho phép tạo role, gán quyền chồng chéo mà không cần sửa code |
 | 2026-09-15 | Chức năng quên/đặt lại mật khẩu; mở rộng field hồ sơ (upload avatar, ngày sinh, giới tính, địa chỉ, tiểu sử); audit auth/phân quyền + viết test; củng cố tính toán tổng Portfolio |
 | 2026-09-14 | Redesign **Stock Screener**, sửa trang Tỷ giá (date picker, tìm kiếm, tỷ giá mới nhất); đồng bộ giá thật cho Portfolio + cảnh báo email target/cắt lỗ; áp dụng quy trình bắt buộc viết test cho từng tính năng |

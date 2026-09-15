@@ -5,6 +5,7 @@ use App\Backend\Controllers\DashboardController;
 use App\Backend\Controllers\NewsController;
 use App\Backend\Controllers\PermissionController;
 use App\Backend\Controllers\PortfolioController as AdminPortfolioController;
+use App\Backend\Controllers\QueueMonitorController;
 use App\Backend\Controllers\RoleController;
 use App\Backend\Controllers\StockController as AdminStockController;
 use App\Backend\Controllers\SyncStatusController;
@@ -153,6 +154,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/sync-status/trigger/{key}', [SyncStatusController::class, 'trigger'])
                 ->middleware('throttle:5,1')
                 ->name('sync-status.trigger');
+        });
+
+        // Queue Monitor — custom Redis queue/failed-jobs dashboard, see docs/RBAC.md
+        Route::middleware('can:manage-queue')->group(function () {
+            Route::get('/queue', [QueueMonitorController::class, 'index'])->name('queue.index');
+            Route::get('/queue/stats', [QueueMonitorController::class, 'stats'])->name('queue.stats');
+            Route::post('/queue/failed/retry-all', [QueueMonitorController::class, 'retryAll'])->name('queue.retry-all');
+            Route::post('/queue/failed/{uuid}/retry', [QueueMonitorController::class, 'retry'])->name('queue.retry');
+            Route::delete('/queue/failed/{uuid}', [QueueMonitorController::class, 'destroy'])->name('queue.destroy');
         });
 
         // Admin Logout

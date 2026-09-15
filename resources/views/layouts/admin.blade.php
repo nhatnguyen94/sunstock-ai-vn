@@ -81,9 +81,9 @@
               </a>
               @endcan
               @can('manage-queue')
-              <a class="nav-link" href="{{ url('/horizon') }}" target="_blank" rel="noopener">
+              <a class="nav-link {{ Request::routeIs('admin.queue*') ? 'active' : '' }}" href="{{ route('admin.queue.index') }}">
                 <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Giám sát Queue ↗</span>
+                <span class="nav-link-title">Giám sát Queue</span>
               </a>
               @endcan
             </div>

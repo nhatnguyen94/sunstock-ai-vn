@@ -46,7 +46,7 @@ stock-app/
 | `php` | custom (Dockerfile) | PHP-FPM 8.2 + Python 3.11 + vnstock | internal:9000 |
 | `mysql` | mysql:8.0 | Database | 3307 (host) → 3306 (internal) |
 | `redis` | redis:7-alpine | Queue + Cache + Session | internal:6379 |
-| `queue` | custom (Dockerfile) | Laravel Horizon (Redis queue workers, `high`+`default`, 3 processes, auto-balanced) via Supervisor | — |
+| `queue` | custom (Dockerfile) | 3 Redis queue workers (`queue:work redis --queue=high,default`) via Supervisor | — |
 | `scheduler` | custom (Dockerfile) | `php artisan schedule:work` | — |
 
 > **Tại sao MySQL dùng port 3307?** Để tránh conflict với XAMPP MySQL đang chạy trên port 3306. Sau khi chuyển hẳn sang Docker thì có thể đổi lại 3306.
@@ -210,19 +210,20 @@ docker compose exec php bash
 docker compose exec mysql mysql -u root -p stock_app
 ```
 
-### Giám sát Queue (Horizon dashboard)
+### Giám sát Queue
 
-Toàn bộ job Redis (`sync:stock-prices` dispatch nhiều `ProcessStockPriceSync`, `sync:company-financials` dispatch nhiều `SyncCompanyFinancialJob`, ...) chạy qua Laravel Horizon, không còn `queue:work` thủ công nữa — `docker/php/supervisord.conf` chỉ chạy đúng 1 process `php artisan horizon`, chính Horizon tự spawn/quản lý worker con bên trong (số lượng + queue priority cấu hình ở `config/horizon.php`).
+Job Redis (`sync:stock-prices` dispatch nhiều `ProcessStockPriceSync`, `sync:company-financials` dispatch nhiều `SyncCompanyFinancialJob`, ...) chạy qua 3 worker `queue:work redis --queue=high,default` (`docker/php/supervisord.conf`). Laravel Horizon từng được thử để có dashboard giám sát nhưng bị bỏ — SPA riêng, khó theo dõi hơn cần thiết cho quy mô app này — thay bằng trang tự viết theo đúng pattern Controller/Service/Repository sẵn có (xem `docs/HISTORY.md`, `QUEUE_MONITOR_CUSTOM_PAGE`).
 
-- **Dashboard**: `https://sunstock-local.dev/horizon` (yêu cầu đăng nhập admin + permission `manage-queue` — mặc định chỉ role `admin` có, xem [docs/RBAC.md](RBAC.md)). Xem queue depth theo thời gian thực, job đang chạy, job fail, throughput.
+- **Dashboard**: **Admin > Hệ thống > Giám sát Queue** (`https://sunstock-local.dev/admin/queue`, permission `manage-queue` — mặc định chỉ role `admin` có, xem [docs/RBAC.md](RBAC.md)). Số job đang chờ/đang chạy/hoãn theo từng queue (tự refresh mỗi 5s), danh sách job fail kèm nút Retry/Xoá/Retry tất cả.
 - **CLI nhanh không cần mở dashboard**:
   ```powershell
   docker compose exec redis redis-cli LLEN "laravel-database-queues:default"          # còn bao nhiêu job chờ
   docker compose exec redis redis-cli ZCARD "laravel-database-queues:default:reserved" # bao nhiêu job đang chạy
   docker compose exec php php artisan queue:failed                                      # danh sách job fail hẳn
+  docker compose exec php php artisan queue:retry <uuid>                                 # retry 1 job
   docker compose logs -f queue                                                           # log real-time
   ```
-- **`retry_after` phải luôn lớn hơn `timeout`** (`config/queue.php` → `connections.redis.retry_after`, hiện set 660s > timeout 600s) — nếu để thấp hơn, Redis sẽ tưởng nhầm worker chết khi job chạy lâu (rất hay xảy ra khi API vnstock/VCI chậm) và giao job đó cho worker khác chạy trùng, dẫn tới `MaxAttemptsExceededException` dù job chưa từng thật sự lỗi. Đây là nguyên nhân đã xác nhận của 1 job fail thật trong lịch sử — xem `docs/HISTORY.md` (`QUEUE_MONITORING_HORIZON`).
+- **`retry_after` phải luôn lớn hơn `timeout`** (`config/queue.php` → `connections.redis.retry_after`, hiện set 660s > timeout 600s trong `--timeout=600` ở supervisord.conf) — nếu để thấp hơn, Redis sẽ tưởng nhầm worker chết khi job chạy lâu (rất hay xảy ra khi API vnstock/VCI chậm) và giao job đó cho worker khác chạy trùng, dẫn tới `MaxAttemptsExceededException` dù job chưa từng thật sự lỗi. Đây là nguyên nhân đã xác nhận của 1 job fail thật trong lịch sử — xem `docs/HISTORY.md`.
 
 ---
 
@@ -387,9 +388,7 @@ docker compose exec php /opt/venv/bin/python3 py/get_stock.py VCB
 | `docker-compose.yml` | Định nghĩa toàn bộ stack (6 containers, volumes, networks) |
 | `docker/php/Dockerfile` | Build PHP image: PHP 8.2 + Python + extensions + vnstock |
 | `docker/nginx/default.conf` | Nginx config: HTTPS, HTTP redirect, PHP-FPM proxy |
-| `docker/php/supervisord.conf` | Chạy 1 process `php artisan horizon` — Horizon tự quản lý worker con bên trong |
-| `config/horizon.php` | Số lượng worker, queue priority, tries/timeout cho Horizon (mục "Giám sát Queue" ở trên) |
-| `app/Providers/HorizonServiceProvider.php` | Gate cho dashboard `/horizon` — permission `manage-queue`, xem docs/RBAC.md |
+| `docker/php/supervisord.conf` | Chạy 3 process `queue:work redis --queue=high,default` (mục "Giám sát Queue" ở trên) |
 | `docker/php/php.ini` | Custom PHP settings |
 | `docker/nginx/ssl/*.pem` | SSL cert (mkcert, trusted, expires 2028-08-30) |
 | `.env.docker` | Base để tạo `.env` khi chạy Docker (`cp .env.docker .env` — xem Bước 0) |

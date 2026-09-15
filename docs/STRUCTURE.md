@@ -50,6 +50,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `UserController.php` - Admin user management (CRUD, role assignment)
   - `RoleController.php` - Role management: CRUD + assign permissions to a role (checkbox grid grouped by `permissions.group`). Gate: `manage-roles`. Blocks destroy for system roles (`RoleService::isSystemRole()`) and roles still assigned to a user.
   - `PermissionController.php` - Permission management: CRUD (name/display_name/group). Gate: `manage-permissions`. Blocks destroy for the 2 core permissions (`manage-roles`, `manage-permissions`) via `PermissionService::isCorePermission()`.
+  - `QueueMonitorController.php` - Queue dashboard: `index`/`stats` (JSON, polled), `retry`/`destroy`/`retryAll` for `failed_jobs`. Gate: `manage-queue`. See "Queue Monitoring" below.
   - `StockController.php` - Admin stock management (list, update prices)
   - `NewsController.php` - Admin news management (list, update RSS)
   - `PortfolioController.php` - Admin portfolio management (list, toggle status, destroy)
@@ -62,6 +63,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `UserService.php` - Admin user management business logic (CRUD, role assignment). Implements `UserServiceInterface`, delegates DB to `UserRepository`.
   - `RoleService.php` - Role CRUD + `isSystemRole()` guard (admin/webadmin/adminsupport/user cannot be deleted via UI). `getPermissions()` for the picker form. Implements `RoleServiceInterface`, delegates DB to `RoleRepository`.
   - `PermissionService.php` - Permission CRUD + `isCorePermission()` guard (`manage-roles`/`manage-permissions` cannot be deleted via UI — would lock the admin out of this screen). Implements `PermissionServiceInterface`, delegates DB to `PermissionRepository`.
+  - `QueueMonitorService.php` - Queue stats + failed-job decoration (`job_class`/`short_exception`) + retry/delete/retry-all guards. Implements `QueueMonitorServiceInterface`, delegates to `QueueMonitorRepository`.
 - **Repositories**: `app/Backend/Repositories/`
   - `StockRepository.php` - Admin stock DB operations (paginate with filters, getExchanges, create/update/delete with cache busting)
   - `NewsRepository.php` - News DB operations (paginate with filters, bulk insertNew with dedup, getSources, getLatestSyncTime)
@@ -69,6 +71,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `ActivityLogRepository.php` - Activity log DB operations (paginate with type/date/search filters, countByType for last 7 days)
   - `RoleRepository.php` - Role DB operations (all() with users/permissions counts, findWithRelations, create/update with `permissions()->sync()`, delete)
   - `PermissionRepository.php` - Permission DB operations (all() with roles count, findWithRelations, create, update, delete)
+  - `QueueMonitorRepository.php` - Redis queue size queries (`Queue::connection('redis')`) + `failed_jobs` table queries/retry/forget
 - **Interfaces**: `app/Backend/Interfaces/`
   - `StockServiceInterface.php` - Contract for admin stock service (listStocks, getExchanges, createStock, updateStock, deleteStock, triggerPriceUpdate)
   - `StockRepositoryInterface.php` - Contract for admin stock DB operations
@@ -79,6 +82,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `ActivityLogRepositoryInterface.php` - Contract for activity log DB (paginate with filters, countByType)
   - `RoleServiceInterface.php` / `RoleRepositoryInterface.php` - Contracts for role management (see `docs/RBAC.md`)
   - `PermissionServiceInterface.php` / `PermissionRepositoryInterface.php` - Contracts for permission management (see `docs/RBAC.md`)
+  - `QueueMonitorServiceInterface.php` / `QueueMonitorRepositoryInterface.php` - Contracts for the queue dashboard (see "Queue Monitoring" below)
 
 ### Models (Shared)
 - `app/Models/` - Eloquent models shared between Frontend/Backend
@@ -125,22 +129,23 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Jobs/BackfillStockPriceChunk.php` - Queued job for historical price backfill (multi-symbol batch, date range)
 - `app/Jobs/SyncCompanyFinancialJob.php` - Queued job for syncing company financials (all types/periods for one symbol)
 
-### Queue Monitoring (Horizon)
-- `app/Providers/HorizonServiceProvider.php` - Registers `Horizon::auth()`; checks `User::hasPermission('manage-queue')` **directly** (not via `Gate`) — see docs/RBAC.md for why
-- `config/horizon.php` - Worker process config (`defaults.supervisor-1`): `queue => ['high', 'default']`, `balance => 'auto'`, 3 processes (local env), `tries => 3`, `timeout => 600`
-- `docker/php/supervisord.conf` (queue container) - Runs a single `php artisan horizon` process; Horizon spawns/manages its own worker children
-- Dashboard: `/horizon` (package-provided routes, not in `routes/web.php`), gate `manage-queue`
+### Queue Monitoring
+- `app/Backend/Controllers/QueueMonitorController.php` - `index` (dashboard), `stats` (JSON, polled every 5s by the page), `retry`/`destroy`/`retryAll` for `failed_jobs` rows. Gate: `manage-queue`.
+- `app/Backend/Services/QueueMonitorService.php` / `app/Backend/Repositories/QueueMonitorRepository.php` - Per-queue counts via `Queue::connection('redis')->pendingSize()/delayedSize()/reservedSize()`; failed jobs via `DB::table('failed_jobs')` + `Artisan::call('queue:retry'|'queue:forget')`
+- `resources/views/backend/queue-monitor/index.blade.php` - Tabler cards (per-queue counts, auto-refreshing) + failed-jobs table (retry/delete/retry-all), vanilla JS `fetch()` — same pattern as `backend/sync-status/index.blade.php`
+- `docker/php/supervisord.conf` (queue container) - 3 `queue:work redis --queue=high,default` processes (plain Laravel, no third-party package — a Horizon-based dashboard was tried and removed, see docs/HISTORY.md QUEUE_MONITOR_CUSTOM_PAGE for why)
+- `config/queue.php` - `connections.redis.retry_after` (660s) must stay above the workers' `--timeout` (600s), see the comment there
 
 ### Routes (`routes/web.php`)
 - **Public**: homepage, stock index/compare/finance, exchange rate, AI chat/predict, stock search
 - **Auth** (throttled): login, register, logout, forgot-password, reset-password
 - **Email Verification** (`auth` middleware): verify email, resend
 - **User Protected** (`auth` + `verified`): profile, portfolio CRUD
-- **Admin** (`/admin` prefix, `admin` middleware): dashboard, users, roles, permissions, stocks, news, portfolios, timeline
+- **Admin** (`/admin` prefix, `admin` middleware): dashboard, users, roles, permissions, stocks, news, portfolios, timeline, queue monitor
 
 ### Views (`resources/views/`)
 - **Frontend**: `index.blade.php`, `stock/`, `exchange_rate/`, `news/`, `portfolio/`, `profile/`, `auth/`
-- **Backend (admin)**: `backend/dashboard/`, `backend/users/`, `backend/roles/`, `backend/permissions/`, `backend/stocks/`, `backend/news/`, `backend/portfolios/`, `backend/timeline/`, `backend/sync-status/`, `backend/auth/`, `backend/layouts/`
+- **Backend (admin)**: `backend/dashboard/`, `backend/users/`, `backend/roles/`, `backend/permissions/`, `backend/queue-monitor/`, `backend/stocks/`, `backend/news/`, `backend/portfolios/`, `backend/timeline/`, `backend/sync-status/`, `backend/auth/`, `backend/layouts/`
 - **Shared**: `layouts/`, `partials/`
 
 ### Python Scripts (`py/`)
@@ -163,7 +168,7 @@ Project runs in Docker Compose with 6 containers:
 | `php` | PHP-FPM 8.2 + Python 3 venv | — |
 | `mysql` | MySQL 8.0 database | 3307 |
 | `redis` | Redis 7 (queue, cache, sessions) | — |
-| `queue` | Laravel Horizon (3 Redis workers, auto-balanced) | — |
+| `queue` | 3 Redis queue workers (`queue:work redis --queue=high,default`, supervisor) | — |
 | `scheduler` | Laravel scheduler (`schedule:work`) | — |
 
 - **App URL**: `https://sunstock-local.dev`

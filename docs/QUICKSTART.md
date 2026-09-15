@@ -120,4 +120,4 @@ Admin login URL: `/admin/login`
 | `/admin/users` | Manage users (gate: `manage-users`) |
 | `/admin/roles` | Manage roles + assign permissions (gate: `manage-roles`) |
 | `/admin/permissions` | Manage permissions (gate: `manage-permissions`) — see [docs/RBAC.md](RBAC.md) |
-| `/horizon` | Queue monitoring dashboard (gate: `manage-queue`) — see "Giám sát Queue" in [docs/DOCKER.md](DOCKER.md) |
+| `/admin/queue` | Queue monitoring dashboard (gate: `manage-queue`) — see "Giám sát Queue" in [docs/DOCKER.md](DOCKER.md) |

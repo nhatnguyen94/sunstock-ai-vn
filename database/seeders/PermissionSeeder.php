@@ -26,7 +26,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'access-backend', 'display_name' => 'Truy cập khu vực quản trị', 'group' => 'Hệ thống'],
             ['name' => 'view-timeline', 'display_name' => 'Xem Timeline hoạt động', 'group' => 'Tính năng'],
             ['name' => 'manage-features', 'display_name' => 'Quản lý Stock / News / Portfolio / Sync', 'group' => 'Tính năng'],
-            ['name' => 'manage-queue', 'display_name' => 'Giám sát Queue (Horizon)', 'group' => 'Hệ thống'],
+            ['name' => 'manage-queue', 'display_name' => 'Giám sát Queue', 'group' => 'Hệ thống'],
         ];
 
         foreach ($permissions as $permission) {

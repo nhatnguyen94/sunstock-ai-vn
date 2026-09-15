@@ -68,7 +68,7 @@ return [
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
             // Must stay comfortably above the worker --timeout (600s, see
-            // config/horizon.php's defaults.supervisor-1.timeout). The old
+            // docker/php/supervisord.conf's queue:work --timeout flag). The old
             // default of 90s meant any job legitimately still running past
             // 90s (easily happens: SyncCompanyFinancialJob/ProcessStockPriceSync
             // wait on a slow/timing-out external API) got silently released
