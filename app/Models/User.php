@@ -114,6 +114,21 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Kiểm tra user có permission cụ thể không (qua bất kỳ role nào đang gán).
+     * Đây là nguồn kiểm tra quyền duy nhất cho Gate::before() trong
+     * AppServiceProvider — mọi permission mới tạo qua backend (Admin >
+     * Vai trò / Quyền hạn) tự động hoạt động với can:<permission-name>,
+     * không cần sửa code hay deploy lại.
+     *
+     * @param string $permission
+     * @return bool
+     */
+    public function hasPermission(string $permission): bool
+    {
+        return $this->roles->contains(fn (Role $role) => $role->hasPermission($permission));
+    }
+
+    /**
      * Kiểm tra user có quyền truy cập Backend không
      * Chỉ Admin, Webadmin, AdminSupport mới được truy cập
      * 

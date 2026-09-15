@@ -2,6 +2,35 @@
 
 ---
 
+## SCALABLE_PERMISSIONS_SYSTEM - September 15, 2026
+
+### Summary:
+Replaced the hardcoded `Gate::define()` closures (one per ability, each listing role constants by name) with a DB-driven permission system, plus a backend admin UI to manage it — addressing "phần author phân quyền tao cảm giác nó không có khả năng scale rộng ra" (feature/action authorization couldn't scale to many new, overlapping roles without code changes). `spatie/laravel-permission` is present in `composer.json`/`vendor` but was confirmed completely unconfigured and unused; rather than adopt its full surface area (bigger refactor, would have required rewriting ~18 already-passing auth tests and every `Role::ADMIN`/`hasRole()` call site), the existing `Role`/`role_user` system was extended in place with a `permissions`/`permission_role` layer — the lower-risk option, confirmed with the user via `AskUserQuestion`.
+
+### Design — two layers of authorization (see `docs/RBAC.md`):
+1. **Backend access (coarse, unchanged)** — `AdminAccess` middleware / `User::canAccessBackend()` still hardcode the 3 backend-role names. Deliberately left untouched to avoid touching `AdminAccessTest`/`RoleTest`/`UserTest`'s existing passing coverage.
+2. **Feature/action permissions (fine-grained, new)** — `permissions` table + `permission_role` pivot (many-to-many, so roles freely overlap). `AppServiceProvider::defineGates()` now registers a single `Gate::before()` hook: `return $user->hasPermission($ability);`. Every `can:xxx` / `@can` / `Gate::authorize()` call in the app resolves through this — a brand-new ability works the instant a permission with that name is attached to a role, no `Gate::define()`/deploy needed.
+
+### Added:
+- **`app/Models/Permission.php`** — new model (`name`, `display_name`, `group`), `roles()` BelongsToMany.
+- **`app/Models/Role.php`** — `permissions()` BelongsToMany, `hasPermission(string $name): bool`.
+- **`app/Models/User.php`** — `hasPermission(string $name): bool`, checks across all of the user's roles.
+- **Migrations**: `create_permissions_table`, `create_permission_role_table` (both with `unique` pivot constraints).
+- **`database/seeders/PermissionSeeder.php`** — recreates the exact 4 previously-hardcoded abilities (`manage-users`, `manage-features`, `view-timeline`, `access-backend`) plus 2 new ones for the admin UI itself (`manage-roles`, `manage-permissions`), attached to the same 4 roles the old code granted them to — 100% behavior-preserving. Wired into `DatabaseSeeder` after `RoleSeeder`.
+- **Backend admin UI** (`App\Backend\Controllers\RoleController` / `PermissionController`, matching the existing Interface+Repository+Service pattern used by `UserController`): **Admin > Hệ thống > Vai trò** (gate `manage-roles`) — CRUD roles, checkbox-grid permission assignment grouped by `permissions.group`; **Admin > Hệ thống > Quyền hạn** (gate `manage-permissions`) — CRUD permissions. Destroy guards: system roles (`admin`/`webadmin`/`adminsupport`/`user`) and roles still assigned to a user can't be deleted from the UI; the 2 core permissions (`manage-roles`, `manage-permissions`) can't be deleted either — both would otherwise let an admin lock themselves out with no recovery path except direct DB access.
+- **Sidebar** (`layouts/admin.blade.php`) — "Vai trò"/"Quyền hạn" links added under the existing "Hệ thống" section, each gated by `@can`.
+- **Tests** (group `permissions`, 38 new): `Role::hasPermission()`/`User::hasPermission()` unit tests (setRelation-based, no DB); `GatesTest.php` fully rewritten around the new `Gate::before()` mechanism — including a test proving an arbitrary permission name with **no** code-defined gate anywhere resolves correctly (the actual scalability claim, not just a behavior-preservation check); `RoleControllerTest`/`PermissionControllerTest` (RefreshDatabase — genuinely needs real pivot-sync + unique/exists validation + the real `can:` middleware chain) covering CRUD and every destroy guard.
+
+### Verified:
+- `php artisan test --group=permissions`: 38/38 passing. Full suite: **113/113 passing**.
+- Migrated + seeded the real dev DB (`docker exec stock-app-php-1 php artisan migrate` + `db:seed --class=PermissionSeeder`) — confirmed via tinker that `sunadmin`'s existing session gained `manage-roles`/`manage-permissions` with zero other behavior change, and that an unknown/never-defined ability correctly denies (no exception).
+- End-to-end in the real browser against the live `sunadmin@example.com` admin account: `/admin/roles` and `/admin/permissions` render with correct live counts; created a demo permission and a demo role with it attached through the actual create forms, confirmed it appeared correctly and the role's `hasPermission()` returned true; verified `/admin/roles/1/edit` (the real `admin` role) pre-checks exactly its 6 seeded permissions. Demo data cleaned up afterward (the in-browser delete-via-JS attempt turned out not to hit the server at all — confirmed by checking nginx access logs, that's a limitation of driving the DOM directly through the automated browser tool rather than a real click, not an app bug — so cleanup was done via tinker instead; the automated `RoleControllerTest`/`PermissionControllerTest` destroy tests already cover the real code path with real HTTP requests).
+
+### Docs:
+`docs/RBAC.md` rewritten around the two-layer model; `docs/BINDINGS.md`, `docs/STRUCTURE.md`, `docs/ROUTES_MAP.md`, `docs/TESTING.md` updated for the new controllers/services/repositories/routes/test group.
+
+---
+
 ## FIX_TEST_SUITE_LAST_FAILURE - September 15, 2026
 
 ### Summary:

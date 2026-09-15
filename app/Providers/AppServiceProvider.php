@@ -36,7 +36,14 @@ use App\Frontend\Repositories\PortfolioRepository;
 use App\Frontend\Repositories\StockRepository;
 use App\Frontend\Repositories\UserProfileRepository;
 use App\Frontend\Services\NewsService;
-use App\Models\Role;
+use App\Backend\Interfaces\RoleRepositoryInterface;
+use App\Backend\Interfaces\RoleServiceInterface;
+use App\Backend\Interfaces\PermissionRepositoryInterface;
+use App\Backend\Interfaces\PermissionServiceInterface;
+use App\Backend\Repositories\RoleRepository;
+use App\Backend\Repositories\PermissionRepository;
+use App\Backend\Services\RoleService;
+use App\Backend\Services\PermissionService;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -104,6 +111,22 @@ class AppServiceProvider extends ServiceProvider
             ActivityLogRepositoryInterface::class,
             ActivityLogRepository::class
         );
+        $this->app->bind(
+            RoleRepositoryInterface::class,
+            RoleRepository::class
+        );
+        $this->app->bind(
+            RoleServiceInterface::class,
+            RoleService::class
+        );
+        $this->app->bind(
+            PermissionRepositoryInterface::class,
+            PermissionRepository::class
+        );
+        $this->app->bind(
+            PermissionServiceInterface::class,
+            PermissionService::class
+        );
     }
 
     /**
@@ -119,28 +142,20 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Định nghĩa các Gates cho hệ thống phân quyền
+     * Định nghĩa nguồn kiểm tra quyền cho toàn bộ hệ thống.
+     *
+     * Thay vì hardcode từng Gate::define() cho từng ability (không scale
+     * khi có thêm role/permission mới, mỗi lần thêm phải sửa code + deploy),
+     * mọi ability được kiểm tra qua Gate::before() dựa trên bảng
+     * permissions/role_permission trong DB. Admin tự tạo permission mới,
+     * gán vào role qua Admin > Vai trò & Quyền hạn, rồi dùng
+     * can:<permission-name> ở route/middleware/Blade — không cần sửa file
+     * này nữa. Xem docs/RBAC.md.
      */
     private function defineGates(): void
     {
-        // Gate manage-users: chỉ Admin mới có quyền quản lý users
-        Gate::define('manage-users', function ($user) {
-            return $user->hasRole(Role::ADMIN);
-        });
-
-        // Gate manage-features: Admin và AdminSupport có quyền quản lý tính năng
-        Gate::define('manage-features', function ($user) {
-            return $user->hasAnyRole([Role::ADMIN, Role::ADMIN_SUPPORT]);
-        });
-
-        // Gate view-timeline: Admin, Webadmin, AdminSupport đều có quyền xem timeline
-        Gate::define('view-timeline', function ($user) {
-            return $user->hasAnyRole([Role::ADMIN, Role::WEBADMIN, Role::ADMIN_SUPPORT]);
-        });
-
-        // Gate access-backend: kiểm tra quyền truy cập backend chung
-        Gate::define('access-backend', function ($user) {
-            return $user->canAccessBackend();
+        Gate::before(function ($user, string $ability) {
+            return $user->hasPermission($ability);
         });
     }
 }

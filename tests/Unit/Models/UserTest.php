@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Models;
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use PHPUnit\Framework\Attributes\Group;
@@ -89,5 +90,40 @@ class UserTest extends TestCase
         $user = $this->userWithRoles([Role::ADMIN, Role::WEBADMIN]);
 
         $this->assertSame([Role::ADMIN, Role::WEBADMIN], $user->getRoleNames());
+    }
+
+    private function userWithRolePermissions(array $permissionNames): User
+    {
+        $role = new Role(['name' => 'test-role']);
+        $role->setRelation(
+            'permissions',
+            collect($permissionNames)->map(fn ($name) => new Permission(['name' => $name]))
+        );
+
+        $user = new User(['name' => 'Test User', 'email' => 't@example.com']);
+        $user->setRelation('roles', collect([$role]));
+
+        return $user;
+    }
+
+    #[Group('permissions')]
+    public function test_has_permission_true_when_one_of_the_users_roles_has_it(): void
+    {
+        $this->assertTrue($this->userWithRolePermissions(['manage-users'])->hasPermission('manage-users'));
+    }
+
+    #[Group('permissions')]
+    public function test_has_permission_false_when_no_role_has_it(): void
+    {
+        $this->assertFalse($this->userWithRolePermissions(['view-timeline'])->hasPermission('manage-users'));
+    }
+
+    #[Group('permissions')]
+    public function test_has_permission_false_when_user_has_no_roles_at_all(): void
+    {
+        $user = new User(['name' => 'Test User', 'email' => 't@example.com']);
+        $user->setRelation('roles', collect());
+
+        $this->assertFalse($user->hasPermission('manage-users'));
     }
 }

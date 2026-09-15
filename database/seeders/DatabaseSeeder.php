@@ -13,9 +13,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Chạy RoleSeeder trước
+        // Chạy RoleSeeder trước, rồi PermissionSeeder (cần roles đã tồn tại)
         $this->call([
             RoleSeeder::class,
+            PermissionSeeder::class,
             AdminUserSeeder::class,  // Thêm AdminUserSeeder
         ]);
 

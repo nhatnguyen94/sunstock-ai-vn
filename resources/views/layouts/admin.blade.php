@@ -68,6 +68,18 @@
                 <span class="nav-link-bullet"></span>
                 <span class="nav-link-title">Quản lý Users</span>
               </a>
+              @can('manage-roles')
+              <a class="nav-link {{ Request::routeIs('admin.roles*') ? 'active' : '' }}" href="{{ route('admin.roles.index') }}">
+                <span class="nav-link-bullet"></span>
+                <span class="nav-link-title">Vai trò</span>
+              </a>
+              @endcan
+              @can('manage-permissions')
+              <a class="nav-link {{ Request::routeIs('admin.permissions*') ? 'active' : '' }}" href="{{ route('admin.permissions.index') }}">
+                <span class="nav-link-bullet"></span>
+                <span class="nav-link-title">Quyền hạn</span>
+              </a>
+              @endcan
             </div>
           </li>
           @endcan

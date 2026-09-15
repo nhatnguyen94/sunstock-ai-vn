@@ -86,6 +86,8 @@
 | GET/POST/PUT/DELETE | `/admin/users` | `admin.users.*` | `UserController` | *(resource)* | `manage-users` |
 | POST | `/admin/users/{user}/verify` | `admin.users.verify` | `EmailVerificationController` | `adminVerify` | `manage-users` |
 | POST | `/admin/users/{user}/unverify` | `admin.users.unverify` | `EmailVerificationController` | `adminUnverify` | `manage-users` |
+| GET/POST/PUT/DELETE | `/admin/roles` | `admin.roles.*` | `RoleController` | *(resource)* | `manage-roles` |
+| GET/POST/PUT/DELETE | `/admin/permissions` | `admin.permissions.*` | `PermissionController` | *(resource)* | `manage-permissions` |
 | GET/POST/PUT/DELETE | `/admin/stocks` | `admin.stocks.*` | `StockController` | *(resource)* | `manage-features` |
 | POST | `/admin/stocks/update-prices` | `admin.stocks.update-prices` | `StockController` | `updatePrices` | `manage-features` |
 | GET | `/admin/news` | `admin.news.index` | `NewsController` | `index` | `manage-features` |

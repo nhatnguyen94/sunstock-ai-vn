@@ -48,6 +48,8 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `AdminAuthController.php` - Separate admin login/logout
   - `DashboardController.php` - Admin dashboard with system statistics
   - `UserController.php` - Admin user management (CRUD, role assignment)
+  - `RoleController.php` - Role management: CRUD + assign permissions to a role (checkbox grid grouped by `permissions.group`). Gate: `manage-roles`. Blocks destroy for system roles (`RoleService::isSystemRole()`) and roles still assigned to a user.
+  - `PermissionController.php` - Permission management: CRUD (name/display_name/group). Gate: `manage-permissions`. Blocks destroy for the 2 core permissions (`manage-roles`, `manage-permissions`) via `PermissionService::isCorePermission()`.
   - `StockController.php` - Admin stock management (list, update prices)
   - `NewsController.php` - Admin news management (list, update RSS)
   - `PortfolioController.php` - Admin portfolio management (list, toggle status, destroy)
@@ -58,11 +60,15 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `StockService.php` - Admin stock business logic: data normalization, orchestration, price-update job dispatch. Implements `StockServiceInterface`, delegates DB to `StockRepository`.
   - `NewsService.php` - Crawls 5 RSS feeds (VnExpress ×2, CafeF ×2, Dân Trí ×1), deduplicates by url_hash, persists to `news` table. Implements `NewsServiceInterface`.
   - `UserService.php` - Admin user management business logic (CRUD, role assignment). Implements `UserServiceInterface`, delegates DB to `UserRepository`.
+  - `RoleService.php` - Role CRUD + `isSystemRole()` guard (admin/webadmin/adminsupport/user cannot be deleted via UI). `getPermissions()` for the picker form. Implements `RoleServiceInterface`, delegates DB to `RoleRepository`.
+  - `PermissionService.php` - Permission CRUD + `isCorePermission()` guard (`manage-roles`/`manage-permissions` cannot be deleted via UI — would lock the admin out of this screen). Implements `PermissionServiceInterface`, delegates DB to `PermissionRepository`.
 - **Repositories**: `app/Backend/Repositories/`
   - `StockRepository.php` - Admin stock DB operations (paginate with filters, getExchanges, create/update/delete with cache busting)
   - `NewsRepository.php` - News DB operations (paginate with filters, bulk insertNew with dedup, getSources, getLatestSyncTime)
   - `UserRepository.php` - Admin user DB operations (paginate with search, findWithRelations, create/update/delete with role sync via syncRoles)
   - `ActivityLogRepository.php` - Activity log DB operations (paginate with type/date/search filters, countByType for last 7 days)
+  - `RoleRepository.php` - Role DB operations (all() with users/permissions counts, findWithRelations, create/update with `permissions()->sync()`, delete)
+  - `PermissionRepository.php` - Permission DB operations (all() with roles count, findWithRelations, create, update, delete)
 - **Interfaces**: `app/Backend/Interfaces/`
   - `StockServiceInterface.php` - Contract for admin stock service (listStocks, getExchanges, createStock, updateStock, deleteStock, triggerPriceUpdate)
   - `StockRepositoryInterface.php` - Contract for admin stock DB operations
@@ -71,6 +77,8 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `UserServiceInterface.php` - Contract for admin user service (listUsers, getRoles, createUser, updateUser, deleteUser, findWithRelations)
   - `UserRepositoryInterface.php` - Contract for admin user DB operations (paginate, findWithRelations, create, update, delete)
   - `ActivityLogRepositoryInterface.php` - Contract for activity log DB (paginate with filters, countByType)
+  - `RoleServiceInterface.php` / `RoleRepositoryInterface.php` - Contracts for role management (see `docs/RBAC.md`)
+  - `PermissionServiceInterface.php` / `PermissionRepositoryInterface.php` - Contracts for permission management (see `docs/RBAC.md`)
 
 ### Models (Shared)
 - `app/Models/` - Eloquent models shared between Frontend/Backend
@@ -78,11 +86,12 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `StockPrice.php` - Historical daily price records
   - `StockSymbol.php` - Stock symbol reference list
   - `ExchangeRate.php` - Daily exchange rate records
-  - `User.php` - User auth (implements `MustVerifyEmail`), RBAC helpers (`hasRole`, `hasAnyRole`, `canAccessBackend`)
+  - `User.php` - User auth (implements `MustVerifyEmail`), RBAC helpers (`hasRole`, `hasAnyRole`, `canAccessBackend`, `hasPermission`)
   - `UserProfile.php` - Extended user profile (username, mobile, birthday, gender [`male`/`female`/`other`], address, bio, avatar — all editable from `/profile/edit` as of the profile audit follow-up)
   - `Portfolio.php` - User portfolios with P&L calculations. `recalculateTotals()` recomputes `total_invested`/`current_value` from the actual items (source of truth) — always call it via a freshly-fetched Portfolio, not one whose `items` relation may already be cached from before the triggering change
   - `PortfolioItem.php` - Individual stock holdings
-  - `Role.php` - RBAC role model (constants: `admin`, `webadmin`, `adminsupport`, `user`)
+  - `Role.php` - RBAC role model (constants: `admin`, `webadmin`, `adminsupport`, `user`); `permissions()` BelongsToMany + `hasPermission()`
+  - `Permission.php` - DB-driven permission model (name/display_name/group); `roles()` BelongsToMany. See `docs/RBAC.md`.
   - `NewsCategory.php` - News category model; fillable(name, slug); hasMany(News)
   - `News.php` - News article; belongsTo(NewsCategory via category_id); fields: title, description, url, url_hash, source, image_url, category_id, published_at, synced_at
   - `HotIndustry.php` - Hot industry stocks synced by scheduler; fields: symbol, organ_name, icb_name3
@@ -121,11 +130,11 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - **Auth** (throttled): login, register, logout, forgot-password, reset-password
 - **Email Verification** (`auth` middleware): verify email, resend
 - **User Protected** (`auth` + `verified`): profile, portfolio CRUD
-- **Admin** (`/admin` prefix, `admin` middleware): dashboard, users, stocks, news, portfolios, timeline
+- **Admin** (`/admin` prefix, `admin` middleware): dashboard, users, roles, permissions, stocks, news, portfolios, timeline
 
 ### Views (`resources/views/`)
 - **Frontend**: `index.blade.php`, `stock/`, `exchange_rate/`, `news/`, `portfolio/`, `profile/`, `auth/`
-- **Backend (admin)**: `backend/dashboard/`, `backend/users/`, `backend/stocks/`, `backend/news/`, `backend/portfolios/`, `backend/timeline/`, `backend/sync-status/`, `backend/auth/`, `backend/layouts/`
+- **Backend (admin)**: `backend/dashboard/`, `backend/users/`, `backend/roles/`, `backend/permissions/`, `backend/stocks/`, `backend/news/`, `backend/portfolios/`, `backend/timeline/`, `backend/sync-status/`, `backend/auth/`, `backend/layouts/`
 - **Shared**: `layouts/`, `partials/`
 
 ### Python Scripts (`py/`)

@@ -20,6 +20,10 @@
 | `App\Backend\Interfaces\UserRepositoryInterface` | `App\Backend\Repositories\UserRepository` | Injected into `App\Backend\Services\UserService` (Admin) |
 | `App\Backend\Interfaces\UserServiceInterface` | `App\Backend\Services\UserService` | Injected into `App\Backend\Controllers\UserController` (Admin) |
 | `App\Backend\Interfaces\ActivityLogRepositoryInterface` | `App\Backend\Repositories\ActivityLogRepository` | Injected into `TimelineController`, `DashboardController` (Admin) |
+| `App\Backend\Interfaces\RoleRepositoryInterface` | `App\Backend\Repositories\RoleRepository` | Injected into `App\Backend\Services\RoleService` (Admin) |
+| `App\Backend\Interfaces\RoleServiceInterface` | `App\Backend\Services\RoleService` | Injected into `App\Backend\Controllers\RoleController` (Admin) |
+| `App\Backend\Interfaces\PermissionRepositoryInterface` | `App\Backend\Repositories\PermissionRepository` | Injected into `App\Backend\Services\PermissionService` (Admin) |
+| `App\Backend\Interfaces\PermissionServiceInterface` | `App\Backend\Services\PermissionService` | Injected into `App\Backend\Controllers\PermissionController` (Admin) |
 
 > **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService` are **not** bound via interfaces — they are injected directly as concrete classes.
 
@@ -38,12 +42,15 @@ $this->app->bind(
 
 ## Gate Definitions (`boot()`)
 
-| Gate Name | Allowed Roles | Typical Usage |
-|---|---|---|
-| `manage-users` | `admin` | `UserController`, admin user management actions |
-| `manage-features` | `admin`, `adminsupport` | `StockController`, `NewsController`, `PortfolioController` (admin side) |
-| `view-timeline` | `admin`, `webadmin`, `adminsupport` | `TimelineController` |
-| `access-backend` | `admin`, `webadmin`, `adminsupport` | General backend access check (used by `AdminAccess` middleware) |
+There is no per-ability `Gate::define()` anymore. A single `Gate::before()` hook resolves every ability against the DB-driven permission system (`App\Models\Permission` + `permission_role` pivot — see `docs/RBAC.md`):
+
+```php
+Gate::before(function ($user, string $ability) {
+    return $user->hasPermission($ability);
+});
+```
+
+`PermissionSeeder` reproduces the same 6 abilities that used to be hardcoded here (`manage-users`, `manage-features`, `view-timeline`, `access-backend`, plus the new `manage-roles`/`manage-permissions`), attached to the same 4 roles as before. New abilities are added purely through the backend UI (**Admin > Vai trò / Quyền hạn**) — no code change to this file needed.
 
 ## Using Gates in Controllers
 
@@ -69,4 +76,4 @@ $middleware->alias([
 ]);
 ```
 
-`AdminAccess` checks `Auth::user()->canAccessBackend()` which relies on `access-backend` gate logic.
+`AdminAccess` checks `Auth::user()->canAccessBackend()` directly — this is a separate, still-hardcoded (role-name) coarse check, independent of the `access-backend` permission/Gate. See "Two-layer authorization" in `docs/RBAC.md`.

@@ -26,6 +26,24 @@ class Role extends Model
     }
 
     /**
+     * Quan hệ many-to-many với Permission — đây là phần cho phép các role
+     * chồng chéo quyền hạn với nhau (nhiều role có thể cùng share một
+     * permission) mà không cần sửa code, chỉ cần cập nhật qua backend.
+     */
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'permission_role');
+    }
+
+    /**
+     * Kiểm tra role có permission cụ thể không
+     */
+    public function hasPermission(string $permission): bool
+    {
+        return $this->permissions->contains('name', $permission);
+    }
+
+    /**
      * Role constants
      */
     const ADMIN = 'admin';

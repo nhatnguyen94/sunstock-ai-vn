@@ -3,7 +3,9 @@
 use App\Backend\Controllers\AdminAuthController;
 use App\Backend\Controllers\DashboardController;
 use App\Backend\Controllers\NewsController;
+use App\Backend\Controllers\PermissionController;
 use App\Backend\Controllers\PortfolioController as AdminPortfolioController;
+use App\Backend\Controllers\RoleController;
 use App\Backend\Controllers\StockController as AdminStockController;
 use App\Backend\Controllers\SyncStatusController;
 use App\Backend\Controllers\TimelineController;
@@ -120,7 +122,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/users/{user}/verify', [EmailVerificationController::class, 'adminVerify'])->name('users.verify');
             Route::post('/users/{user}/unverify', [EmailVerificationController::class, 'adminUnverify'])->name('users.unverify');
         });
-        
+
+        // Roles & Permissions Management — Admin only (self-service phân quyền,
+        // xem docs/RBAC.md)
+        Route::middleware('can:manage-roles')->group(function () {
+            Route::resource('roles', RoleController::class);
+        });
+        Route::middleware('can:manage-permissions')->group(function () {
+            Route::resource('permissions', PermissionController::class);
+        });
+
         // Stock, News, Portfolio — Admin + AdminSupport only
         Route::middleware('can:manage-features')->group(function () {
             Route::resource('stocks', AdminStockController::class);
