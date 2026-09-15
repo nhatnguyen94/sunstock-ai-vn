@@ -4,6 +4,7 @@ namespace App\Backend\Repositories;
 
 use App\Backend\Interfaces\UserRepositoryInterface;
 use App\Models\User;
+use App\Models\UserProfile;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 
@@ -38,6 +39,11 @@ class UserRepository implements UserRepositoryInterface
         if (!empty($data['roles'])) {
             $user->syncRoles($data['roles']);
         }
+
+        // Every user needs a profile row — self-registration and the admin
+        // seeder both create one, this was the one path that didn't
+        // (ProfileController::update() would crash for these accounts).
+        UserProfile::create(['user_id' => $user->id]);
 
         return $user;
     }

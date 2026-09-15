@@ -2,6 +2,36 @@
 
 ---
 
+## PROFILE_AND_PORTFOLIO_AUDIT - September 15, 2026
+
+### Summary:
+Audited Profile and Portfolio (requested after "cảm giác nó hơi hơi lủng" about Profile specifically). Found and fixed one real crash bug in Profile, and hardened a data-drift risk in Portfolio's total tracking. Also surfaced (not implemented) a few scale/extension opportunities — see "Flagged, not built" below.
+
+### Fixed — real bug:
+- **Accounts created via the admin panel had no `UserProfile` row**, and `ProfileController::update()` assumed one always exists: `'unique:user_profiles,username,'.$profile->id` on a null `$profile` degrades silently (PHP 8 just warns on `null->id`), but `$this->profileRepo->update($profile, [...])` — a **method call** on `null` — throws an uncaught `TypeError` (`Error`, not `Exception`, so the surrounding `catch (\Exception $e)` never catches it) → 500 for that user the moment they try to save their profile. Confirmed 0 users currently affected in the dev DB (everyone so far came through registration or `AdminUserSeeder`, both of which do create a profile) — but the very first admin-created account to edit their profile would have hit this.
+  - **`app/Backend/Repositories/UserRepository.php`** — `create()` now also creates a blank `UserProfile` row, matching what registration and the seeder already do.
+  - **`app/Frontend/Controllers/ProfileController.php`** — `update()` now uses `Rule::unique('user_profiles','username')->ignore($profile?->id)` (handles a null id correctly, unlike the old string-concatenated rule) and `UserProfileRepositoryInterface::updateOrCreateForUser()` instead of assuming the row exists.
+  - New `UserProfileRepository::updateOrCreateForUser()` / interface method.
+
+### Hardened — data-drift risk in Portfolio totals:
+- **`app/Frontend/Repositories/PortfolioRepository.php`** — `createItem`/`updateItem`/`deleteItem` used to keep `total_invested`/`current_value` in sync by incrementally adjusting them (`$portfolio->total_invested += ...` / `-= ...`). This class of bookkeeping silently drifts from reality if anything ever touches a `PortfolioItem` outside these exact three methods (a future feature, a manual DB fix, a bug elsewhere) — there was no way to tell the cached totals were wrong, and no way to fix them short of manual SQL.
+  - **`app/Models/Portfolio.php`** — new `calculateTotalInvested()` (mirrors the existing `calculateCurrentValue()`) and `recalculateTotals()`, which recompute both from the actual items every time — always correct, can't drift.
+  - The three repository methods now call `Portfolio::find($item->portfolio_id)?->recalculateTotals()` — **a freshly-fetched Portfolio**, not `$item->portfolio`. This distinction matters: while implementing this, testing caught a real bug in the fix itself — reusing `$item->portfolio` (a cached `belongsTo` relation) meant its own cached `items` collection could predate the change that had just been made, so recalculating from it silently produced the *old* totals. Verified with a real DB round-trip (create → update quantity → delete, checking values at each step) that the fresh-fetch version is correct even when the caller had already touched `$item->portfolio` beforehand.
+
+### Added (tests):
+- `tests/Unit/Models/PortfolioTest.php` (group `portfolioTotals`) — value calculations, the empty-portfolio div-by-zero guard, profit/loss accessors. Pure unit test (`setRelation()`, no DB) — this is exactly what the `Portfolio::recalculateTotals()` docblock's caching warning is about; the repository-level fresh-fetch fix itself could only be verified against the real DB (see above), not the automated suite.
+- `tests/Feature/Frontend/Controllers/ProfileControllerTest.php` (group `profile`) — `show()`/`edit()` return the correct view without crashing when `findByUserId()` returns null. `update()`'s specific fix couldn't be covered by the automated suite: `Rule::unique()` queries the real `users`/`user_profiles` tables directly, which don't exist in the sqlite test DB (see docs/TESTING.md) — verified manually instead (create a user the same way the admin panel does → confirm a profile now exists → confirm `updateOrCreateForUser()` succeeds where the old code would have thrown).
+
+### Flagged, not built (surfaced for the user to decide on):
+- **`UserProfile` has `birthday`, `gender`, `avatar`, `address`, `bio` columns and fillable fields that nothing in the UI ever sets** — `profile/edit.blade.php` only exposes `username`/`mobile`. The schema already supports a richer profile; the form just doesn't ask for it.
+- **`PortfolioService::getPortfoliosPaginated()` / `PortfolioRepository::paginate()` exist but are never called** — `PortfolioController::index()` uses the unpaginated `getUserPortfolios()`, loading every one of a user's portfolios (with all their items) on every visit to `/portfolio`. Not a problem at today's scale (few portfolios per user), but the paginated path is sitting there unused if/when that stops being true.
+- **`PortfolioController::storeStock()` accepts any `stock_symbol` string with no check that it corresponds to a real tracked `Stock`** — a typo'd or made-up symbol is accepted silently and will just never receive price updates (stays frozen at `buy_price` forever, since `StockRepositoryInterface::getLatestPrices()` simply won't find it). No crash, just a silent data-quality gap.
+
+### Verified:
+`php artisan test --group=portfolioTotals --group=profile`: 10/10 passing. Full suite: 87/88 (same pre-existing unrelated failure).
+
+---
+
 ## ADD_FORGOT_PASSWORD_FEATURE - September 15, 2026
 
 ### Summary:

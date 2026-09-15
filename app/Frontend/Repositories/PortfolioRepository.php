@@ -99,28 +99,22 @@ class PortfolioRepository implements PortfolioRepositoryInterface
     {
         $item = PortfolioItem::create($data);
 
-        // Update portfolio total invested and current value
-        $portfolio = $item->portfolio;
-        $portfolio->total_invested += $item->getTotalInvestedAttribute();
-        $portfolio->current_value += $item->getCurrentValueAttribute();
-        $portfolio->save();
+        // Recompute from the actual items rather than incrementally
+        // adjusting running totals — see Portfolio::recalculateTotals().
+        // Fetch a FRESH Portfolio rather than $item->portfolio: if the
+        // caller already touched that relation earlier, its cached `items`
+        // collection would predate the item we just created.
+        Portfolio::find($item->portfolio_id)?->recalculateTotals();
 
         return $item;
     }
 
     public function updateItem(PortfolioItem $item, array $data): bool
     {
-        $oldInvested = $item->getTotalInvestedAttribute();
-        $oldValue = $item->getCurrentValueAttribute();
-
         $updated = $item->update($data);
 
         if ($updated) {
-            // Recalculate portfolio values
-            $portfolio = $item->portfolio;
-            $portfolio->total_invested = $portfolio->total_invested - $oldInvested + $item->getTotalInvestedAttribute();
-            $portfolio->current_value = $portfolio->current_value - $oldValue + $item->getCurrentValueAttribute();
-            $portfolio->save();
+            Portfolio::find($item->portfolio_id)?->recalculateTotals();
         }
 
         return $updated;
@@ -128,14 +122,14 @@ class PortfolioRepository implements PortfolioRepositoryInterface
 
     public function deleteItem(PortfolioItem $item): bool
     {
-        $portfolio = $item->portfolio;
+        $portfolioId = $item->portfolio_id;
+        $deleted = $item->delete();
 
-        // Update portfolio values
-        $portfolio->total_invested -= $item->getTotalInvestedAttribute();
-        $portfolio->current_value -= $item->getCurrentValueAttribute();
-        $portfolio->save();
+        if ($deleted) {
+            Portfolio::find($portfolioId)?->recalculateTotals();
+        }
 
-        return $item->delete();
+        return $deleted;
     }
 
     public function findItemByPortfolioAndSymbol(int $portfolioId, string $symbol): ?PortfolioItem

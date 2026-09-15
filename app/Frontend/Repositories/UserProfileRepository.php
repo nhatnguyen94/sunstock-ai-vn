@@ -21,4 +21,9 @@ class UserProfileRepository implements UserProfileRepositoryInterface
     {
         return $profile->update($data);
     }
+
+    public function updateOrCreateForUser(int $userId, array $data): UserProfile
+    {
+        return UserProfile::updateOrCreate(['user_id' => $userId], $data);
+    }
 }

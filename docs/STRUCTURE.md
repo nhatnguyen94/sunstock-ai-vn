@@ -28,8 +28,8 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - **Repositories**: `app/Frontend/Repositories/` - Database access for Frontend
   - `StockRepository.php` - CRUD operations for stock data. `getLatestPrices(symbols)` — batch latest-close lookup via `Stock::latestPrice`, used by `PortfolioService`
   - `ExchangeRateRepository.php` - CRUD operations for exchange rate data
-  - `UserProfileRepository.php` - CRUD operations for user profiles
-  - `PortfolioRepository.php` - CRUD operations for portfolios and portfolio items; `getAllActivePortfolios()` for the scheduled bulk price refresh; `setAlertFlag()` persists target/stop-loss alert timestamps
+  - `UserProfileRepository.php` - CRUD operations for user profiles; `updateOrCreateForUser()` — accounts don't always have a profile row yet (e.g. admin-created ones), so this creates one on first save instead of crashing
+  - `PortfolioRepository.php` - CRUD operations for portfolios and portfolio items; `getAllActivePortfolios()` for the scheduled bulk price refresh; `setAlertFlag()` persists target/stop-loss alert timestamps. `createItem`/`updateItem`/`deleteItem` call `Portfolio::recalculateTotals()` on a freshly-fetched Portfolio (not the item's possibly-stale cached one) instead of incrementally adjusting totals — see `Portfolio` model. A `paginate()` method exists for the portfolio list but isn't wired into `PortfolioController::index()` yet, which loads all of a user's portfolios unpaginated.
   - `NewsRepository.php` - Reads news from DB: getLatest, paginate (filter by category slug/search), getCategories
   - `CompanyFinancialRepository.php` - DB cache for company financials: find(symbol, type, period), upsert, getAllRatiosByPeriod(period) for the screener
 
@@ -80,7 +80,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `ExchangeRate.php` - Daily exchange rate records
   - `User.php` - User auth (implements `MustVerifyEmail`), RBAC helpers (`hasRole`, `hasAnyRole`, `canAccessBackend`)
   - `UserProfile.php` - Extended user profile
-  - `Portfolio.php` - User portfolios with P&L calculations
+  - `Portfolio.php` - User portfolios with P&L calculations. `recalculateTotals()` recomputes `total_invested`/`current_value` from the actual items (source of truth) — always call it via a freshly-fetched Portfolio, not one whose `items` relation may already be cached from before the triggering change
   - `PortfolioItem.php` - Individual stock holdings
   - `Role.php` - RBAC role model (constants: `admin`, `webadmin`, `adminsupport`, `user`)
   - `NewsCategory.php` - News category model; fillable(name, slug); hasMany(News)

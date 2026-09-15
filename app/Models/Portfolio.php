@@ -76,8 +76,35 @@ class Portfolio extends Model
         });
     }
 
+    public function calculateTotalInvested(): float
+    {
+        return $this->items->sum(function ($item) {
+            return $item->quantity * $item->buy_price;
+        });
+    }
+
     public function updateCurrentValue(): void
     {
+        $this->current_value = $this->calculateCurrentValue();
+        $this->save();
+    }
+
+    /**
+     * Recompute both totals from the actual items, instead of trusting
+     * incrementally-adjusted running totals. Call this after any item
+     * create/update/delete — it's the single source of truth and can't
+     * drift out of sync the way manual +=/-= bookkeeping can.
+     *
+     * Uses the `items` relation *property*, which is cached once loaded —
+     * call this on a freshly-fetched Portfolio instance (not one whose
+     * `items` was loaded before the triggering change), or the cached
+     * collection will still reflect the pre-change state. See
+     * PortfolioRepository's createItem/updateItem/deleteItem for the
+     * pattern (fetch a new Portfolio by id rather than reusing $item->portfolio).
+     */
+    public function recalculateTotals(): void
+    {
+        $this->total_invested = $this->calculateTotalInvested();
         $this->current_value = $this->calculateCurrentValue();
         $this->save();
     }

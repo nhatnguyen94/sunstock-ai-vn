@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -43,10 +44,17 @@ class ProfileController extends Controller
             return redirect()->route('login')->with('error', 'Vui lòng đăng nhập để tiếp tục.');
         }
 
+        // findByUserId() can return null — accounts created via the admin
+        // panel don't get a UserProfile row automatically (see UserRepository
+        // fix). Rule::unique()->ignore(null) correctly skips the exclusion
+        // instead of crashing like the old string-concatenated rule did.
         $profile = $this->profileRepo->findByUserId($user->id);
 
         $request->validate([
-            'username' => 'required|string|max:255|unique:user_profiles,username,'.$profile->id,
+            'username' => [
+                'required', 'string', 'max:255',
+                Rule::unique('user_profiles', 'username')->ignore($profile?->id),
+            ],
             'mobile' => 'nullable|string|max:20',
             'current_password' => 'nullable|string',
             'password' => 'nullable|string|min:8|confirmed',
@@ -58,8 +66,8 @@ class ProfileController extends Controller
         ]);
 
         try {
-            // Update profile
-            $this->profileRepo->update($profile, [
+            // Update profile (creates it first if this account never got one)
+            $this->profileRepo->updateOrCreateForUser($user->id, [
                 'username' => $request->username,
                 'mobile' => $request->mobile,
             ]);
