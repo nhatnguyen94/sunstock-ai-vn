@@ -80,6 +80,12 @@
                 <span class="nav-link-title">Quyền hạn</span>
               </a>
               @endcan
+              @can('manage-queue')
+              <a class="nav-link" href="{{ url('/horizon') }}" target="_blank" rel="noopener">
+                <span class="nav-link-bullet"></span>
+                <span class="nav-link-title">Giám sát Queue ↗</span>
+              </a>
+              @endcan
             </div>
           </li>
           @endcan

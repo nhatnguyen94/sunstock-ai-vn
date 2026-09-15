@@ -49,16 +49,19 @@ Gate::before(function ($user, string $ability) {
 });
 ```
 
-That's the entire authorization source for feature/action gates. The 6 permissions seeded by `PermissionSeeder` reproduce exactly what used to be hardcoded per-role in `Gate::define()`:
+That's the entire authorization source for feature/action gates. The 7 permissions seeded by `PermissionSeeder` reproduce exactly what used to be hardcoded per-role in `Gate::define()`, plus `manage-queue` for the Horizon dashboard:
 
 | Permission | Group | Purpose |
 |---|---|---|
 | `manage-users` | Hệ thống | Create/edit/delete users, assign roles, manual email verification |
 | `manage-roles` | Hệ thống | CRUD roles + assign permissions to a role (Admin > Vai trò) |
 | `manage-permissions` | Hệ thống | CRUD permissions (Admin > Quyền hạn) |
+| `manage-queue` | Hệ thống | View the Horizon queue dashboard at `/horizon` — **not** resolved through `Gate::before()` (see note below), checked directly by `HorizonServiceProvider` |
 | `access-backend` | Hệ thống | Registered for symmetry/testing; the actual backend-entry gate is `canAccessBackend()`, not this ability (see above) |
 | `view-timeline` | Tính năng | View activity timeline |
 | `manage-features` | Tính năng | Manage stocks, news, portfolios, sync status in admin |
+
+> **`manage-queue` is a special case**: Horizon's own dashboard authorization (`Horizon::auth()` in `app/Providers/HorizonServiceProvider.php`) calls `$request->user()?->hasPermission('manage-queue')` **directly**, not via `Gate::check()`. Reason: the global `Gate::before()` hook above intercepts *every* ability name checked anywhere in the app, including Horizon's internal `'viewHorizon'` ability — since no permission is literally named `viewHorizon`, that hook always returned `false` and silently pre-empted a correctly-`Gate::define()`d `'viewHorizon'` callback that never got a chance to run. Bypassing `Gate` for this one check avoids the collision entirely.
 
 ## Default role → permission matrix (seeded by `PermissionSeeder`)
 
@@ -67,6 +70,7 @@ That's the entire authorization source for feature/action gates. The 6 permissio
 | `manage-users` | ✅ | ❌ | ❌ | ❌ |
 | `manage-roles` | ✅ | ❌ | ❌ | ❌ |
 | `manage-permissions` | ✅ | ❌ | ❌ | ❌ |
+| `manage-queue` | ✅ | ❌ | ❌ | ❌ |
 | `access-backend` | ✅ | ✅ | ✅ | ❌ |
 | `view-timeline` | ✅ | ✅ | ✅ | ❌ |
 | `manage-features` | ✅ | ❌ | ✅ | ❌ |
@@ -88,6 +92,7 @@ Applied on all admin routes: `middleware(['auth:web', 'admin'])`. Feature-level 
 - **Admin > Hệ thống > Vai trò** (`admin.roles.*`, gate `manage-roles`) — `App\Backend\Controllers\RoleController`. Create/edit a role's name + display name + which permissions it has (checkbox grid grouped by `permissions.group`). Delete is blocked for system roles and for any role still assigned to a user.
 - **Admin > Hệ thống > Quyền hạn** (`admin.permissions.*`, gate `manage-permissions`) — `App\Backend\Controllers\PermissionController`. Create/edit a permission's name (the literal string used in `can:<name>`) + display name + group. Delete is blocked for the 2 core permissions (`manage-roles`, `manage-permissions`) so an admin can never lock themselves out of this screen.
 - **Admin > Hệ thống > Quản lý Users** (existing, unchanged) assigns *roles* to a user.
+- **Admin > Hệ thống > Giám sát Queue** (`/horizon`, gate `manage-queue`, opens in a new tab) — Laravel Horizon dashboard: live queue depth per queue, in-flight/failed jobs, throughput. See "Queue monitoring (Horizon)" in `docs/DOCKER.md`.
 
 ## Adding a brand-new permission-gated feature (no code changes to AppServiceProvider needed)
 

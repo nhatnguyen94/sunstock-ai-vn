@@ -26,6 +26,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'access-backend', 'display_name' => 'Truy cập khu vực quản trị', 'group' => 'Hệ thống'],
             ['name' => 'view-timeline', 'display_name' => 'Xem Timeline hoạt động', 'group' => 'Tính năng'],
             ['name' => 'manage-features', 'display_name' => 'Quản lý Stock / News / Portfolio / Sync', 'group' => 'Tính năng'],
+            ['name' => 'manage-queue', 'display_name' => 'Giám sát Queue (Horizon)', 'group' => 'Hệ thống'],
         ];
 
         foreach ($permissions as $permission) {
@@ -33,7 +34,7 @@ class PermissionSeeder extends Seeder
         }
 
         $roleToPermissions = [
-            Role::ADMIN        => ['manage-users', 'manage-roles', 'manage-permissions', 'access-backend', 'view-timeline', 'manage-features'],
+            Role::ADMIN        => ['manage-users', 'manage-roles', 'manage-permissions', 'access-backend', 'view-timeline', 'manage-features', 'manage-queue'],
             Role::WEBADMIN     => ['access-backend', 'view-timeline'],
             Role::ADMIN_SUPPORT => ['access-backend', 'view-timeline', 'manage-features'],
             Role::USER         => [],
@@ -50,6 +51,6 @@ class PermissionSeeder extends Seeder
             $role->permissions()->syncWithoutDetaching($ids);
         }
 
-        $this->command->info('Đã tạo 6 permission và gán vào 4 role mặc định.');
+        $this->command->info('Đã tạo 7 permission và gán vào 4 role mặc định.');
     }
 }

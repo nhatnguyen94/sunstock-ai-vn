@@ -69,6 +69,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('sync:news')->everyThirtyMinutes()
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Snapshot Horizon metrics every 5 min — powers the /horizon dashboard's
+        // throughput/runtime graphs. Without this the graphs stay empty.
+        $schedule->command('horizon:snapshot')->everyFiveMinutes();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

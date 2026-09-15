@@ -67,7 +67,18 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            // Must stay comfortably above the worker --timeout (600s, see
+            // config/horizon.php's defaults.supervisor-1.timeout). The old
+            // default of 90s meant any job legitimately still running past
+            // 90s (easily happens: SyncCompanyFinancialJob/ProcessStockPriceSync
+            // wait on a slow/timing-out external API) got silently released
+            // back onto the queue as if its worker had crashed, so a second
+            // worker picked up the SAME job while the first was still running
+            // it — burning through `tries` on duplicate concurrent attempts
+            // and eventually failing with MaxAttemptsExceededException even
+            // though the job may never have actually errored. Confirmed as
+            // the exact cause of a real failed SyncCompanyFinancialJob.
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 660),
             'block_for' => null,
             'after_commit' => false,
         ],

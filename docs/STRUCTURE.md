@@ -125,6 +125,12 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Jobs/BackfillStockPriceChunk.php` - Queued job for historical price backfill (multi-symbol batch, date range)
 - `app/Jobs/SyncCompanyFinancialJob.php` - Queued job for syncing company financials (all types/periods for one symbol)
 
+### Queue Monitoring (Horizon)
+- `app/Providers/HorizonServiceProvider.php` - Registers `Horizon::auth()`; checks `User::hasPermission('manage-queue')` **directly** (not via `Gate`) — see docs/RBAC.md for why
+- `config/horizon.php` - Worker process config (`defaults.supervisor-1`): `queue => ['high', 'default']`, `balance => 'auto'`, 3 processes (local env), `tries => 3`, `timeout => 600`
+- `docker/php/supervisord.conf` (queue container) - Runs a single `php artisan horizon` process; Horizon spawns/manages its own worker children
+- Dashboard: `/horizon` (package-provided routes, not in `routes/web.php`), gate `manage-queue`
+
 ### Routes (`routes/web.php`)
 - **Public**: homepage, stock index/compare/finance, exchange rate, AI chat/predict, stock search
 - **Auth** (throttled): login, register, logout, forgot-password, reset-password
@@ -157,7 +163,7 @@ Project runs in Docker Compose with 6 containers:
 | `php` | PHP-FPM 8.2 + Python 3 venv | — |
 | `mysql` | MySQL 8.0 database | 3307 |
 | `redis` | Redis 7 (queue, cache, sessions) | — |
-| `queue` | 6 queue workers (supervisor) | — |
+| `queue` | Laravel Horizon (3 Redis workers, auto-balanced) | — |
 | `scheduler` | Laravel scheduler (`schedule:work`) | — |
 
 - **App URL**: `https://sunstock-local.dev`
