@@ -28,15 +28,17 @@ resources/
 │   │   │   └── admin.css        ← Admin layout styles (21 lines)
 │   │   ├── index.css            ← Homepage (805 lines)
 │   │   ├── auth/
-│   │   │   ├── login.css        ← Login page (87 lines)
-│   │   │   └── register.css     ← Register page (37 lines)
+│   │   │   ├── login.css          ← Login page (87 lines)
+│   │   │   ├── register.css       ← Register page (37 lines)
+│   │   │   └── password-reset.css ← Forgot/reset password pages
 │   │   ├── exchange_rate/
 │   │   │   └── index.css        ← Exchange rate page (799 lines)
 │   │   ├── news/
 │   │   │   └── index.css        ← News list page (hero, grid, cards, sidebar, badges)
 │   │   ├── stock/
 │   │   │   ├── stock.css        ← Stock detail page (631 lines)
-│   │   │   └── compare.css      ← Stock compare page (156 lines)
+│   │   │   ├── compare.css      ← Stock compare page (156 lines)
+│   │   │   └── screener.css     ← Stock screener page
 │   │   ├── portfolio/
 │   │   │   ├── add-stock.css    ← Add stock to portfolio (25 lines)
 │   │   │   ├── create.css       ← Create portfolio (22 lines)
@@ -89,6 +91,7 @@ resources/
 | `portfolio/show.blade.php` | `css/portfolio/show.css` | `js/portfolio/show.js` |
 | `portfolio/add-stock.blade.php` | `css/portfolio/add-stock.css` | `js/portfolio/add-stock.js` |
 | `profile/show.blade.php` | `css/profile/show.css` | *(none)* |
+| `profile/edit.blade.php` | *(none — uses global `layouts/app.css` only)* | *(none)* |
 
 ---
 
@@ -182,7 +185,7 @@ Loaded automatically by `layouts/app.blade.php` — no action needed in individu
 | Awesomplete | 1.1.5 | Symbol autocomplete (stock pages) |
 | Inter | Google Font | Typography |
 
-> **Note**: The project uses Bootstrap **4.5.2**, not Bootstrap 5. Do not use Bootstrap 5 class names or JS APIs.
+> **Note**: The **frontend** (this doc's scope, `layouts/app.blade.php`) uses Bootstrap **4.5.2** — do not use Bootstrap 5 class names or JS APIs here. The separate **admin panel** (`layouts/admin.blade.php`) uses Tabler/Bootstrap 5 via CDN instead; see [docs/RBAC.md](RBAC.md) and [docs/STRUCTURE.md](STRUCTURE.md) for backend views.
 
 ---
 

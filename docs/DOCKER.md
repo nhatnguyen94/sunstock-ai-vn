@@ -67,6 +67,18 @@ stock-app/
 
 ## 3. Lần đầu tiên setup (First-time Setup)
 
+### Bước 0: Cấu hình `.env`
+
+```powershell
+cp .env.docker .env
+```
+
+Sau đó chỉnh `.env`, set giá trị thật (không commit) cho:
+- `DB_PASSWORD`, `DB_ROOT_PASSWORD` — **bắt buộc**, `docker-compose.yml` không có giá trị mặc định, thiếu là container `mysql` không start được
+- `GROQ_API_KEY` — cho tính năng AI chat (free tại [console.groq.com](https://console.groq.com))
+
+> Xem mục "🔐 Security & environment variables" trong [README.md](../README.md) để biết đầy đủ quy tắc về secret.
+
 ### Bước 1: Build images (chỉ cần làm 1 lần)
 
 ```powershell
@@ -89,18 +101,28 @@ docker compose up -d
 docker compose exec php composer install
 ```
 
-### Bước 4: Import database từ XAMPP
+### Bước 4: Khởi tạo database
+
+**Clone mới (không có sẵn `docker/init.sql`)** — dùng cách này:
 
 ```powershell
-# File dump đã được export sẵn tại docker/init.sql (459MB)
+docker compose exec php php artisan migrate --seed
+docker compose exec php php artisan sync:stock-data
+```
+
+**Máy đã từng chạy XAMPP và có sẵn file dump `docker/init.sql`** (file này bị gitignore — chỉ tồn tại cục bộ trên máy đã export nó trước đó, KHÔNG có sẵn sau khi `git clone`) — có thể import thẳng thay vì migrate/seed:
+
+```powershell
 docker compose exec -T mysql mysql -u root -p"$(grep DB_PASSWORD .env | cut -d= -f2)" stock_app < docker/init.sql
 # Hoặc nhập password thủ công:
 docker compose exec -T mysql mysql -u root -p stock_app < docker/init.sql
 ```
 
-> ⏱ Import 459MB mất khoảng 3–10 phút.
+> ⏱ Import full dump (nhiều trăm MB) mất khoảng 3–10 phút.
 
-### Bước 5: Chạy migrations (kiểm tra)
+### Bước 5: Chạy migrations mới nhất (nếu import từ `docker/init.sql`)
+
+Chỉ cần nếu bạn đi theo nhánh "có sẵn `docker/init.sql`" ở Bước 4 — dump có thể cũ hơn migration mới nhất trong code. Nếu bạn vừa chạy `migrate --seed` ở Bước 4 thì bỏ qua bước này.
 
 ```powershell
 docker compose exec php php artisan migrate --force
@@ -354,10 +376,10 @@ docker compose exec php /opt/venv/bin/python3 py/get_stock.py VCB
 | `docker/php/supervisord.conf` | Quản lý 6 queue workers song song |
 | `docker/php/php.ini` | Custom PHP settings |
 | `docker/nginx/ssl/*.pem` | SSL cert (mkcert, trusted, expires 2028-08-30) |
-| `.env.docker` | .env cho Docker (backup, không dùng trực tiếp) |
-| `.env.xampp` | .env cũ của XAMPP (để rollback) |
+| `.env.docker` | Base để tạo `.env` khi chạy Docker (`cp .env.docker .env` — xem Bước 0) |
+| `.env.xampp` | Base để tạo `.env` khi rollback về XAMPP (xem mục 7) |
 | `docker/init.sql` | Database dump 459MB (gitignored) |
 
 ---
 
-*Last updated: May 30, 2026*
+*Last updated: September 15, 2026*

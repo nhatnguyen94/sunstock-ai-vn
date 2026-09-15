@@ -71,6 +71,12 @@ $result = json_decode($jsonStr, true) ?? ['error' => 'Parse error'];
 - **Output**: JSON array of `{symbol, organ_name, ...}` objects
 - **Note**: Includes ETFs (e.g., FUEVFVND)
 
+### `py/get_company_finance.py`
+- **Purpose**: Fetch company financial statements (income statement, balance sheet, cash flow, ratios) for one symbol
+- **Args**: Symbol, statement type, period (quarter/year) — called from `CompanyFinancialService::fetchFromPython()`
+- **Output**: JSON object of financial statement rows
+- **Data source**: KBS via vnstock; cached in the `company_financials` table (`STALE_DAYS = 30`), refreshed by `sync:company-financials`
+
 ### `py/register_api_key.py`
 - **Purpose**: Register or configure vnstock API key for sponsored tier access
 - **Args**: None (interactive or reads from env)

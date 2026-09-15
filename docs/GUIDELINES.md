@@ -30,9 +30,9 @@
 1. Create Controller in `app/Backend/Controllers/` extending `App\Backend\Controllers\Controller`
 2. Create Interface + Service + Repository in `app/Backend/Interfaces/`, `app/Backend/Services/`, `app/Backend/Repositories/` (follow existing UserService/StockService/NewsService pattern)
 3. Register binding in `AppServiceProvider::register()`
-4. Add admin routes under `Route::prefix('admin')->middleware(['auth:web', 'admin'])` group
-4. Create views in `resources/views/backend/`
-5. Use `Gate::authorize()` inside controller actions for granular permission checks
+4. Add admin routes under `Route::prefix('admin')->middleware(['auth:web', 'admin'])` group, gated with `Route::middleware('can:your-permission-name')`
+5. Create views in `resources/views/backend/`
+6. Use `Gate::authorize()` inside controller actions for granular permission checks; create the permission (Admin > Quyền hạn) and attach it to the relevant role(s) (Admin > Vai trò) — see `docs/RBAC.md`
 
 ## ⚡ Quick Checklist for AI
 When adding ANY new feature (or changing an existing one):
@@ -50,10 +50,11 @@ When adding ANY new feature (or changing an existing one):
 ## ⚠️ Known Gotchas & Patterns
 
 ### RBAC / Permissions
-- Use `Gate::authorize('gate-name')` (throws 403) or `$this->authorize('gate-name')` in controllers
-- Available Gates: `manage-users` (Admin only), `manage-features` (Admin + AdminSupport), `view-timeline` (Admin + Webadmin + AdminSupport), `access-backend` (all backend roles)
-- Role constants live in `App\Models\Role`: `Role::ADMIN`, `Role::WEBADMIN`, `Role::ADMIN_SUPPORT`, `Role::USER`
-- Never check roles with raw strings like `$user->hasRole('admin')` — use `Role::ADMIN` constant
+- Use `Gate::authorize('permission-name')` (throws 403), `Gate::allows('permission-name')`, or `$this->authorize('permission-name')` in controllers; `@can('permission-name')` in Blade
+- **There is no fixed/hardcoded list of gates anymore.** A single `Gate::before()` hook in `AppServiceProvider` resolves every ability against the DB (`permissions`/`permission_role` tables) via `User::hasPermission()` — any permission name works the moment it's created and attached to a role from **Admin > Vai trò / Quyền hạn**, no `Gate::define()`/code change needed. Full model + the 6 seeded permissions → **[docs/RBAC.md](RBAC.md)**.
+- Backend login access itself (`AdminAccess` middleware / `User::canAccessBackend()`) is a separate, still-hardcoded coarse check (role **name** must be `admin`/`webadmin`/`adminsupport`) — see "Two-layer authorization" in RBAC.md before assuming a new custom role can log into `/admin`.
+- Role constants live in `App\Models\Role`: `Role::ADMIN`, `Role::WEBADMIN`, `Role::ADMIN_SUPPORT`, `Role::USER` — these 4 are the system roles (can't be deleted from the UI); any additional role is created via **Admin > Vai trò**, not a new constant.
+- Never check roles with raw strings like `$user->hasRole('admin')` — use `Role::ADMIN` constant. Never check a new feature permission with a raw string typo either — the name you `Gate::authorize()` in code must exactly match the `permissions.name` row created in the admin UI.
 
 ### Email Verification
 - `User` model implements `MustVerifyEmail` — new users must verify before accessing protected routes

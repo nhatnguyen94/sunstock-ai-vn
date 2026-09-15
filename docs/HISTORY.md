@@ -2,6 +2,33 @@
 
 ---
 
+## DOCS_CONSISTENCY_AUDIT - September 15, 2026
+
+### Summary:
+Full audit of every `.md` file against the actual codebase (routes, artisan commands, models, config, assets), following up on the README.md refresh — user asked to also fix `docs/QUICKSTART.md` and check every doc for consistency "để AI có thể dễ dàng đọc hiểu" (so an AI can easily read and understand). Cross-checked every `php artisan ...` command mentioned in any doc against the real `php artisan list` output; found and fixed several real bugs, not just stale wording.
+
+### Fixed — real bugs (not just stale wording):
+- **`docs/QUICKSTART.md`** — wrong command names throughout: `stock:sync`/`stock:sync-prices` → `sync:stock-data`/`sync:stock-prices`; `vnstock:register-api-key` → `vnstock:register-key` (verified against `RegisterVnstockApiKey::$signature`). The step-by-step DB setup section ran `RoleSeeder` then `AdminUserSeeder` with no `PermissionSeeder` in between — following it literally would create an admin account with zero permissions, denied by every `can:`-gated page (see `SCALABLE_PERMISSIONS_SYSTEM` above). Added `PermissionSeeder` in the correct order, and `migrate --seed` as the recommended one-liner. `GROQ_API_KEY` was completely missing from the env config step even though the app needs it for AI chat.
+- **`docs/DOCKER.md`** — "First-time setup" had no `.env` configuration step at all before `docker compose build`; added one (`cp .env.docker .env` + the two required passwords + `GROQ_API_KEY`). "Bước 4: Import database từ XAMPP" assumed `docker/init.sql` exists, but that file is gitignored and only exists on whichever machine originally exported it — a fresh `git clone` would have no such file and get stuck. Reframed as two explicit paths: `migrate --seed` (works for everyone) vs. importing the local dump (only if you have it).
+- **`docs/QUICKSTART.md`** vnstock register command was also wrong in the "Common Artisan Commands" table (same fix).
+
+### Fixed — stale/incomplete content:
+- **`AGENTS.md`** (3 places) — "why the DB can't be used in tests" / "tests can't touch the DB here" — stale phrasing from before `FIX_TEST_SUITE_LAST_FAILURE`; `RefreshDatabase` works now (mocking is still the default, just not the only option). RBAC quick-reference line rewrote to describe the DB-driven permission system instead of "Gates in AppServiceProvider::boot()" (technically still true but misleading — implies hardcoded gates). Bumped to Revision 3.4.
+- **`docs/GUIDELINES.md`** — "Available Gates: manage-users (Admin only), ..." was a fixed list describing the old hardcoded `Gate::define()` system; replaced with a description of `Gate::before()` + pointer to `docs/RBAC.md`, plus a note that backend-login access itself is still a separate, hardcoded coarse check. Also fixed a duplicate step "4." in the Backend feature checklist (pre-existing typo, renumbered 4-6).
+- **`docs/PYTHON_INTEGRATION.md`** — `py/get_company_finance.py` (used by `CompanyFinancialService::fetchFromPython()`) was completely undocumented; added its entry to "Python Scripts Reference".
+- **`docs/FRONTEND_VIEWS.md`** — directory tree was missing `auth/password-reset.css` and `stock/screener.css` (both exist and are used, just never added to the tree when they were created); the Blade→Asset mapping table had no row for `profile/edit.blade.php` (it intentionally has no page-specific CSS/JS — added as an explicit "none" row rather than leaving it undocumented). Clarified the "Bootstrap 4.5.2, not 5" note applies to the frontend layout specifically, since the separate admin panel now uses Tabler/Bootstrap 5.
+
+### Not changed (checked, found correct or out of scope):
+- `docs/RBAC.md`, `docs/BINDINGS.md`, `docs/STRUCTURE.md`, `docs/ROUTES_MAP.md`, `docs/TESTING.md` — already brought current in `SCALABLE_PERMISSIONS_SYSTEM` above.
+- `docs/HISTORY.md` itself — old entries mentioning `stock:sync`/OpenRouter left untouched; it's an append-only historical log of what was true *at that date*, not a current-state doc — rewriting past entries to match today's command names would misrepresent history.
+- `docs/vnstock-agent/AGENTS.md` — third-party vendor documentation for the `vnstock-agent-guide` project (own versioning: "Maintained By: Thịnh Vũ"), explicitly marked "supplemental only" in `AGENTS.md`. Describes a different Python SDK usage pattern (`vnstock_data` Unified UI) than how this app actually calls vnstock (simple subprocess scripts) — left untouched as it's not this project's own documentation to rewrite.
+- `py/get_stock copy.py` — a stray, git-tracked duplicate file (space in the filename, unreferenced anywhere in `app/`) noticed during the Python scripts audit. Not a docs issue and not deleted (out of scope, flagged to the user instead).
+
+### Verified:
+Every `php artisan <command>` string across `README.md`, all of `docs/*.md`, and `AGENTS.md` cross-checked against `php artisan list` inside the real container — zero mismatches remain outside `docs/HISTORY.md`'s historical entries. No PHP/test files touched this task.
+
+---
+
 ## SCALABLE_PERMISSIONS_SYSTEM - September 15, 2026
 
 ### Summary:

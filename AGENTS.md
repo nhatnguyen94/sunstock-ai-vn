@@ -27,7 +27,7 @@
 | Frontend JS/CSS/Blade assets | **[docs/FRONTEND_VIEWS.md](docs/FRONTEND_VIEWS.md)** |
 | Docker / infrastructure / env | **[docs/DOCKER.md](docs/DOCKER.md)** |
 | Database migrations | **[docs/HISTORY.md](docs/HISTORY.md)** (check existing migrations) |
-| Writing/running tests (every task — see mandatory rule below) | **[docs/TESTING.md](docs/TESTING.md)** — folder structure, `#[Group(...)]` convention, why the DB can't be used in tests |
+| Writing/running tests (every task — see mandatory rule below) | **[docs/TESTING.md](docs/TESTING.md)** — folder structure, `#[Group(...)]` convention, when to mock vs. use `RefreshDatabase` |
 | Anything unclear | **[docs/QUICKSTART.md](docs/QUICKSTART.md)** |
 
 ### Step 3 — Confirmation Block (REQUIRED before writing any code)
@@ -63,7 +63,7 @@ After reading, you MUST output this block verbatim with your own answers filled 
 - **Backend Namespace**: `App\Backend\{Controllers|Services|Repositories|Interfaces}`
 - **Shared Models**: `App\Models` (and ONLY this folder)
 - **Middleware**: `AdminAccess` (alias: `admin`) in `bootstrap/app.php`
-- **RBAC**: Role constants in `App\Models\Role`, Gates in `AppServiceProvider::boot()`
+- **RBAC**: Role constants in `App\Models\Role`; every Gate ability is resolved DB-driven via a single `Gate::before()` in `AppServiceProvider::boot()` against `permissions`/`permission_role` tables — managed from Admin > Vai trò/Quyền hạn, not hardcoded per-ability. See `docs/RBAC.md`.
 - **CRITICAL RULE**: NEVER use default Laravel folders like `app/Http/Controllers`, `app/Services`, `app/Http/Requests`, etc. — ALL code must live in `App\Frontend\*` or `App\Backend\*`
 - **Runtime**: Docker Compose (6 containers) — `https://sunstock-local.dev`. See `docs/DOCKER.md`
 - **AI Provider**: Groq API (`GROQ_API_KEY` in `.env`) — model `llama-3.3-70b-versatile` primary
@@ -114,7 +114,7 @@ After reading, you MUST output this block verbatim with your own answers filled 
 7. **[docs/FRONTEND_VIEWS.md](docs/FRONTEND_VIEWS.md)** — CSS/JS file locations, Blade → asset mapping, data-init pattern, CDN deps
 8. **[docs/DOCKER.md](docs/DOCKER.md)** — 6-container stack, daily commands, troubleshooting, production notes
 9. **[docs/QUICKSTART.md](docs/QUICKSTART.md)** — Setup, env config, migration, seed, artisan commands
-10. **[docs/TESTING.md](docs/TESTING.md)** — Test folder structure (mirrors `app/`), the `#[Group(...)]` convention, why tests can't touch the DB here
+10. **[docs/TESTING.md](docs/TESTING.md)** — Test folder structure (mirrors `app/`), the `#[Group(...)]` convention, when to mock vs. use `RefreshDatabase`
 
 ### 🟢 Reference Only (update as FINAL step)
 
@@ -127,7 +127,7 @@ After reading, you MUST output this block verbatim with your own answers filled 
 > [!IMPORTANT]
 > **MANDATORY — NO EXCEPTIONS**: Step 1 below applies to every feature you touch, whether it's brand new or already existed before your change. A task is NOT complete until it passes.
 
-1. **Write or update unit/feature tests** covering the feature/fix you just built or changed. Every test (new or existing) MUST be tagged with a PHPUnit **Group** named after the feature it belongs to, using the `#[Group('featureName')]` attribute — **group names are camelCase, mandatory, no exceptions** (e.g. `#[Group('portfolioAlerts')]`, NOT `portfolio-alerts`). Use one consistent group name per feature across all its test methods/classes so they can be run together. Full details (folder structure, why tests can't touch the DB here, current group list) → **[docs/TESTING.md](docs/TESTING.md)**.
+1. **Write or update unit/feature tests** covering the feature/fix you just built or changed. Every test (new or existing) MUST be tagged with a PHPUnit **Group** named after the feature it belongs to, using the `#[Group('featureName')]` attribute — **group names are camelCase, mandatory, no exceptions** (e.g. `#[Group('portfolioAlerts')]`, NOT `portfolio-alerts`). Use one consistent group name per feature across all its test methods/classes so they can be run together. Full details (folder structure, when to mock vs. use `RefreshDatabase`, current group list) → **[docs/TESTING.md](docs/TESTING.md)**.
    Then **run only that feature's group** — not the full suite: `docker exec stock-app-php-1 php artisan test --group=featureName` (or `php artisan test --group=featureName` outside Docker). Every test in the group must pass — fix failures before moving on, don't skip or comment them out.
 2. `composer dump-autoload`
 3. Update **[docs/HISTORY.md](docs/HISTORY.md)** — LAST step, never first
@@ -147,5 +147,5 @@ Rules there are **supplemental only** — project architecture always takes prio
 
 ---
 
-**Last Updated**: September 14, 2026  
-**Revision**: 3.3 (mandatory tests per feature tagged `#[Group(...)]` camelCase, run in isolation — see docs/TESTING.md; mandatory `[branch-name]` commit message format)
+**Last Updated**: September 15, 2026  
+**Revision**: 3.4 (RBAC is now DB-driven permissions, not hardcoded Gates — see docs/RBAC.md; docs cross-checked against code for a full consistency pass, incl. docs/QUICKSTART.md command names and `RefreshDatabase` references)

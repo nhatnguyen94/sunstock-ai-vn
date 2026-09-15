@@ -13,16 +13,18 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Edit `.env`:
+Edit `.env` — use your own real values, **never commit them** (see the Security section in [README.md](../README.md)):
 ```env
 DB_DATABASE=stock_app
 DB_USERNAME=root
-DB_PASSWORD=
+DB_PASSWORD=your_own_mysql_password
 
 MAIL_MAILER=smtp        # Required for email verification
 MAIL_FROM_ADDRESS=noreply@yourdomain.com
 
 QUEUE_CONNECTION=database  # For async stock sync jobs
+
+GROQ_API_KEY=your_own_groq_api_key   # Required for the AI chat feature — free key at console.groq.com
 ```
 
 ## 2. Install Dependencies
@@ -34,8 +36,13 @@ npm run build
 
 ## 3. Database Setup
 ```bash
-php artisan migrate
+php artisan migrate --seed   # Runs RoleSeeder, PermissionSeeder, AdminUserSeeder in order — see database/seeders/DatabaseSeeder.php
+```
+
+Or run the seeders individually (order matters — `PermissionSeeder` needs the roles from `RoleSeeder` to already exist, and without it the admin account has no permissions and every `can:`-gated page denies access):
+```bash
 php artisan db:seed --class=RoleSeeder         # Creates roles: admin, webadmin, adminsupport, user
+php artisan db:seed --class=PermissionSeeder   # Creates the 6 default permissions and attaches them to roles — see docs/RBAC.md
 php artisan db:seed --class=AdminUserSeeder    # Creates default admin account
 ```
 
@@ -55,13 +62,13 @@ python py/get_exchange_rate.py 2026-05-28
 ## 5. Stock Data Sync
 ```bash
 # Sync stock symbols and company info (fast, ~few seconds)
-php artisan stock:sync
+php artisan sync:stock-data
 
-# Sync historical prices (slow, can take minutes — runs as queue job)
-php artisan stock:sync-prices
+# Sync historical prices (slow, can take minutes — dispatches queue jobs; run `php artisan queue:work` too)
+php artisan sync:stock-prices
 
 # Register vnstock API key (if using sponsored tier)
-php artisan vnstock:register-api-key
+php artisan vnstock:register-key
 ```
 
 ## 6. Start the Application
@@ -77,10 +84,17 @@ php artisan queue:work
 | Command | Description |
 |---|---|
 | `php artisan route:list` | List all registered routes |
-| `php artisan stock:sync` | Sync stock symbols from Python/vnstock |
-| `php artisan stock:sync-prices` | Sync historical price data |
-| `php artisan vnstock:register-api-key` | Register vnstock API key |
-| `php artisan migrate:fresh --seed` | Reset DB and seed |
+| `php artisan sync:stock-data` | Sync stock symbols from Python/vnstock |
+| `php artisan sync:stock-prices` | Dispatch jobs to sync historical price data (`--symbols=AAA,BBB` for specific symbols) |
+| `php artisan sync:exchange-rates` | Fetch VCB exchange rates via Python |
+| `php artisan sync:hot-industries` | Sync hot industry stock list |
+| `php artisan sync:news` | Crawl the 5 RSS sources and persist new articles |
+| `php artisan sync:company-financials` | Sync company financials to the DB cache (runs monthly via scheduler) |
+| `php artisan sync:portfolio-prices` | Refresh every active portfolio's current price and send target/stop-loss alerts |
+| `php artisan vnstock:register-key` | Register vnstock API key (sponsored tier) |
+| `php artisan schedule:list` | Show the active scheduled commands (defined in `bootstrap/app.php`, not `Kernel.php` — see [docs/GUIDELINES.md](GUIDELINES.md)) |
+| `php artisan migrate:fresh --seed` | Reset DB and seed (roles, permissions, admin user) |
+| `php artisan test --group=<name>` | Run one feature's test group — see [docs/TESTING.md](TESTING.md) |
 | `php artisan cache:clear` | Clear application cache |
 | `php artisan config:clear` | Clear config cache |
 | `composer dump-autoload` | Rebuild class autoloader |
@@ -95,8 +109,14 @@ Admin login URL: `/admin/login`
 |---|---|
 | `/` | Homepage with featured stocks |
 | `/stock` | Stock chart viewer |
+| `/stock/compare` | Compare multiple stocks |
+| `/stock/screener` | Stock screener (filter/rank by financial ratios) |
 | `/exchange-rate` | Exchange rate viewer |
+| `/news` | Market news |
 | `/portfolio` | User portfolio (auth + verified) |
 | `/profile` | User profile (auth + verified) |
 | `/admin` | Admin dashboard |
 | `/admin/login` | Admin login (separate from user login) |
+| `/admin/users` | Manage users (gate: `manage-users`) |
+| `/admin/roles` | Manage roles + assign permissions (gate: `manage-roles`) |
+| `/admin/permissions` | Manage permissions (gate: `manage-permissions`) — see [docs/RBAC.md](RBAC.md) |
