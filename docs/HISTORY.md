@@ -2,6 +2,25 @@
 
 ---
 
+## ADD_FORGOT_PASSWORD_FEATURE - September 15, 2026
+
+### Summary:
+Implemented the "forgot password" flow flagged as a gap in the previous auth/authz audit. Built on Laravel's existing (but previously unused) `Password` broker — the `password_reset_tokens` table already existed from the default migration, just nothing used it.
+
+### Added:
+- **`app/Frontend/Controllers/PasswordResetController.php`** — `showForgotForm`, `sendResetLink`, `showResetForm`, `reset`. Security-conscious by design: `sendResetLink` returns the exact same generic message ("if this email exists, we sent a link") regardless of whether the broker actually found a matching account — an earlier naive implementation would leak which emails are registered (user enumeration). `translateStatus()` maps broker status constants to Vietnamese messages and is `public` specifically so it's unit-testable independent of the DB-touching `Password::reset()` call.
+- **Routes** (throttled `5,1`, same group as login/register): `GET|POST /forgot-password` (`password.request` / `password.email`), `GET /reset-password/{token}` (`password.reset`), `POST /reset-password` (`password.update`).
+- **Views**: `resources/views/auth/forgot-password.blade.php`, `resources/views/auth/reset-password.blade.php` — same visual language as `auth/login.blade.php` (`.auth-wrap`/`.auth-left`/`.auth-right` split panel), styles in the new `resources/frontend/css/auth/password-reset.css`.
+- **`auth/login.blade.php`** — added a "Quên mật khẩu?" link next to the password label, and a success-message banner (for the redirect back from a completed reset).
+- **Tests** (group `auth`, 11 new): `tests/Unit/Frontend/Controllers/PasswordResetControllerTest.php` (pure — `translateStatus()` for all 4 broker statuses), `tests/Feature/Frontend/Controllers/PasswordResetControllerTest.php` (validation-failure paths via real HTTP; the two "show form" cases call the controller directly instead — see the new navbar-DB note in `docs/TESTING.md`).
+
+### Verified:
+- `php artisan test --group=auth`: 47/47 passing. Full suite: 77/78 (same pre-existing unrelated failure).
+- End-to-end against the real dev DB (not covered by the automated tests, per the DB limitation): created a throwaway user, requested a reset link (confirmed a `password_reset_tokens` row was created), then called `Password::reset()` with the controller's exact callback and a real token — status came back `PASSWORD_RESET`, the new password verified, the old one no longer did. Throwaway user deleted afterward; no real accounts touched.
+- Browser-tested the actual `/forgot-password` submit against the real `sunadmin@example.com` account: generic success message shown, token row created — without ever telling the browser whether that email existed.
+
+---
+
 ## AUTH_AUTHZ_AUDIT_AND_TESTS - September 14, 2026
 
 ### Summary:

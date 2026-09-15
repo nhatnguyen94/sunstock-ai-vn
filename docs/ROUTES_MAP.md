@@ -33,6 +33,15 @@
 | POST | `/register` | *(none)* | `AuthController` | `register` |
 | POST | `/logout` | `logout` | `AuthController` | `logout` |
 
+## Password Reset Routes (throttled 5/min, same group as login/register)
+
+| Method | URI | Route Name | Controller | Action |
+|---|---|---|---|---|
+| GET | `/forgot-password` | `password.request` | `PasswordResetController` | `showForgotForm` |
+| POST | `/forgot-password` | `password.email` | `PasswordResetController` | `sendResetLink` |
+| GET | `/reset-password/{token}` | `password.reset` | `PasswordResetController` | `showResetForm` |
+| POST | `/reset-password` | `password.update` | `PasswordResetController` | `reset` |
+
 ## Email Verification Routes (middleware: `auth`)
 
 | Method | URI | Route Name | Controller | Action |

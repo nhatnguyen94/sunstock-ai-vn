@@ -85,10 +85,15 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="auth-label">
-                        <i class="bi bi-lock" style="color:#2563eb;"></i> Mật khẩu
-                    </label>
-                    <div style="position:relative;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <label class="auth-label" style="margin-bottom:0;">
+                            <i class="bi bi-lock" style="color:#2563eb;"></i> Mật khẩu
+                        </label>
+                        <a href="{{ route('password.request') }}" style="color:#2563eb;font-size:0.8rem;font-weight:600;text-decoration:none;">
+                            Quên mật khẩu?
+                        </a>
+                    </div>
+                    <div style="position:relative;margin-top:0.5rem;">
                         <i class="bi bi-lock" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none;"></i>
                         <input type="password" name="password" id="loginPassword" class="auth-input" required placeholder="••••••••">
                         <button type="button" onclick="togglePwd('loginPassword',this)" style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#9ca3af;cursor:pointer;padding:0;">
@@ -96,6 +101,13 @@
                         </button>
                     </div>
                 </div>
+
+                @if(session('success'))
+                <div style="background:#f0fdf4;color:#059669;padding:0.875rem 1rem;border-radius:10px;margin-bottom:1rem;font-size:0.875rem;border:1px solid #bbf7d0;display:flex;align-items:center;gap:8px;">
+                    <i class="bi bi-check-circle"></i>
+                    {{ session('success') }}
+                </div>
+                @endif
 
                 @if($errors->any())
                 <div style="background:#fef2f2;color:#dc2626;padding:0.875rem 1rem;border-radius:10px;margin-bottom:1rem;font-size:0.875rem;border:1px solid #fecaca;display:flex;align-items:center;gap:8px;">

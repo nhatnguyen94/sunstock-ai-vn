@@ -11,6 +11,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `StockController.php` - Homepage, stock chart view, stock search, AI chat, compare, company financials API (`finance`), ratio-based stock screener (`screener`)
   - `AuthController.php` - User login/registration/logout with validation
   - `EmailVerificationController.php` - Email verification flow (notice, resend, verify, admin verify/unverify)
+  - `PasswordResetController.php` - Forgot/reset password flow via Laravel's built-in `Password` broker (`showForgotForm`, `sendResetLink`, `showResetForm`, `reset`). `sendResetLink` always returns the same generic message regardless of whether the email exists (avoids user enumeration).
   - `ProfileController.php` - User profile management (show/edit/update)
   - `PortfolioController.php` - Portfolio management (full CRUD + stock management + AJAX price update)
   - `ExchangeRateController.php` - View & search exchange rates
@@ -117,7 +118,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 
 ### Routes (`routes/web.php`)
 - **Public**: homepage, stock index/compare/finance, exchange rate, AI chat/predict, stock search
-- **Auth** (throttled): login, register, logout
+- **Auth** (throttled): login, register, logout, forgot-password, reset-password
 - **Email Verification** (`auth` middleware): verify email, resend
 - **User Protected** (`auth` + `verified`): profile, portfolio CRUD
 - **Admin** (`/admin` prefix, `admin` middleware): dashboard, users, stocks, news, portfolios, timeline

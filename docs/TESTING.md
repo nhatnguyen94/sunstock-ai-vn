@@ -41,6 +41,8 @@ tests/
 
 If a future feature genuinely needs to hit the database in a test, fix the partition migration to be SQLite-compatible first (or write a lightweight `Schema::create()` setup in the test itself for just the tables you need) — don't reach for `RefreshDatabase` and expect it to work today.
 
+**A second, separate trap**: even with the DB issue aside, a real `$this->get(...)`/`$this->post(...)` HTTP request to **any route whose view extends `layouts.app`** will `500` in this suite, because `layouts/app.blade.php`'s navbar runs `NewsCategory::orderBy('name')->get()` directly in the Blade template on every page load — another DB query, unrelated to whatever the test is about. Validation-failure tests are unaffected (a failed `$request->validate()` redirects with a 302, never rendering the layout), but a "show me the page and assert 200" test will hit this. Workaround: call the controller method directly (e.g. `(new SomeController())->showThing()`) and assert on the returned `View`'s name/data without calling `->render()` — see `tests/Feature/Frontend/Controllers/PasswordResetControllerTest.php` for the pattern.
+
 ## The `#[Group('featureName')]` convention
 
 Every test method (or class) must be tagged with a PHPUnit Group attribute:
@@ -79,7 +81,7 @@ Run only the group for the feature you just touched. Don't run the whole suite u
 | `portfolioAlerts` | Target/stop-loss crossing detection, one-shot notify + reset, `sync:portfolio-prices` command, `PortfolioAlertNotification` mail content | `tests/Feature/Frontend/Services/PortfolioServiceTest.php`, `tests/Feature/Notifications/PortfolioAlertNotificationTest.php`, `tests/Feature/Console/Commands/SyncPortfolioPricesTest.php` |
 | `stockScreener` | `CompanyFinancialService::screenStocks()` — latest-year extraction, filtering, sorting | `tests/Feature/Frontend/Services/CompanyFinancialServiceTest.php` |
 | `exchangeRate` | `ExchangeRateService` — parsing Python stdout (banner-noise regression), DB-first caching, Python fallback + persist | `tests/Unit/Frontend/Services/ExchangeRateServiceTest.php`, `tests/Feature/Frontend/Services/ExchangeRateServiceTest.php` |
-| `auth` | `User`/`Role` role checks, all 4 Gates (`manage-users`, `manage-features`, `view-timeline`, `access-backend`), `AdminAccess` middleware (guest/non-backend/backend-role paths) | `tests/Unit/Models/UserTest.php`, `tests/Unit/Models/RoleTest.php`, `tests/Feature/Http/Middleware/AdminAccessTest.php`, `tests/Feature/Providers/GatesTest.php` |
+| `auth` | `User`/`Role` role checks, all 4 Gates (`manage-users`, `manage-features`, `view-timeline`, `access-backend`), `AdminAccess` middleware (guest/non-backend/backend-role paths), forgot/reset-password validation + status messages | `tests/Unit/Models/UserTest.php`, `tests/Unit/Models/RoleTest.php`, `tests/Feature/Http/Middleware/AdminAccessTest.php`, `tests/Feature/Providers/GatesTest.php`, `tests/Unit/Frontend/Controllers/PasswordResetControllerTest.php`, `tests/Feature/Frontend/Controllers/PasswordResetControllerTest.php` |
 
 ## Adding a new feature's tests
 

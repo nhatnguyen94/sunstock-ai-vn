@@ -75,6 +75,8 @@ resources/
 | `index.blade.php` | `css/index.css` | `js/index.js` |
 | `auth/login.blade.php` | `css/auth/login.css` | `js/auth/login.js` |
 | `auth/register.blade.php` | `css/auth/register.css` | `js/auth/register.js` |
+| `auth/forgot-password.blade.php` | `css/auth/password-reset.css` | *(none)* |
+| `auth/reset-password.blade.php` | `css/auth/password-reset.css` | *(none, inline `togglePwd` script)* |
 | `auth/verify-email.blade.php` | *(none)* | `js/auth/verify-email.js` |
 | `exchange_rate/index.blade.php` | `css/exchange_rate/index.css` | `js/exchange_rate/index.js` |
 | `news/index.blade.php` | `css/news/index.css` | *(none)* |

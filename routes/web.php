@@ -13,6 +13,7 @@ use App\Frontend\Controllers\AuthController;
 use App\Frontend\Controllers\EmailVerificationController;
 use App\Frontend\Controllers\ExchangeRateController;
 use App\Frontend\Controllers\NewsController as FrontendNewsController;
+use App\Frontend\Controllers\PasswordResetController;
 use App\Frontend\Controllers\PortfolioController;
 use App\Frontend\Controllers\ProfileController;
 use App\Frontend\Controllers\StockController;
@@ -52,6 +53,12 @@ Route::middleware('throttle:5,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+
+    // Password reset
+    Route::get('/forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
 });
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
