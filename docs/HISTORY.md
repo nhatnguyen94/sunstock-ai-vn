@@ -2,6 +2,25 @@
 
 ---
 
+## PROFILE_EXTENDED_FIELDS - September 15, 2026
+
+### Summary:
+Built the extension flagged in the previous Profile audit: `UserProfile` already had `birthday`, `gender`, `avatar`, `address`, `bio` columns and fillable fields, but `profile/edit.blade.php` only ever exposed `username`/`mobile`. All five are now editable, including a real avatar upload (not just a URL field).
+
+### Added:
+- **`app/Frontend/Controllers/ProfileController.php`** — `update()` now validates and saves `birthday` (`nullable|date|before_or_equal:today`), `gender` (`nullable|in:male,female,other`), `address`, `bio` (max 1000 chars), and `avatar` (`nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048`). New `storeAvatar()` method (public, for testability) resolves what to save: stores + returns the new file path when one's uploaded (deleting the old file first), clears it when a `remove_avatar` checkbox is checked, or leaves the existing value untouched otherwise.
+- **`php artisan storage:link`** run — `public/storage` now symlinks to `storage/app/public`, needed to serve uploaded avatars. `storage/app/public/.gitignore` already had the standard Laravel pattern (ignore uploaded content, keep the folder), so no `.gitignore` changes needed.
+- **`resources/views/profile/edit.blade.php`** — avatar preview (uploaded image, or an initials-circle fallback matching the navbar's `.user-avatar` treatment — deliberately *not* a third-party avatar service like Gravatar/ui-avatars.com, to avoid sending the user's name to an external host on every page view) with a client-side instant preview on file select, a "remove current avatar" checkbox, plus new birthday/gender/address/bio fields. Form gained `enctype="multipart/form-data"`.
+- **`resources/views/profile/show.blade.php`** — displays the avatar (or initials fallback) and all five new fields, each falling back to "Chưa cập nhật" when empty, same pattern as the existing username/mobile fields.
+- **Tests** (group `profile`, 5 new): `storeAvatar()` covered fully with `Storage::fake('public')` (upload, replace-deletes-old, remove, keep-existing-when-untouched, null-profile-and-nothing-uploaded) — pure filesystem faking, no database.
+
+### Verified:
+- Blade rendering checked via `view(...)->render()` in tinker for both templates (edit initially threw in tinker only because `$errors` isn't shared there the way the real `ShareErrorsFromSession` middleware does it in an actual request — confirmed a non-issue by sharing an empty `ViewErrorBag` manually, then rendered clean).
+- End-to-end in a real browser against the live `sunadmin@example.com` account: logged in, filled in mobile/birthday/gender/address/bio, submitted, confirmed every value round-tripped correctly onto the show page. Test data reset back to the account's original (all-null) state afterward via tinker — no lasting changes to real data.
+- `php artisan test --group=profile`: 8/8 passing. Full suite: 92/93 (same pre-existing unrelated failure).
+
+---
+
 ## PROFILE_AND_PORTFOLIO_AUDIT - September 15, 2026
 
 ### Summary:

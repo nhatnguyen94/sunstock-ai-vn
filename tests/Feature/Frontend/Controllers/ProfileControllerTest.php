@@ -6,7 +6,10 @@ use App\Frontend\Controllers\ProfileController;
 use App\Frontend\Interfaces\UserProfileRepositoryInterface;
 use App\Models\User;
 use App\Models\UserProfile;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
@@ -26,6 +29,11 @@ use Tests\TestCase;
  * that fix could only be verified manually against the real DB (see
  * docs/HISTORY.md) since $request->validate()'s unique rule queries the
  * database directly, which the sqlite test DB can't support here.
+ *
+ * The storeAvatar() tests use Storage::fake('public') — pure in-memory
+ * filesystem faking, no database involved — to cover the upload/replace/
+ * remove/keep-existing branches added for the birthday/gender/avatar/
+ * address/bio fields.
  */
 class ProfileControllerTest extends TestCase
 {
@@ -79,5 +87,79 @@ class ProfileControllerTest extends TestCase
         $view = (new ProfileController($repo))->show();
 
         $this->assertSame('existing_user', $view->getData()['profile']->username);
+    }
+
+    #[Group('profile')]
+    public function test_store_avatar_uploads_and_returns_the_new_path_when_a_file_is_given(): void
+    {
+        Storage::fake('public');
+        $repo = \Mockery::mock(UserProfileRepositoryInterface::class);
+
+        $request = Request::create('/profile', 'PUT');
+        $request->files->set('avatar', UploadedFile::fake()->image('avatar.jpg'));
+
+        $path = (new ProfileController($repo))->storeAvatar($request, null);
+
+        $this->assertNotNull($path);
+        Storage::disk('public')->assertExists($path);
+    }
+
+    #[Group('profile')]
+    public function test_store_avatar_deletes_the_old_file_when_replacing_it(): void
+    {
+        Storage::fake('public');
+        $repo = \Mockery::mock(UserProfileRepositoryInterface::class);
+
+        $oldPath = UploadedFile::fake()->image('old.jpg')->store('avatars', 'public');
+        $profile = new UserProfile(['avatar' => $oldPath]);
+
+        $request = Request::create('/profile', 'PUT');
+        $request->files->set('avatar', UploadedFile::fake()->image('new.jpg'));
+
+        $newPath = (new ProfileController($repo))->storeAvatar($request, $profile);
+
+        Storage::disk('public')->assertMissing($oldPath);
+        Storage::disk('public')->assertExists($newPath);
+        $this->assertNotSame($oldPath, $newPath);
+    }
+
+    #[Group('profile')]
+    public function test_store_avatar_keeps_the_existing_path_when_no_file_or_removal_requested(): void
+    {
+        Storage::fake('public');
+        $repo = \Mockery::mock(UserProfileRepositoryInterface::class);
+        $profile = new UserProfile(['avatar' => 'avatars/existing.jpg']);
+
+        $path = (new ProfileController($repo))->storeAvatar(Request::create('/profile', 'PUT'), $profile);
+
+        $this->assertSame('avatars/existing.jpg', $path);
+    }
+
+    #[Group('profile')]
+    public function test_store_avatar_removes_the_file_when_remove_avatar_is_checked(): void
+    {
+        Storage::fake('public');
+        $repo = \Mockery::mock(UserProfileRepositoryInterface::class);
+
+        $oldPath = UploadedFile::fake()->image('old.jpg')->store('avatars', 'public');
+        $profile = new UserProfile(['avatar' => $oldPath]);
+
+        $request = Request::create('/profile', 'PUT', ['remove_avatar' => '1']);
+
+        $path = (new ProfileController($repo))->storeAvatar($request, $profile);
+
+        $this->assertNull($path);
+        Storage::disk('public')->assertMissing($oldPath);
+    }
+
+    #[Group('profile')]
+    public function test_store_avatar_returns_null_when_there_is_no_profile_and_nothing_uploaded(): void
+    {
+        Storage::fake('public');
+        $repo = \Mockery::mock(UserProfileRepositoryInterface::class);
+
+        $path = (new ProfileController($repo))->storeAvatar(Request::create('/profile', 'PUT'), null);
+
+        $this->assertNull($path);
     }
 }

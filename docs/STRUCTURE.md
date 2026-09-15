@@ -12,7 +12,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `AuthController.php` - User login/registration/logout with validation
   - `EmailVerificationController.php` - Email verification flow (notice, resend, verify, admin verify/unverify)
   - `PasswordResetController.php` - Forgot/reset password flow via Laravel's built-in `Password` broker (`showForgotForm`, `sendResetLink`, `showResetForm`, `reset`). `sendResetLink` always returns the same generic message regardless of whether the email exists (avoids user enumeration).
-  - `ProfileController.php` - User profile management (show/edit/update)
+  - `ProfileController.php` - User profile management (show/edit/update: username, mobile, birthday, gender, address, bio, avatar upload, password change). `storeAvatar()` handles upload/replace/remove of the avatar file on the `public` disk (`storage/app/public/avatars`, served via `storage/` symlink) — public so it's unit-testable with `Storage::fake()`
   - `PortfolioController.php` - Portfolio management (full CRUD + stock management + AJAX price update)
   - `ExchangeRateController.php` - View & search exchange rates
   - `AiController.php` - AI market prediction
@@ -79,7 +79,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `StockSymbol.php` - Stock symbol reference list
   - `ExchangeRate.php` - Daily exchange rate records
   - `User.php` - User auth (implements `MustVerifyEmail`), RBAC helpers (`hasRole`, `hasAnyRole`, `canAccessBackend`)
-  - `UserProfile.php` - Extended user profile
+  - `UserProfile.php` - Extended user profile (username, mobile, birthday, gender [`male`/`female`/`other`], address, bio, avatar — all editable from `/profile/edit` as of the profile audit follow-up)
   - `Portfolio.php` - User portfolios with P&L calculations. `recalculateTotals()` recomputes `total_invested`/`current_value` from the actual items (source of truth) — always call it via a freshly-fetched Portfolio, not one whose `items` relation may already be cached from before the triggering change
   - `PortfolioItem.php` - Individual stock holdings
   - `Role.php` - RBAC role model (constants: `admin`, `webadmin`, `adminsupport`, `user`)

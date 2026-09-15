@@ -83,7 +83,7 @@ Run only the group for the feature you just touched. Don't run the whole suite u
 | `exchangeRate` | `ExchangeRateService` — parsing Python stdout (banner-noise regression), DB-first caching, Python fallback + persist | `tests/Unit/Frontend/Services/ExchangeRateServiceTest.php`, `tests/Feature/Frontend/Services/ExchangeRateServiceTest.php` |
 | `auth` | `User`/`Role` role checks, all 4 Gates (`manage-users`, `manage-features`, `view-timeline`, `access-backend`), `AdminAccess` middleware (guest/non-backend/backend-role paths), forgot/reset-password validation + status messages | `tests/Unit/Models/UserTest.php`, `tests/Unit/Models/RoleTest.php`, `tests/Feature/Http/Middleware/AdminAccessTest.php`, `tests/Feature/Providers/GatesTest.php`, `tests/Unit/Frontend/Controllers/PasswordResetControllerTest.php`, `tests/Feature/Frontend/Controllers/PasswordResetControllerTest.php` |
 | `portfolioTotals` | `Portfolio::calculateCurrentValue()`/`calculateTotalInvested()`/`recalculateTotals()` and the profit/loss accessors (incl. the empty-portfolio div-by-zero guard) | `tests/Unit/Models/PortfolioTest.php` |
-| `profile` | `ProfileController::show()`/`edit()` degrade gracefully (no crash) when the authenticated user has no `UserProfile` row yet | `tests/Feature/Frontend/Controllers/ProfileControllerTest.php` |
+| `profile` | `ProfileController::show()`/`edit()` degrade gracefully (no crash) when the authenticated user has no `UserProfile` row yet; `storeAvatar()` upload/replace/remove/keep-existing branches (`Storage::fake()`) | `tests/Feature/Frontend/Controllers/ProfileControllerTest.php` |
 
 ## Adding a new feature's tests
 

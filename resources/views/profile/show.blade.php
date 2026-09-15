@@ -24,6 +24,17 @@
                         </div>
                     @endif
 
+                    <div class="text-center mb-4">
+                        @if($profile?->avatar)
+                            <img src="{{ asset('storage/'.$profile->avatar) }}" alt="Avatar"
+                                 style="width:112px;height:112px;border-radius:50%;object-fit:cover;border:3px solid var(--primary-blue);">
+                        @else
+                            <div style="width:112px;height:112px;border-radius:50%;border:3px solid var(--primary-blue);background:var(--primary-blue);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:700;">
+                                {{ strtoupper(substr($profile->username ?? $user->name, 0, 1)) }}
+                            </div>
+                        @endif
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="info-item mb-4">
@@ -46,13 +57,48 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="info-item mb-4">
                                 <label class="info-label">
                                     <i class="bi bi-phone" style="color:var(--primary-blue); margin-right:8px;"></i>
                                     Số điện thoại
                                 </label>
                                 <div class="info-value">{{ $profile->mobile ?? 'Chưa cập nhật' }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-item mb-4">
+                                <label class="info-label">
+                                    <i class="bi bi-calendar-event" style="color:var(--primary-blue); margin-right:8px;"></i>
+                                    Ngày sinh
+                                </label>
+                                <div class="info-value">{{ $profile?->birthday ? \Carbon\Carbon::parse($profile->birthday)->format('d/m/Y') : 'Chưa cập nhật' }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-item mb-4">
+                                <label class="info-label">
+                                    <i class="bi bi-gender-ambiguous" style="color:var(--primary-blue); margin-right:8px;"></i>
+                                    Giới tính
+                                </label>
+                                <div class="info-value">
+                                    @php
+                                        $genderLabels = ['male' => 'Nam', 'female' => 'Nữ', 'other' => 'Khác'];
+                                    @endphp
+                                    {{ $genderLabels[$profile?->gender] ?? 'Chưa cập nhật' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-item mb-4">
+                                <label class="info-label">
+                                    <i class="bi bi-geo-alt" style="color:var(--primary-blue); margin-right:8px;"></i>
+                                    Địa chỉ
+                                </label>
+                                <div class="info-value">{{ $profile->address ?? 'Chưa cập nhật' }}</div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -62,6 +108,18 @@
                                     Ngày đăng ký
                                 </label>
                                 <div class="info-value">{{ $user->created_at->format('d/m/Y') }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="info-item mb-4">
+                                <label class="info-label">
+                                    <i class="bi bi-card-text" style="color:var(--primary-blue); margin-right:8px;"></i>
+                                    Giới thiệu bản thân
+                                </label>
+                                <div class="info-value">{{ $profile->bio ?? 'Chưa cập nhật' }}</div>
                             </div>
                         </div>
                     </div>
