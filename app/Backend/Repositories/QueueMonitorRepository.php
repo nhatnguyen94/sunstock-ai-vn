@@ -3,6 +3,7 @@
 namespace App\Backend\Repositories;
 
 use App\Backend\Interfaces\QueueMonitorRepositoryInterface;
+use App\Models\QueueJobLog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -53,5 +54,27 @@ class QueueMonitorRepository implements QueueMonitorRepositoryInterface
         Artisan::call('queue:retry', ['id' => ['all']]);
 
         return $count;
+    }
+
+    public function currentlyProcessing(): Collection
+    {
+        return QueueJobLog::where('status', 'processing')
+            ->orderByDesc('started_at')
+            ->get();
+    }
+
+    public function recentlyFinished(int $limit = 20): Collection
+    {
+        return QueueJobLog::whereIn('status', ['completed', 'failed'])
+            ->orderByDesc('finished_at')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function processedTodayCount(): int
+    {
+        return QueueJobLog::where('status', 'completed')
+            ->whereDate('finished_at', today())
+            ->count();
     }
 }

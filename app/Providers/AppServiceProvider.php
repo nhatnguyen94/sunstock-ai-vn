@@ -48,8 +48,10 @@ use App\Backend\Interfaces\QueueMonitorRepositoryInterface;
 use App\Backend\Interfaces\QueueMonitorServiceInterface;
 use App\Backend\Repositories\QueueMonitorRepository;
 use App\Backend\Services\QueueMonitorService;
+use App\Support\QueueJobLogger;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -151,6 +153,22 @@ class AppServiceProvider extends ServiceProvider
 
         // Định nghĩa Gates cho phân quyền
         $this->defineGates();
+
+        // Ghi log tiến trình xử lý job cho Admin > Giám sát Queue
+        $this->registerQueueMonitoring();
+    }
+
+    /**
+     * Ghi nhận job nào đang chạy / vừa chạy xong (real-time) cho trang
+     * Giám sát Queue — xem App\Support\QueueJobLogger. Đăng ký ở đây (thay vì
+     * EventServiceProvider, project này không có) vì đây là hạ tầng dùng
+     * chung, không thuộc riêng Frontend hay Backend.
+     */
+    private function registerQueueMonitoring(): void
+    {
+        Queue::before(fn ($event) => QueueJobLogger::processing($event));
+        Queue::after(fn ($event) => QueueJobLogger::processed($event));
+        Queue::failing(fn ($event) => QueueJobLogger::failed($event));
     }
 
     /**

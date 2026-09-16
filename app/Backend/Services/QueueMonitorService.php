@@ -64,4 +64,43 @@ class QueueMonitorService implements QueueMonitorServiceInterface
     {
         return $this->queueMonitorRepository->retryAllFailedJobs();
     }
+
+    public function getLiveActivity(): array
+    {
+        $now = now();
+
+        $processing = $this->queueMonitorRepository->currentlyProcessing()->map(fn ($log) => [
+            'job_class'      => class_basename($log->job_class),
+            'summary'        => $log->summary,
+            'queue'          => $log->queue,
+            'started_at'     => $log->started_at->format('H:i:s d/m'),
+            'elapsed_seconds' => (int) $log->started_at->diffInSeconds($now),
+        ]);
+
+        $recent = $this->queueMonitorRepository->recentlyFinished()->map(fn ($log) => [
+            'job_class'    => class_basename($log->job_class),
+            'summary'      => $log->summary,
+            'queue'        => $log->queue,
+            'status'       => $log->status,
+            'finished_at'  => $log->finished_at?->format('H:i:s d/m'),
+            'duration_display' => $log->duration_ms === null ? '—' : $this->formatDuration($log->duration_ms),
+        ]);
+
+        return [
+            'processing' => $processing,
+            'recent' => $recent,
+            'processedToday' => $this->queueMonitorRepository->processedTodayCount(),
+        ];
+    }
+
+    private function formatDuration(int $ms): string
+    {
+        if ($ms < 1000) {
+            return "{$ms}ms";
+        }
+
+        $seconds = round($ms / 1000, 1);
+
+        return "{$seconds}s";
+    }
 }

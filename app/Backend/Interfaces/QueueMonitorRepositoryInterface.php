@@ -24,4 +24,12 @@ interface QueueMonitorRepositoryInterface
     public function deleteFailedJob(string $uuid): void;
 
     public function retryAllFailedJobs(): int;
+
+    /** Jobs currently being worked on right now (status=processing), most recent first. */
+    public function currentlyProcessing(): Collection;
+
+    /** Jobs that finished (completed or failed) most recently, most recent first. */
+    public function recentlyFinished(int $limit = 20): Collection;
+
+    public function processedTodayCount(): int;
 }

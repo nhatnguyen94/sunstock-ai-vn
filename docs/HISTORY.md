@@ -2,6 +2,32 @@
 
 ---
 
+## QUEUE_MONITOR_REALTIME_ACTIVITY - September 16, 2026
+
+### Summary:
+User tried the custom Queue Monitor page from the previous task and pointed out a real gap: it only showed queue depth counts and the failed-jobs list — no way to see *which specific job is running right now*, when it started, how many have been processed, or when each one finished ("tao ko biết đang chạy tới đâu và chạy bao nhiêu cái và đã xử lý xong bao nhiêu cái vào giờ phút giây nào"). Added a real-time processing/completion feed to close that gap.
+
+### Added:
+- **`database/migrations/2026_09_16_000001_create_queue_job_logs_table.php`** — `queue_job_logs`: `job_id`, `job_class`, `queue`, `summary`, `status` (processing/completed/failed/stale), `started_at`, `finished_at`, `duration_ms`.
+- **`App\Models\QueueJobLog`**.
+- **`App\Support\QueueJobLogger`** — static helper (same defensive `try/catch (\Throwable)` pattern as `App\Support\ActivityLogger`, critical here since the caller is a live queue worker — a logging bug must never take down real job processing) with `processing()`/`processed()`/`failed()`, registered against `Queue::before()`/`Queue::after()`/`Queue::failing()` in `AppServiceProvider::registerQueueMonitoring()`. Correlates the three events via `Job::getJobId()` (stable across a job's own internal retries; changes on a fresh manual `queue:retry` push, which is correct — that's a new attempt).
+- **Per-job human-readable summaries**: `extractSummary()` unserializes the job's payload command (`$payload['data']['command']`, the same raw string Laravel already stores for every queued job) and calls `queueSummary(): string` on it if the method exists — no new interface, just `method_exists()`, kept conservative (returns `null` on absolutely anything unexpected, since a malformed unserialize must never crash a worker). Implemented on the 3 real job classes: `SyncCompanyFinancialJob::queueSummary()` returns the stock symbol directly; `ProcessStockPriceSync`/`BackfillStockPriceChunk::queueSummary()` return a symbol count + first 3 (e.g. `"20 mã (CGV, CH5, CHC, ...)"`).
+- **`app/Console/Commands/PruneQueueJobLogs.php`** (`queue-logs:prune`, scheduled hourly in `bootstrap/app.php`) — marks any `processing` row stuck >20 minutes (longer than the heaviest job's own 600s timeout, plus margin) as `stale`, so a crashed/killed worker can't leave a job showing as "still running" forever; deletes finished/stale rows older than 3 days so the table doesn't grow unbounded.
+- **`QueueMonitorRepository`/`QueueMonitorService`** — `currentlyProcessing()`, `recentlyFinished()`, `processedTodayCount()`, combined into `getLiveActivity()` (formats `started_at`/`finished_at` as `H:i:s d/m`, computes live elapsed seconds, formats duration as `ms`/`s`).
+- **`QueueMonitorController::stats()`** — extended the existing 5s-polled JSON endpoint (queue depth) to also include `processing`, `recent`, `processedToday`; no new route needed.
+- **`resources/views/backend/queue-monitor/index.blade.php`** — two new cards: **"Đang xử lý (real-time)"** (job class, summary, queue, started-at clock time, live elapsed) and **"Vừa xử lý xong"** (job class, summary, status badge, finished-at clock time, duration) plus a "Đã xử lý hôm nay: N" counter — all rebuilt client-side from the same JSON poll, vanilla JS (no framework), matching the rest of the page.
+- Tests (group `queueMonitor`, 10 new — 18 total in the group now): `tests/Feature/Support/QueueJobLoggerTest.php` (processing→completed/failed transitions, `queueSummary()` extraction for all 3 job types via a hand-built fake `Illuminate\Contracts\Queue\Job` — not Mockery, since `extractSummary()` needs to genuinely `unserialize()` a real serialized job command, the same code path a live worker runs), `tests/Feature/Console/Commands/PruneQueueJobLogsTest.php` (stale-marking and deletion thresholds), plus 2 new methods in `QueueMonitorControllerTest` (`stats` JSON shape, `index` page renders the new section headers).
+
+### Verified:
+- `php artisan test --group=queueMonitor`: 18/18 passing. Full suite: **131/131 passing**.
+- Live in the real dev environment (after restarting the `queue` container so the new `Queue::before/after/failing` listeners were picked up — they're registered at boot, and `queue:work` is a long-running daemon that caches the booted app): confirmed via tinker that 3 real `ProcessStockPriceSync` jobs were logged as `processing` with correctly-extracted summaries (e.g. `"20 mã (CGV, CH5, CHC, ...)"`), proving the unserialize-and-call-`queueSummary()` path works against a genuine live payload, not just the test fixture. Fixed one cosmetic issue caught this way: `elapsed_seconds` came back as a float (`197.811279`) from `Carbon::diffInSeconds()`, not the integer the frontend expected — cast to `(int)` in the Service.
+- Could not visually confirm the two new live tables populate in *this tool's own* browser session — the sandbox's ad-blocker-style request filter blocks any URL containing "queue" (`/admin/queue/stats` → `net::ERR_BLOCKED_BY_CLIENT`), the same documented limitation that blocked `/horizon/api/*` in the previous task. Verified the underlying data directly via `QueueMonitorService::getLiveActivity()` in tinker instead, which returned the correct shape and real data.
+
+### Docs:
+`docs/RBAC.md`, `docs/STRUCTURE.md` (new `QueueJobLog`/`PruneQueueJobLogs`/`queueSummary()` entries), `docs/DOCKER.md`, `docs/TESTING.md`.
+
+---
+
 ## QUEUE_MONITOR_CUSTOM_PAGE - September 16, 2026
 
 ### Summary:

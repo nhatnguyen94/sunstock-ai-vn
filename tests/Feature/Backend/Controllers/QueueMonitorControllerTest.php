@@ -3,6 +3,7 @@
 namespace Tests\Feature\Backend\Controllers;
 
 use App\Models\Permission;
+use App\Models\QueueJobLog;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -97,10 +98,53 @@ class QueueMonitorControllerTest extends TestCase
         $response->assertOk();
         $response->assertJsonStructure([
             'queues' => [['name', 'pending', 'delayed', 'reserved']],
+            'processing',
+            'recent',
+            'processedToday',
         ]);
         $names = collect($response->json('queues'))->pluck('name');
         $this->assertTrue($names->contains('high'));
         $this->assertTrue($names->contains('default'));
+    }
+
+    #[Group('queueMonitor')]
+    public function test_stats_endpoint_reports_currently_processing_and_recently_finished_jobs(): void
+    {
+        $this->actingAsUserWithPermissions(['manage-queue']);
+        QueueJobLog::create([
+            'job_id' => 'p1', 'job_class' => 'App\\Jobs\\SyncCompanyFinancialJob', 'queue' => 'default',
+            'summary' => 'VCB', 'status' => 'processing', 'started_at' => now()->subSeconds(10),
+        ]);
+        QueueJobLog::create([
+            'job_id' => 'p2', 'job_class' => 'App\\Jobs\\SyncCompanyFinancialJob', 'queue' => 'default',
+            'summary' => 'ACB', 'status' => 'completed',
+            'started_at' => now()->subSeconds(20), 'finished_at' => now()->subSeconds(5), 'duration_ms' => 15000,
+        ]);
+
+        $response = $this->get('/admin/queue/stats');
+
+        $response->assertOk();
+        $response->assertJsonFragment(['summary' => 'VCB']);
+        $response->assertJsonFragment(['summary' => 'ACB', 'status' => 'completed']);
+        $this->assertSame(1, $response->json('processedToday'));
+    }
+
+    #[Group('queueMonitor')]
+    public function test_index_page_shows_currently_processing_job(): void
+    {
+        $this->actingAsUserWithPermissions(['manage-queue']);
+        QueueJobLog::create([
+            'job_id' => 'p3', 'job_class' => 'App\\Jobs\\SyncCompanyFinancialJob', 'queue' => 'default',
+            'summary' => 'HPG', 'status' => 'processing', 'started_at' => now(),
+        ]);
+
+        $response = $this->get('/admin/queue');
+
+        $response->assertOk();
+        // The processing table itself is filled client-side via JS from /admin/queue/stats,
+        // so we only assert the page loaded with the data the JS will fetch — see the
+        // stats-endpoint tests above for the actual content assertions.
+        $response->assertSee('Đang xử lý (real-time)');
     }
 
     #[Group('queueMonitor')]

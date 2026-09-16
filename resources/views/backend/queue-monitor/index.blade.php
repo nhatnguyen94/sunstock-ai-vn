@@ -38,6 +38,61 @@
         @endforeach
     </div>
 
+    <div class="row row-cards mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="status-dot status-dot-animated bg-orange me-2"></span>
+                        Đang xử lý (real-time)
+                    </h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                        <thead>
+                            <tr>
+                                <th>Job</th>
+                                <th>Nội dung</th>
+                                <th>Queue</th>
+                                <th>Bắt đầu lúc</th>
+                                <th>Đã chạy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="processing-tbody">
+                            {{-- filled by JS on load + every poll, see renderProcessing() --}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Vừa xử lý xong</h3>
+                    <div class="card-actions">
+                        <span class="text-muted small">Hôm nay: <strong id="processed-today-count">{{ number_format($activity['processedToday']) }}</strong> job</span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                        <thead>
+                            <tr>
+                                <th>Job</th>
+                                <th>Nội dung</th>
+                                <th>Trạng thái</th>
+                                <th>Lúc</th>
+                                <th>Thời gian chạy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-tbody">
+                            {{-- filled by JS on load + every poll, see renderRecent() --}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Job thất bại (Failed Jobs)</h3>
@@ -111,12 +166,57 @@ function showToast(type, msg) {
     setTimeout(() => { toast.style.display = 'none'; }, 5000);
 }
 
-// Auto-refresh the pending/reserved/delayed numbers without a full page reload.
+function esc(str) {
+    return (str ?? '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function formatElapsed(seconds) {
+    if (seconds < 60) return `${seconds}s`;
+    const m = Math.floor(seconds / 60), s = seconds % 60;
+    return `${m}m ${s}s`;
+}
+
+function renderProcessing(rows) {
+    const tbody = document.getElementById('processing-tbody');
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Không có job nào đang chạy</td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.map(r => `
+        <tr>
+            <td class="font-weight-medium">${esc(r.job_class)}</td>
+            <td class="text-muted small">${esc(r.summary) || '—'}</td>
+            <td><span class="badge bg-azure-lt">${esc(r.queue)}</span></td>
+            <td class="text-muted small">${esc(r.started_at)}</td>
+            <td><span class="badge bg-orange-lt">${formatElapsed(r.elapsed_seconds)}</span></td>
+        </tr>
+    `).join('');
+}
+
+function renderRecent(rows) {
+    const tbody = document.getElementById('recent-tbody');
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Chưa có job nào xử lý xong</td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.map(r => `
+        <tr>
+            <td class="font-weight-medium">${esc(r.job_class)}</td>
+            <td class="text-muted small">${esc(r.summary) || '—'}</td>
+            <td><span class="badge bg-${r.status === 'completed' ? 'green' : 'red'}-lt">${r.status === 'completed' ? 'Xong' : 'Fail'}</span></td>
+            <td class="text-muted small">${esc(r.finished_at)}</td>
+            <td class="text-muted small">${esc(r.duration_display)}</td>
+        </tr>
+    `).join('');
+}
+
+// Auto-refresh queue depth + currently-processing + recently-finished, every 5s, no full reload.
 async function refreshQueueStats() {
     try {
         const res = await fetch(@json(route('admin.queue.stats')), { headers: { 'Accept': 'application/json' } });
         if (!res.ok) return;
         const data = await res.json();
+
         data.queues.forEach(q => {
             const row = document.querySelector(`[data-queue="${q.name}"]`);
             if (!row) return;
@@ -124,8 +224,13 @@ async function refreshQueueStats() {
             row.querySelector('[data-field="reserved"]').textContent = q.reserved.toLocaleString();
             row.querySelector('[data-field="delayed"]').textContent = q.delayed.toLocaleString();
         });
+
+        renderProcessing(data.processing);
+        renderRecent(data.recent);
+        document.getElementById('processed-today-count').textContent = data.processedToday.toLocaleString();
     } catch (e) { /* silent — next poll will retry */ }
 }
+refreshQueueStats();
 setInterval(refreshQueueStats, 5000);
 
 document.querySelectorAll('.btn-retry').forEach(btn => {

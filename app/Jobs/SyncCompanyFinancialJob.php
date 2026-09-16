@@ -35,6 +35,12 @@ class SyncCompanyFinancialJob implements ShouldQueue
         private bool   $stale   = false,
     ) {}
 
+    /** Human-readable identifier for Admin > Giám sát Queue — see App\Support\QueueJobLogger. */
+    public function queueSummary(): string
+    {
+        return $this->symbol;
+    }
+
     public function handle(
         CompanyFinancialService $service,
         CompanyFinancialRepositoryInterface $repo

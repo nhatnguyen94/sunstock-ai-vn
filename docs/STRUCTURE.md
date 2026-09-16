@@ -102,6 +102,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `StockPriceSummary.php` - Monthly OHLCV summary per stock; belongsTo(Stock); fields: stock_id, period_start, open, high, low, close, volume
   - `CompanyFinancial.php` - DB cache for company financial data; fields: symbol, type, period, raw_data (JSON), synced_at; STALE_DAYS=30
   - `ActivityLog.php` - Activity log model; no `updated_at`; `iconConfig()` static method maps event_type → icon/color; event types: user_register, user_login, admin_login, portfolio_created, portfolio_deleted, stock_added, stock_removed, news_sync, stock_price_sync, admin_action
+  - `QueueJobLog.php` - One row per queue job attempt (started/finished/duration/status/summary), written by `App\Support\QueueJobLogger`; powers Admin > Giám sát Queue's real-time view — see "Queue Monitoring" below
 
 ### Support Classes
 - `app/Support/ActivityLogger.php` - Static helper `ActivityLogger::log(eventType, description, properties, user)`. Swallows all Throwable — never crashes calling code. Used in controllers for audit trail.
@@ -122,17 +123,22 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Console/Commands/SyncExchangeRates.php` - Sync VCB exchange rates via Python
 - `app/Console/Commands/SyncCompanyFinancials.php` - Sync company financials to DB cache; `--dispatch` mode pre-filters fully-fresh symbols
 - `app/Console/Commands/SyncPortfolioPrices.php` - `sync:portfolio-prices`: refresh every active portfolio's `current_price` from the latest `StockPrice` and fire target/stop-loss email alerts
+- `app/Console/Commands/PruneQueueJobLogs.php` - `queue-logs:prune`: mark stuck `queue_job_logs` rows stale, delete old finished ones — see "Queue Monitoring" below
 - `app/Console/Commands/RegisterVnstockApiKey.php` - Register vnstock API key via Python script
 
 ### Jobs
-- `app/Jobs/ProcessStockPriceSync.php` - Queued job for async stock price synchronization
-- `app/Jobs/BackfillStockPriceChunk.php` - Queued job for historical price backfill (multi-symbol batch, date range)
-- `app/Jobs/SyncCompanyFinancialJob.php` - Queued job for syncing company financials (all types/periods for one symbol)
+- `app/Jobs/ProcessStockPriceSync.php` - Queued job for async stock price synchronization. `queueSummary()`: symbol count + first 3
+- `app/Jobs/BackfillStockPriceChunk.php` - Queued job for historical price backfill (multi-symbol batch, date range). `queueSummary()`: symbol count + first 3 + date range
+- `app/Jobs/SyncCompanyFinancialJob.php` - Queued job for syncing company financials (all types/periods for one symbol). `queueSummary()`: the symbol
+- All three implement a `queueSummary(): string` method (no formal interface — checked via `method_exists()`) purely for the Queue Monitor's real-time display; unrelated to `handle()`/queue processing itself
 
 ### Queue Monitoring
-- `app/Backend/Controllers/QueueMonitorController.php` - `index` (dashboard), `stats` (JSON, polled every 5s by the page), `retry`/`destroy`/`retryAll` for `failed_jobs` rows. Gate: `manage-queue`.
-- `app/Backend/Services/QueueMonitorService.php` / `app/Backend/Repositories/QueueMonitorRepository.php` - Per-queue counts via `Queue::connection('redis')->pendingSize()/delayedSize()/reservedSize()`; failed jobs via `DB::table('failed_jobs')` + `Artisan::call('queue:retry'|'queue:forget')`
-- `resources/views/backend/queue-monitor/index.blade.php` - Tabler cards (per-queue counts, auto-refreshing) + failed-jobs table (retry/delete/retry-all), vanilla JS `fetch()` — same pattern as `backend/sync-status/index.blade.php`
+- `app/Backend/Controllers/QueueMonitorController.php` - `index` (dashboard), `stats` (JSON, polled every 5s by the page — queue depth + currently-processing + recently-finished + today's processed count), `retry`/`destroy`/`retryAll` for `failed_jobs` rows. Gate: `manage-queue`.
+- `app/Backend/Services/QueueMonitorService.php` / `app/Backend/Repositories/QueueMonitorRepository.php` - Per-queue counts via `Queue::connection('redis')->pendingSize()/delayedSize()/reservedSize()`; failed jobs via `DB::table('failed_jobs')` + `Artisan::call('queue:retry'|'queue:forget')`; live activity via the `queue_job_logs` table (see below)
+- `App\Support\QueueJobLogger` - Static helper, registered against `Queue::before()/after()/failing()` in `AppServiceProvider::registerQueueMonitoring()`. Writes one `queue_job_logs` row per job attempt (started/finished/duration/status), and best-effort extracts a human-readable `summary` by unserializing the job command and calling its `queueSummary()` if present. Same "never crash the caller" pattern as `App\Support\ActivityLogger` — here the caller is a live queue worker, so this matters even more.
+- `App\Models\QueueJobLog` - `job_id` (stable per job attempt, from `Job::getJobId()`), `job_class`, `queue`, `summary`, `status` (processing/completed/failed/stale), `started_at`, `finished_at`, `duration_ms`
+- `app/Console/Commands/PruneQueueJobLogs.php` (`queue-logs:prune`, hourly via scheduler) - Marks `processing` rows stuck >20 min as `stale` (a crashed worker never fired the finish event) and deletes finished/stale rows older than 3 days
+- `resources/views/backend/queue-monitor/index.blade.php` - Tabler cards (per-queue counts) + 2 live tables (currently-processing, recently-finished, both rebuilt client-side from the JSON `stats` response every 5s) + failed-jobs table (retry/delete/retry-all), vanilla JS `fetch()` — same pattern as `backend/sync-status/index.blade.php`
 - `docker/php/supervisord.conf` (queue container) - 3 `queue:work redis --queue=high,default` processes (plain Laravel, no third-party package — a Horizon-based dashboard was tried and removed, see docs/HISTORY.md QUEUE_MONITOR_CUSTOM_PAGE for why)
 - `config/queue.php` - `connections.redis.retry_after` (660s) must stay above the workers' `--timeout` (600s), see the comment there
 

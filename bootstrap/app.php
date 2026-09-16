@@ -69,6 +69,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('sync:news')->everyThirtyMinutes()
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Keep queue_job_logs (Admin > Giám sát Queue) from growing forever,
+        // and un-stuck any "processing" row left behind by a crashed worker
+        $schedule->command('queue-logs:prune')->hourly()
+            ->withoutOverlapping()
+            ->runInBackground();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

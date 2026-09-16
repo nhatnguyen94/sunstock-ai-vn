@@ -18,4 +18,7 @@ interface QueueMonitorServiceInterface
     public function deleteFailedJob(string $uuid): bool;
 
     public function retryAllFailedJobs(): int;
+
+    /** @return array{processing: Collection, recent: Collection, processedToday: int} */
+    public function getLiveActivity(): array;
 }

@@ -53,6 +53,14 @@ class ProcessStockPriceSync implements ShouldQueue
         return 60; // Wait 60 seconds before retrying
     }
 
+    /** Human-readable identifier for Admin > Giám sát Queue — see App\Support\QueueJobLogger. */
+    public function queueSummary(): string
+    {
+        $symbols = array_column($this->symbolChunk, 'symbol');
+
+        return count($symbols) . ' mã (' . implode(', ', array_slice($symbols, 0, 3)) . (count($symbols) > 3 ? ', ...' : '') . ')';
+    }
+
     /**
      * Execute the job.
      *

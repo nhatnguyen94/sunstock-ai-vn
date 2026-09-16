@@ -16,17 +16,20 @@ class QueueMonitorController extends Controller
     {
         $queues = $this->queueMonitorService->getQueueStats();
         $failedJobs = $this->queueMonitorService->getFailedJobs();
+        $activity = $this->queueMonitorService->getLiveActivity();
 
-        return view('backend.queue-monitor.index', compact('queues', 'failedJobs'));
+        return view('backend.queue-monitor.index', compact('queues', 'failedJobs', 'activity'));
     }
 
     /**
-     * AJAX endpoint polled by the page for live queue-depth updates.
+     * AJAX endpoint polled by the page every 5s for live updates: queue
+     * depth, currently-processing jobs, and recently-finished jobs.
      */
     public function stats(): JsonResponse
     {
         return response()->json([
             'queues' => $this->queueMonitorService->getQueueStats(),
+            ...$this->queueMonitorService->getLiveActivity(),
         ]);
     }
 

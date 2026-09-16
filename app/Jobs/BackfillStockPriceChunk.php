@@ -40,6 +40,14 @@ class BackfillStockPriceChunk implements ShouldQueue
         private string $endDate,
     ) {}
 
+    /** Human-readable identifier for Admin > Giám sát Queue — see App\Support\QueueJobLogger. */
+    public function queueSummary(): string
+    {
+        $symbols = array_column($this->chunk, 'symbol');
+
+        return count($symbols) . ' mã (' . implode(', ', array_slice($symbols, 0, 3)) . (count($symbols) > 3 ? ', ...' : '') . ") {$this->startDate}→{$this->endDate}";
+    }
+
     public function handle(): void
     {
         $symbolList = implode(',', array_column($this->chunk, 'symbol'));
