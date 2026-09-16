@@ -2,6 +2,37 @@
 
 ---
 
+## ADMIN_ACCOUNT_AND_NEWS_CATEGORIES - September 17, 2026
+
+### Summary:
+User asked for a survey of what else could reasonably be added to the backend. Reviewed every existing `App\Backend\Controllers\*` and `App\Models\*` against what's actually manageable from the admin UI and found several concrete, non-speculative gaps (not generic suggestions) — including that `AdminAuthController` only has login/logout with no self-service password change (forcing a detour to the separate Frontend `/profile/edit` to do it), and that `NewsCategory` has a model, a `category_id` filter on the News list, and even a `category` relation, but no CRUD anywhere — categories can only be added/renamed/removed by hand in the DB. User picked these two (in order): self-service admin password change, then News Category management.
+
+### Added — Admin > Đổi mật khẩu (self-service, no `can:` gate):
+- **`App\Backend\Controllers\AccountController`** — `edit()`/`update()` at `/admin/account`. Deliberately not gated by any `manage-*` permission (every backend account, any role, must be able to change its own password) and deliberately separate from `AdminAuthController` (login/logout only) and from the Frontend `ProfileController` (full profile editing — avatar, bio, etc. — still reachable at `/profile` for admin accounts too, this only avoids password change specifically being the one thing that forces leaving the backend layout).
+- Verifies `current_password` via `Hash::check()` before allowing the change; new password goes through `$user->update(['password' => Hash::make(...)])` — matches `UserRepository`'s existing pattern exactly, confirmed safe against the `User` model's `'password' => 'hashed'` cast (Laravel's cast is idempotent — it checks `Hash::isHashed()` before re-hashing, so this doesn't double-hash).
+- Sidebar ("Tài khoản" section) and the top-right user dropdown both link to it now.
+- Tests (group `adminAccount`, 5): reachable with zero permissions, correct password change persists and verifies, wrong current password rejected (and password provably unchanged), mismatched confirmation rejected, too-short new password rejected.
+
+### Added — Admin > Danh mục Tin tức (News Category CRUD, `manage-features` gate — reuses the existing News gate, no new permission):
+- **Interfaces/Repository/Service/Controller**: `NewsCategoryRepositoryInterface`/`ServiceInterface`, `NewsCategoryRepository`, `NewsCategoryService`, `NewsCategoryController` — same 4-layer pattern as every other Backend resource (Roles, Permissions, Users).
+- **Destroy guard, the one real risk here**: `NewsService::SOURCES` hardcodes `category_id` integers (1-4) that the RSS sync inserts future articles under — deleting one of those categories wouldn't be blocked at the DB level (`news.category_id` is `onDelete('set null')`), so it would silently break future RSS syncs for that source. Added `NewsService::usedCategoryIds()` (extracted from `SOURCES`) and `NewsCategoryService::isInUse()`, which blocks deletion if a category has existing `news` rows **or** its id is in that list — catches both an actively-used category and a freshly-created empty one that happens to collide with a still-configured source id.
+- Auto-generates `slug` from `name` via `Str::slug()` when not provided; both fields unique.
+- Sidebar link ("Danh mục Tin tức") added next to "Quản lý News"; fixed a latent bug found while doing this — the "Quản lý News" link used `Request::routeIs('admin.news*')`, which would have also lit up as active on the new `admin.news-categories.*` routes (missing the trailing `.` in the wildcard).
+- Tests (group `newsCategories`, 8): permission gate, index shows news counts, create with auto-slug, duplicate name rejected, update, destroy an unused category, destroy blocked for a category with news, destroy blocked for a SOURCES-referenced category with zero news yet (the `create_news_categories_table` migration itself seeds ids 1-4 — exactly the ids `SOURCES` references — so this is testable without any extra fixture setup).
+
+### Verified:
+- `php artisan test`: **149/149 passing** (136 baseline + 5 `adminAccount` + 8 `newsCategories`).
+- Live in the real dev environment: `/admin/account` and `/admin/news-categories` both render correctly with real data (4 seeded categories, real per-category news counts — e.g. "Kinh doanh" 781, "Doanh nghiệp" 283). Created a real "Demo Test Category" through the actual create form, confirmed the auto-slug and updated count; confirmed the destroy guard via `NewsCategoryService::isInUse()` directly (id=1 "Kinh doanh" → `true`, the demo category → `false`) rather than clicking the delete button in the browser — the delete button's `onsubmit="return confirm(...)"` doesn't reliably interact with this session's automated browser tool (the `confirm()` dialog has no user to answer it), a UI-testing limitation already documented in `docs/TESTING.md`, not an app bug; the automated PHPUnit test for this exact guard already covers the real behavior. Demo category cleaned up afterward via tinker.
+- Did not test the real password-change form against the live `sunadmin` account — changing a shared credential through manual browser automation is an unnecessary risk when 5 passing automated tests already cover the exact logic (including the double-hash safety check) end to end.
+
+### Not changed (noticed, flagged, left for later):
+- `AdminAuthController::activeSessions()` — a method + a referenced view (`backend.auth.sessions`) that doesn't exist, with no route pointing to it anywhere. Orphaned, half-built feature from before this session; not touched (out of scope, not asked for).
+
+### Docs:
+`docs/STRUCTURE.md`, `docs/ROUTES_MAP.md` (also backfilled the `admin.queue.*` rows from `QUEUE_MONITOR_CUSTOM_PAGE`, missed at the time), `docs/TESTING.md`.
+
+---
+
 ## SYNC_SPEED_OPTIMIZATION - September 16, 2026
 
 ### Summary:

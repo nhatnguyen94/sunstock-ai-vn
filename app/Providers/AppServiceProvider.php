@@ -48,6 +48,10 @@ use App\Backend\Interfaces\QueueMonitorRepositoryInterface;
 use App\Backend\Interfaces\QueueMonitorServiceInterface;
 use App\Backend\Repositories\QueueMonitorRepository;
 use App\Backend\Services\QueueMonitorService;
+use App\Backend\Interfaces\NewsCategoryRepositoryInterface;
+use App\Backend\Interfaces\NewsCategoryServiceInterface;
+use App\Backend\Repositories\NewsCategoryRepository;
+use App\Backend\Services\NewsCategoryService;
 use App\Support\QueueJobLogger;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
@@ -140,6 +144,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             QueueMonitorServiceInterface::class,
             QueueMonitorService::class
+        );
+        $this->app->bind(
+            NewsCategoryRepositoryInterface::class,
+            NewsCategoryRepository::class
+        );
+        $this->app->bind(
+            NewsCategoryServiceInterface::class,
+            NewsCategoryService::class
         );
     }
 

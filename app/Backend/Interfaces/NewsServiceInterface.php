@@ -21,5 +21,8 @@ interface NewsServiceInterface
 
     /** All news_categories as Collection<NewsCategory>. */
     public function getCategories(): Collection;
+
+    /** category_id values hardcoded in SOURCES — RSS sync inserts future articles under these. */
+    public function usedCategoryIds(): array;
 }
 

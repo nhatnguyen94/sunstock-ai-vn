@@ -106,9 +106,13 @@
                 <span class="nav-link-bullet"></span>
                 <span class="nav-link-title">Quản lý Stock</span>
               </a>
-              <a class="nav-link {{ Request::routeIs('admin.news*') ? 'active' : '' }}" href="{{ route('admin.news.index') }}">
+              <a class="nav-link {{ Request::routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.index') }}">
                 <span class="nav-link-bullet"></span>
                 <span class="nav-link-title">Quản lý News</span>
+              </a>
+              <a class="nav-link {{ Request::routeIs('admin.news-categories.*') ? 'active' : '' }}" href="{{ route('admin.news-categories.index') }}">
+                <span class="nav-link-bullet"></span>
+                <span class="nav-link-title">Danh mục Tin tức</span>
               </a>
               <a class="nav-link {{ Request::routeIs('admin.portfolios*') ? 'active' : '' }}" href="{{ route('admin.portfolios.index') }}">
                 <span class="nav-link-bullet"></span>
@@ -133,6 +137,16 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
               </span>
               <span class="nav-link-title">Hồ sơ cá nhân</span>
+            </a>
+          </li>
+
+          {{-- Change password --}}
+          <li class="nav-item">
+            <a class="nav-link {{ Request::routeIs('admin.account*') ? 'active' : '' }}" href="{{ route('admin.account.edit') }}">
+              <span class="nav-link-icon d-md-none d-lg-inline-block">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="16" r="1"/><path d="M8 11v-4a4 4 0 0 1 8 0v4"/></svg>
+              </span>
+              <span class="nav-link-title">Đổi mật khẩu</span>
             </a>
           </li>
 
@@ -181,6 +195,7 @@
             </a>
             <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
               <a href="{{ route('profile.show') }}" class="dropdown-item">Hồ sơ cá nhân</a>
+              <a href="{{ route('admin.account.edit') }}" class="dropdown-item">Đổi mật khẩu</a>
               <a href="{{ route('home') }}" class="dropdown-item">Quay về Frontend</a>
               <div class="dropdown-divider"></div>
               <form action="{{ route('admin.logout') }}" method="POST">

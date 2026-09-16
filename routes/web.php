@@ -1,7 +1,9 @@
 <?php
 
+use App\Backend\Controllers\AccountController;
 use App\Backend\Controllers\AdminAuthController;
 use App\Backend\Controllers\DashboardController;
+use App\Backend\Controllers\NewsCategoryController;
 use App\Backend\Controllers\NewsController;
 use App\Backend\Controllers\PermissionController;
 use App\Backend\Controllers\PortfolioController as AdminPortfolioController;
@@ -112,7 +114,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware(['auth:web', 'admin'])->group(function () {
         // Dashboard
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-        
+
+        // Account — self-service, no can: gate (every backend account manages its own)
+        Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
+        Route::put('/account', [AccountController::class, 'update'])->name('account.update');
+
         // Timeline - Admin, Webadmin, AdminSupport
         Route::get('/timeline', [TimelineController::class, 'index'])->name('timeline');
         Route::get('/timeline/stats', [TimelineController::class, 'stats'])->name('timeline.stats');
@@ -140,6 +146,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             Route::get('/news', [NewsController::class, 'index'])->name('news.index');
             Route::post('/news/update-rss', [NewsController::class, 'updateRss'])->name('news.update-rss');
+            Route::resource('news-categories', NewsCategoryController::class)->except(['show']);
 
             Route::get('/portfolios', [AdminPortfolioController::class, 'index'])->name('portfolios.index');
             Route::get('/portfolios/{portfolio}', [AdminPortfolioController::class, 'show'])->name('portfolios.show');

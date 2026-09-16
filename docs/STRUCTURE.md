@@ -46,6 +46,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - **Controllers**: `app/Backend/Controllers/` - Handle admin requests
   - `Controller.php` - Base controller for Backend
   - `AdminAuthController.php` - Separate admin login/logout
+  - `AccountController.php` - Self-service password change for the currently-logged-in backend user (`/admin/account`) — no `can:` gate, every backend account (any role) manages its own. Separate from `AdminAuthController` (login/logout only) and from Frontend's `ProfileController` (full profile editing, still reachable at `/profile`).
   - `DashboardController.php` - Admin dashboard with system statistics
   - `UserController.php` - Admin user management (CRUD, role assignment)
   - `RoleController.php` - Role management: CRUD + assign permissions to a role (checkbox grid grouped by `permissions.group`). Gate: `manage-roles`. Blocks destroy for system roles (`RoleService::isSystemRole()`) and roles still assigned to a user.
@@ -53,13 +54,15 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `QueueMonitorController.php` - Queue dashboard: `index`/`stats` (JSON, polled), `retry`/`destroy`/`retryAll` for `failed_jobs`. Gate: `manage-queue`. See "Queue Monitoring" below.
   - `StockController.php` - Admin stock management (list, update prices)
   - `NewsController.php` - Admin news management (list, update RSS)
+  - `NewsCategoryController.php` - CRUD for `news_categories` (`/admin/news-categories`). Gate: `manage-features`. Blocks destroy for a category with existing `news` rows, or one referenced by `NewsService::SOURCES` (RSS sync would insert future articles under a `category_id` that no longer resolves).
   - `PortfolioController.php` - Admin portfolio management (list, toggle status, destroy)
   - `TimelineController.php` - Admin timeline/activity log viewer (real data from `activity_logs` table, filters, pagination)
   - `SyncStatusController.php` - Admin sync status page; AJAX trigger buttons for 5 whitelisted artisan commands; logs to ActivityLogger
 
 - **Services**: `app/Backend/Services/`
   - `StockService.php` - Admin stock business logic: data normalization, orchestration, price-update job dispatch. Implements `StockServiceInterface`, delegates DB to `StockRepository`.
-  - `NewsService.php` - Crawls 5 RSS feeds (VnExpress ×2, CafeF ×2, Dân Trí ×1), deduplicates by url_hash, persists to `news` table. Implements `NewsServiceInterface`.
+  - `NewsService.php` - Crawls 5 RSS feeds (VnExpress ×2, CafeF ×2, Dân Trí ×1), deduplicates by url_hash, persists to `news` table. `usedCategoryIds()` exposes the `category_id`s hardcoded in `SOURCES`, for `NewsCategoryService`'s destroy guard. Implements `NewsServiceInterface`.
+  - `NewsCategoryService.php` - CRUD for `NewsCategory` + `isInUse()` guard (has news rows, or `id` is in `NewsService::usedCategoryIds()`). Implements `NewsCategoryServiceInterface`, delegates DB to `NewsCategoryRepository`.
   - `UserService.php` - Admin user management business logic (CRUD, role assignment). Implements `UserServiceInterface`, delegates DB to `UserRepository`.
   - `RoleService.php` - Role CRUD + `isSystemRole()` guard (admin/webadmin/adminsupport/user cannot be deleted via UI). `getPermissions()` for the picker form. Implements `RoleServiceInterface`, delegates DB to `RoleRepository`.
   - `PermissionService.php` - Permission CRUD + `isCorePermission()` guard (`manage-roles`/`manage-permissions` cannot be deleted via UI — would lock the admin out of this screen). Implements `PermissionServiceInterface`, delegates DB to `PermissionRepository`.
@@ -67,6 +70,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - **Repositories**: `app/Backend/Repositories/`
   - `StockRepository.php` - Admin stock DB operations (paginate with filters, getExchanges, create/update/delete with cache busting)
   - `NewsRepository.php` - News DB operations (paginate with filters, bulk insertNew with dedup, getSources, getLatestSyncTime)
+  - `NewsCategoryRepository.php` - `NewsCategory` DB operations (all() with news count, create/update with auto-slug via `Str::slug()` when not provided, delete)
   - `UserRepository.php` - Admin user DB operations (paginate with search, findWithRelations, create/update/delete with role sync via syncRoles)
   - `ActivityLogRepository.php` - Activity log DB operations (paginate with type/date/search filters, countByType for last 7 days)
   - `RoleRepository.php` - Role DB operations (all() with users/permissions counts, findWithRelations, create/update with `permissions()->sync()`, delete)
@@ -77,6 +81,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `StockRepositoryInterface.php` - Contract for admin stock DB operations
   - `NewsServiceInterface.php` - Contract for admin news service (listNews, syncFromAllSources, getSources)
   - `NewsRepositoryInterface.php` - Contract for admin news DB operations
+  - `NewsCategoryServiceInterface.php` / `NewsCategoryRepositoryInterface.php` - Contracts for News Category management
   - `UserServiceInterface.php` - Contract for admin user service (listUsers, getRoles, createUser, updateUser, deleteUser, findWithRelations)
   - `UserRepositoryInterface.php` - Contract for admin user DB operations (paginate, findWithRelations, create, update, delete)
   - `ActivityLogRepositoryInterface.php` - Contract for activity log DB (paginate with filters, countByType)
@@ -148,11 +153,11 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - **Auth** (throttled): login, register, logout, forgot-password, reset-password
 - **Email Verification** (`auth` middleware): verify email, resend
 - **User Protected** (`auth` + `verified`): profile, portfolio CRUD
-- **Admin** (`/admin` prefix, `admin` middleware): dashboard, users, roles, permissions, stocks, news, portfolios, timeline, queue monitor
+- **Admin** (`/admin` prefix, `admin` middleware): dashboard, account (self-service password), users, roles, permissions, stocks, news, news categories, portfolios, timeline, queue monitor
 
 ### Views (`resources/views/`)
 - **Frontend**: `index.blade.php`, `stock/`, `exchange_rate/`, `news/`, `portfolio/`, `profile/`, `auth/`
-- **Backend (admin)**: `backend/dashboard/`, `backend/users/`, `backend/roles/`, `backend/permissions/`, `backend/queue-monitor/`, `backend/stocks/`, `backend/news/`, `backend/portfolios/`, `backend/timeline/`, `backend/sync-status/`, `backend/auth/`, `backend/layouts/`
+- **Backend (admin)**: `backend/dashboard/`, `backend/account/`, `backend/users/`, `backend/roles/`, `backend/permissions/`, `backend/queue-monitor/`, `backend/stocks/`, `backend/news/`, `backend/news-categories/`, `backend/portfolios/`, `backend/timeline/`, `backend/sync-status/`, `backend/auth/`, `backend/layouts/`
 - **Shared**: `layouts/`, `partials/`
 
 ### Python Scripts (`py/`)

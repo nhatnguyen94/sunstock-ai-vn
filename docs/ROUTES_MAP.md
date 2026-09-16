@@ -81,6 +81,8 @@
 | POST | `/admin/login` | `admin.login.post` | `AdminAuthController` | `login` | *(public)* |
 | POST | `/admin/logout` | `admin.logout` | `AdminAuthController` | `logout` | any backend role |
 | GET | `/admin` | `admin.dashboard` | `DashboardController` | `index` | any backend role |
+| GET | `/admin/account` | `admin.account.edit` | `AccountController` | `edit` | any backend role (self-service) |
+| PUT | `/admin/account` | `admin.account.update` | `AccountController` | `update` | any backend role (self-service) |
 | GET | `/admin/timeline` | `admin.timeline` | `TimelineController` | `index` | `view-timeline` |
 | GET | `/admin/timeline/stats` | `admin.timeline.stats` | `TimelineController` | `stats` | `view-timeline` |
 | GET/POST/PUT/DELETE | `/admin/users` | `admin.users.*` | `UserController` | *(resource)* | `manage-users` |
@@ -92,6 +94,7 @@
 | POST | `/admin/stocks/update-prices` | `admin.stocks.update-prices` | `StockController` | `updatePrices` | `manage-features` |
 | GET | `/admin/news` | `admin.news.index` | `NewsController` | `index` | `manage-features` |
 | POST | `/admin/news/update-rss` | `admin.news.update-rss` | `NewsController` | `updateRss` | `manage-features` |
+| GET/POST/PUT/DELETE | `/admin/news-categories` | `admin.news-categories.*` | `NewsCategoryController` | *(resource, no `show`)* | `manage-features` |
 | GET | `/admin/portfolios` | `admin.portfolios.index` | `PortfolioController` | `index` | `manage-features` |
 | GET | `/admin/portfolios/{portfolio}` | `admin.portfolios.show` | `PortfolioController` | `show` | `manage-features` |
 | PATCH | `/admin/portfolios/{portfolio}/toggle-status` | `admin.portfolios.toggle-status` | `PortfolioController` | `toggleStatus` | `manage-features` |
@@ -99,5 +102,10 @@
 | GET | `/admin/portfolios-stats` | `admin.portfolios.stats` | `PortfolioController` | `stats` | `manage-features` |
 | GET | `/admin/sync-status` | `admin.sync-status` | `SyncStatusController` | `index` | `manage-features` |
 | POST | `/admin/sync-status/trigger/{key}` | `admin.sync-status.trigger` | `SyncStatusController` | `trigger` | `manage-features` |
+| GET | `/admin/queue` | `admin.queue.index` | `QueueMonitorController` | `index` | `manage-queue` |
+| GET | `/admin/queue/stats` | `admin.queue.stats` | `QueueMonitorController` | `stats` | `manage-queue` |
+| POST | `/admin/queue/failed/retry-all` | `admin.queue.retry-all` | `QueueMonitorController` | `retryAll` | `manage-queue` |
+| POST | `/admin/queue/failed/{uuid}/retry` | `admin.queue.retry` | `QueueMonitorController` | `retry` | `manage-queue` |
+| DELETE | `/admin/queue/failed/{uuid}` | `admin.queue.destroy` | `QueueMonitorController` | `destroy` | `manage-queue` |
 
 > **Note**: Gate checks are enforced at the controller action level via `Gate::authorize()`, not at the route level (the route only checks that the user can access the backend at all).

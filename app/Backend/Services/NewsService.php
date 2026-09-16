@@ -34,6 +34,11 @@ class NewsService implements NewsServiceInterface
         return $this->newsRepository->getCategories();
     }
 
+    public function usedCategoryIds(): array
+    {
+        return array_values(array_unique(array_column(self::SOURCES, 'category_id')));
+    }
+
     public function syncFromAllSources(): array
     {
         $totalSynced = 0;

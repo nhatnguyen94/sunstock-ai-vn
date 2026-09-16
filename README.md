@@ -46,7 +46,7 @@
 - **AI Chat & Prediction** — Ask financial questions and get market predictions, powered by the Groq API (free tier, ~0.4s responses).
 - **User Accounts** — Register, log in, email verification, forgot/reset password, profile management (avatar, birthday, gender, address, bio).
 - **Role-Based Access Control (RBAC)** — Separate admin login; roles and fine-grained permissions are managed entirely from the backend UI (**Admin > Vai trò / Quyền hạn**) — new roles and overlapping permissions don't require any code change. See [docs/RBAC.md](docs/RBAC.md).
-- **Admin Panel** — Manage users, roles & permissions, stocks, news, portfolios, sync status, an activity timeline, and a live queue monitoring dashboard (real-time "currently processing" / "recently finished" job feed).
+- **Admin Panel** — Manage users, roles & permissions, stocks, news (incl. categories), portfolios, sync status, an activity timeline, self-service password change, and a live queue monitoring dashboard (real-time "currently processing" / "recently finished" job feed).
 
 ## 🛠️ Tech Stack
 
@@ -180,6 +180,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-17 | **News Category management** + **self-service admin password change** — `/admin/news-categories` (CRUD, with a guard against deleting a category still used by the RSS sync sources) and `/admin/account` (any backend account, no extra permission needed) |
 | 2026-09-16 | **Real-time queue activity** — `/admin/queue` now shows exactly which job is processing right now (with a live-updating elapsed timer), recently-finished jobs with duration, and a "processed today" counter, powered by a new `queue_job_logs` table |
 | 2026-09-15 | **Queue monitoring dashboard** — custom-built (Laravel Horizon was tried, then dropped for being harder to read than this app needs) at `/admin/queue` (gate `manage-queue`): per-queue live counts, failed-job retry/delete; fixed a real `retry_after` < `timeout` misconfiguration that was silently duplicating and failing long-running sync jobs |
 | 2026-09-15 | **Scalable permissions system** — DB-driven `permissions`/`permission_role` tables replace hardcoded per-ability Gates; new **Admin > Vai trò / Quyền hạn** UI lets admins create roles and overlapping permissions without touching code |
@@ -232,7 +233,7 @@ MIT License © 2025–2026
 - **AI Chat & Dự đoán** — Hỏi đáp tài chính và dự đoán thị trường qua Groq API (miễn phí, phản hồi ~0.4s).
 - **Tài khoản người dùng** — Đăng ký, đăng nhập, xác thực email, quên/đặt lại mật khẩu, quản lý hồ sơ (avatar, ngày sinh, giới tính, địa chỉ, tiểu sử).
 - **Phân quyền (RBAC)** — Đăng nhập admin riêng biệt; vai trò và quyền hạn chi tiết được quản lý hoàn toàn từ giao diện backend (**Admin > Vai trò / Quyền hạn**) — thêm role mới, gán quyền chồng chéo không cần sửa code. Xem [docs/RBAC.md](docs/RBAC.md).
-- **Trang quản trị** — Quản lý người dùng, vai trò & quyền hạn, cổ phiếu, tin tức, danh mục, trạng thái đồng bộ, nhật ký hoạt động, và dashboard giám sát queue real-time (job nào đang chạy, vừa xong lúc nào, mất bao lâu).
+- **Trang quản trị** — Quản lý người dùng, vai trò & quyền hạn, cổ phiếu, tin tức (kèm danh mục), danh mục portfolio, trạng thái đồng bộ, nhật ký hoạt động, tự đổi mật khẩu, và dashboard giám sát queue real-time (job nào đang chạy, vừa xong lúc nào, mất bao lâu).
 
 ## 🛠️ Công nghệ sử dụng
 
@@ -333,6 +334,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-17 | **Quản lý Danh mục Tin tức** + **tự đổi mật khẩu admin** — `/admin/news-categories` (CRUD, chặn xoá danh mục đang được nguồn RSS sync dùng) và `/admin/account` (bất kỳ tài khoản backend nào, không cần thêm quyền) |
 | 2026-09-16 | **Real-time queue activity** — `/admin/queue` giờ hiện đúng job nào đang chạy (kèm đồng hồ đếm thời gian chạy live), job vừa xử lý xong kèm thời lượng, và số job đã xử lý trong ngày — dùng bảng `queue_job_logs` mới |
 | 2026-09-15 | **Dashboard giám sát Queue** — tự viết (Laravel Horizon từng thử rồi bỏ vì khó theo dõi hơn mức app này cần) tại `/admin/queue` (gate `manage-queue`): số liệu live theo từng queue, retry/xoá job fail; fix lỗi cấu hình thật `retry_after` < `timeout` khiến job sync chạy lâu bị nhân đôi và fail oan |
 | 2026-09-15 | **Hệ thống phân quyền có thể scale** — bảng `permissions`/`permission_role` lưu DB thay cho Gate hardcode từng ability; giao diện **Admin > Vai trò / Quyền hạn** mới cho phép tạo role, gán quyền chồng chéo mà không cần sửa code |
