@@ -46,7 +46,7 @@ stock-app/
 | `php` | custom (Dockerfile) | PHP-FPM 8.2 + Python 3.11 + vnstock | internal:9000 |
 | `mysql` | mysql:8.0 | Database | 3307 (host) → 3306 (internal) |
 | `redis` | redis:7-alpine | Queue + Cache + Session | internal:6379 |
-| `queue` | custom (Dockerfile) | 3 Redis queue workers (`queue:work redis --queue=high,default`) via Supervisor | — |
+| `queue` | custom (Dockerfile) | 6 Redis queue workers (`queue:work redis --queue=high,default`) via Supervisor | — |
 | `scheduler` | custom (Dockerfile) | `php artisan schedule:work` | — |
 
 > **Tại sao MySQL dùng port 3307?** Để tránh conflict với XAMPP MySQL đang chạy trên port 3306. Sau khi chuyển hẳn sang Docker thì có thể đổi lại 3306.
@@ -212,7 +212,13 @@ docker compose exec mysql mysql -u root -p stock_app
 
 ### Giám sát Queue
 
-Job Redis (`sync:stock-prices` dispatch nhiều `ProcessStockPriceSync`, `sync:company-financials` dispatch nhiều `SyncCompanyFinancialJob`, ...) chạy qua 3 worker `queue:work redis --queue=high,default` (`docker/php/supervisord.conf`). Laravel Horizon từng được thử để có dashboard giám sát nhưng bị bỏ — SPA riêng, khó theo dõi hơn cần thiết cho quy mô app này — thay bằng trang tự viết theo đúng pattern Controller/Service/Repository sẵn có (xem `docs/HISTORY.md`, `QUEUE_MONITOR_CUSTOM_PAGE`).
+Job Redis (`sync:stock-prices` dispatch nhiều `ProcessStockPriceSync`, `sync:company-financials` dispatch nhiều `SyncCompanyFinancialJob`, ...) chạy qua 6 worker `queue:work redis --queue=high,default` (`docker/php/supervisord.conf`) — tăng từ 3 lên 6 để tận dụng việc các job này chủ yếu chờ mạng (I/O-bound), không tốn CPU. Kết hợp với `py/get_stock.py` tự chạy song song 4 mã cùng lúc trong 1 lần gọi (thay vì tuần tự từng mã), tổng số request đồng thời tới VCI tối đa là 6×4=24 (từ 3 trước đây) — xem "Tối ưu tốc độ sync" và `docs/PYTHON_INTEGRATION.md`. Laravel Horizon từng được thử để có dashboard giám sát nhưng bị bỏ — SPA riêng, khó theo dõi hơn cần thiết cho quy mô app này — thay bằng trang tự viết theo đúng pattern Controller/Service/Repository sẵn có (xem `docs/HISTORY.md`, `QUEUE_MONITOR_CUSTOM_PAGE`).
+
+### Tối ưu tốc độ sync
+
+Nếu sync vẫn chậm sau khi đã tăng worker + song song hoá, cân nhắc theo thứ tự:
+1. **Chỉnh 2 con số cùng lúc**: `numprocs` trong `docker/php/supervisord.conf` (số worker) và `MAX_CONCURRENT` trong `py/get_stock.py`/`py/get_exchange_rate.py` (số luồng song song mỗi worker). Tích của 2 số = số request đồng thời tối đa tới VCI — tăng quá cao dễ bị VCI rate-limit/chặn mạnh hơn, phản tác dụng. Theo dõi qua **Admin > Giám sát Queue** khi chỉnh để biết throughput thực tế và có bị fail nhiều hơn không.
+2. **Bậc cuối, tốn công nhất**: dựng 1 Python service sống lâu (FastAPI/Flask) để PHP gọi qua HTTP thay vì `exec()` — loại bỏ hẳn chi phí khởi động lại `vnstock`/`pandas` mỗi lần gọi (hiện tại mỗi `exec()` là 1 process Python mới). Chưa làm, chỉ ghi nhận là hướng tối ưu tiếp theo nếu 2 bước trên vẫn chưa đủ.
 
 - **Dashboard**: **Admin > Hệ thống > Giám sát Queue** (`https://sunstock-local.dev/admin/queue`, permission `manage-queue` — mặc định chỉ role `admin` có, xem [docs/RBAC.md](RBAC.md)). Gồm: số job đang chờ/đang chạy/hoãn theo từng queue; bảng **"Đang xử lý (real-time)"** — job nào đang chạy ngay lúc này, nội dung (vd mã cổ phiếu), bắt đầu lúc mấy giờ, đã chạy bao lâu; bảng **"Vừa xử lý xong"** — job hoàn thành/fail gần nhất kèm thời lượng chạy, cộng số job đã xử lý trong ngày; tất cả tự refresh mỗi 5s không cần F5; danh sách job fail hẳn kèm nút Retry/Xoá/Retry tất cả. Dữ liệu "đang xử lý"/"vừa xong" lấy từ bảng `queue_job_logs` — ghi bởi `App\Support\QueueJobLogger` (lắng nghe `Queue::before/after/failing` trong `AppServiceProvider`), dọn định kỳ bởi lệnh `queue-logs:prune` (chạy hàng giờ).
 - **CLI nhanh không cần mở dashboard**:

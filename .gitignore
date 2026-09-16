@@ -30,3 +30,4 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 composer.lock
+py/__pycache__/

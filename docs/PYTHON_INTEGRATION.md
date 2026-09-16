@@ -70,13 +70,15 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 - **Args**: Comma-separated symbol string (e.g., `VCB` or `VCB,ACB,FPT`)
 - **Output**: `{ "data": { "VCB": [...], "ACB": [...] }, "errors": { ... } }`
 - **Data source**: vnstock VCI, last 365 days
-- **Rate limit**: 1 second delay between symbols (to avoid VCI throttle)
+- **Concurrency**: fetches up to `MAX_CONCURRENT=4` symbols in parallel (`concurrent.futures.ThreadPoolExecutor` — these are blocking `requests` calls, not async-native, so threads are the right tool). Was a plain sequential for-loop until 2026-09-16 — see "Sync speed" below.
+- **Rate limit**: 0.3s delay per symbol (each thread paces its own requests; sleeping in one thread doesn't block the others)
 
 ### `py/get_exchange_rate.py`
 - **Purpose**: Fetch VCB exchange rates by date or last N days
 - **Args**:
   - Date string: `2026-05-28` → returns rates for that day as JSON array
   - Number string: `7` → returns rates for last 7 days as array of `{date, rates}` objects
+- **Concurrency**: the "last N days" path fetches days in parallel the same way (`MAX_CONCURRENT=4`)
 - **Output**: JSON array
 
 ### `py/get_hot_industries.py`
@@ -114,6 +116,17 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 | `BackfillStockPrices` (inline mode) | `get_stock.py` | Manual terminal run (`--dispatch` not passed) | 550s |
 
 Changing a job's own `$timeout`/a command's expected runtime? Update the matching row here and the matching `PythonRunner::run()` call together — they're meant to move as a pair.
+
+## Sync speed — two levers, tuned together
+
+User feedback (2026-09-16): syncing felt slow, whether triggered manually or via the scheduler. Two changes, meant to be tuned as a pair:
+
+1. **`docker/php/supervisord.conf`**: `numprocs` for `queue-worker-redis`, 3 → 6. These jobs are I/O-bound (waiting on VCI/KBS APIs, not CPU), so more workers process more chunks concurrently for close to free.
+2. **`py/get_stock.py` / `py/get_exchange_rate.py`**: internal `MAX_CONCURRENT` (currently 4) — was a plain sequential `for` loop over symbols/days, now `concurrent.futures.ThreadPoolExecutor`. A 20-symbol chunk that used to run 1 request at a time now runs 4 at a time.
+
+**Combined effect**: worst-case concurrent requests to VCI went from 3 (1 worker × 1 sequential request) to 24 (6 workers × 4 threads) — an 8x ceiling, not "as many as possible". Going higher risks VCI rate-limiting/blocking harder, which would make syncing *slower*, not faster — there's no way to know the actual safe ceiling without VCI publishing one, so this was a deliberate, conservative first step rather than a guess at the true max. If it's still not fast enough, raise both numbers together and watch **Admin > Giám sát Queue** while doing it — pending-count trend and the failed-jobs list will show whether you're still winning or starting to get rate-limited.
+
+**Next lever if 1+2 aren't enough** (not implemented, real infra work): every `exec()` call spawns a *fresh* Python process, paying `vnstock`/`pandas` import cost every single time (visible in worker logs as the "Vnstock X.X is available" banner on every invocation). A long-lived Python microservice (FastAPI/Flask) that PHP calls over HTTP instead of `exec()` would eliminate that repeated startup cost entirely and let Python-side concurrency be async-native instead of thread-based — the highest-ceiling option, but a genuinely new piece of infrastructure (new container, health checks, a redesigned PHP↔Python contract), not a config tweak.
 
 ## Rules for Python Scripts
 

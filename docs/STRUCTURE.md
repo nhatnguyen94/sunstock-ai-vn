@@ -175,7 +175,7 @@ Project runs in Docker Compose with 6 containers:
 | `php` | PHP-FPM 8.2 + Python 3 venv | — |
 | `mysql` | MySQL 8.0 database | 3307 |
 | `redis` | Redis 7 (queue, cache, sessions) | — |
-| `queue` | 3 Redis queue workers (`queue:work redis --queue=high,default`, supervisor) | — |
+| `queue` | 6 Redis queue workers (`queue:work redis --queue=high,default`, supervisor) — each running `py/get_stock.py`'s own 4-way internal thread pool, see docs/PYTHON_INTEGRATION.md | — |
 | `scheduler` | Laravel scheduler (`schedule:work`) | — |
 
 - **App URL**: `https://sunstock-local.dev`

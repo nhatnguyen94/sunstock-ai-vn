@@ -61,7 +61,7 @@
 | Admin Panel | Blade Templates + Tabler / Bootstrap 5 (CDN) |
 | Authorization | Custom RBAC (`roles`) + DB-driven permissions (`permissions`/`permission_role`) — see [docs/RBAC.md](docs/RBAC.md) |
 | Architecture | SOLID — Controller / Service / Repository / Interface, strict Frontend/Backend namespace separation |
-| Queue | Redis Queue — 3 workers (Docker supervisor), custom monitoring dashboard at `/admin/queue` |
+| Queue | Redis Queue — 6 workers (Docker supervisor), custom monitoring dashboard at `/admin/queue` |
 
 ## 🔐 Security & environment variables
 
@@ -246,7 +246,7 @@ MIT License © 2025–2026
 | Trang quản trị | Blade Templates + Tabler / Bootstrap 5 (CDN) |
 | Phân quyền | RBAC tự viết (`roles`) + hệ thống permission lưu DB (`permissions`/`permission_role`) — xem [docs/RBAC.md](docs/RBAC.md) |
 | Kiến trúc | SOLID — Controller / Service / Repository / Interface, tách namespace Frontend/Backend nghiêm ngặt |
-| Queue | Redis Queue — 3 worker (Docker supervisor), dashboard giám sát riêng tại `/admin/queue` |
+| Queue | Redis Queue — 6 worker (Docker supervisor), dashboard giám sát riêng tại `/admin/queue` |
 
 ## 🔐 Bảo mật & biến môi trường
 

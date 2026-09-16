@@ -2,6 +2,28 @@
 
 ---
 
+## SYNC_SPEED_OPTIMIZATION - September 16, 2026
+
+### Summary:
+Direct follow-up to `PYTHON_EXEC_TIMEOUT_FIX` — with jobs now correctly bounded instead of hanging, the user's underlying complaint was still valid: manual and scheduled syncs feel slow, real user-facing pain. Asked for the fastest practical fix. Proposed 3 levers ranked by effort/impact (more workers; parallelize within each Python script; eventually a persistent Python service to cut process-startup cost) and recommended doing the first two now, the third only if still not enough — user agreed to 1+2.
+
+### Added:
+- **`docker/php/supervisord.conf`** — `queue-worker-redis` `numprocs` 3 → 6. These jobs are I/O-bound (waiting on VCI/KBS, not CPU), so more workers process more chunks concurrently for close to free.
+- **`py/get_stock.py`** — was a plain sequential `for symbol in symbols` loop (1 API request at a time, each up to the API's own timeout). Now fetches up to `MAX_CONCURRENT=4` symbols in parallel via `concurrent.futures.ThreadPoolExecutor` (these are blocking `requests` calls under the hood, not async-native, so threads are the right primitive — not `asyncio`). Output shape (`{"data": {...}, "errors": {...}}`) is unchanged, so no PHP-side changes were needed.
+- **`py/get_exchange_rate.py`** — same treatment for its "last N days" loop (`get_by_days()`), same `MAX_CONCURRENT=4`.
+- Both scripts keep a per-request `time.sleep(0.3)` for rate-limiting — sleeping inside one thread doesn't block the others, so this still paces each thread's own request rate without giving up the concurrency gain.
+- **Deliberately not maxed out**: combined ceiling on concurrent requests to VCI went from 3 (3 workers × 1 sequential request) to 24 (6 workers × 4 threads) — an 8x increase, not "as high as possible". Going further risks VCI rate-limiting/blocking harder, which would make syncing slower, not faster; there's no published safe ceiling to target, so this was a deliberate conservative first step. Documented as tunable together in `docs/PYTHON_INTEGRATION.md`'s new "Sync speed" section, which also names the next lever (a persistent Python microservice reachable over HTTP instead of `exec()`, eliminating the `vnstock`/`pandas` import cost paid on every single subprocess spawn) as real infra work for later if 1+2 aren't enough.
+
+### Verified — live, against the real (still degraded) VCI outage from the previous task:
+- **Worker count (throughput)**: `queue_job_logs`, grouped by completion minute, showed a clean before/after: 3 jobs finishing together every ~280s cycle before the restart (3 workers) → **6 jobs finishing together every ~285s cycle** right after (6 workers, restarted 16:44:58, batch landed 16:49:43) — a clean 2x throughput increase matching the 2x worker increase exactly.
+- **Intra-script concurrency (per-job speed)**: a direct 10-symbol `get_stock.py` call (bypassing the queue, timed with the shell `time` builtin) took **4m47s (287s)**. Per-symbol latency during this outage turned out to be ~95s, not the ~30s raw API timeout assumed earlier — consistent with `vnstock`'s HTTP client itself retrying a failed request a few times internally before giving up, not something this app controls. At ~95s/symbol, old sequential code would have taken 10 × 95s ≈ 950s (15.8 min); the new 4-way-concurrent code takes `ceil(10/4)` = 3 rounds × 95s ≈ 285s — a **~3.3x reduction**, matching theory (fewer sequential rounds, not faster individual requests). The relative speedup holds regardless of how degraded VCI currently is; it will be more visible in absolute terms once VCI is back to normal reliability.
+- `php artisan test`: **136/136 passing**, unaffected (all changes are Python + a Docker Compose config, no PHP call-site contract changes).
+
+### Docs:
+`docs/PYTHON_INTEGRATION.md` (new "Sync speed" section, per-script concurrency notes, corrected a stale "1 second delay" claim to the real `0.3s`), `docs/DOCKER.md`, `docs/STRUCTURE.md`, `README.md` (both languages) — worker count references updated 3 → 6.
+
+---
+
 ## PYTHON_EXEC_TIMEOUT_FIX - September 16, 2026
 
 ### Summary:
