@@ -2,6 +2,33 @@
 
 ---
 
+## PYTHON_EXEC_TIMEOUT_FIX - September 16, 2026
+
+### Summary:
+Direct follow-up to `QUEUE_MONITOR_REALTIME_ACTIVITY` — the new real-time dashboard immediately surfaced a real, previously-invisible bug: a `ProcessStockPriceSync` job (declared `public $timeout = 300`) had been shown as "processing" for **9+ minutes**, well past its own configured timeout, while `trading.vietcap.com.vn` (VCI) was timing out on every request. User asked directly whether the job was actually running or genuinely stuck, then asked to scope out every place in the codebase with the same risk and fix each one — with a fallback suggestion (switch back to the `database` queue driver) that turned out to be unrelated to the actual root cause, clarified below.
+
+### Root cause:
+Laravel's job/worker `--timeout` is enforced via `pcntl_alarm()` + a `SIGALRM` handler — this requires the PHP process to be free to receive and act on the signal. While PHP is blocked inside `exec()`'s own blocking read waiting on a Python subprocess, it **cannot** service that pending signal; the timeout is effectively decorative for any code path that shells out synchronously. Confirmed via `/proc/<pid>/stat` process start times inside the `queue` container: the same 3 worker processes had been alive continuously, never recycled, for the full duration the "stuck" jobs had been running — proving Laravel's timeout never fired, not that it fired and something else went wrong.
+
+This is unrelated to the Redis vs `database` queue driver choice suggested as a fallback — the same `exec()` blocking behavior would hang a worker identically under either driver, since the bug is in how the job's own code calls Python, not in how the queue dispatches/reserves jobs. Redis was correctly kept as-is.
+
+### Scope (every `exec()` call in `app/`, found via `grep -rn "exec("`):
+6 sites calling Python via a blocking `exec()` with no OS-level timeout (all fixed, see below); 1 site using `curl_exec()` (`NewsService::fetchRss()`) already had a real, working `CURLOPT_TIMEOUT => 15` — curl's own timeout is enforced at the libcurl/C level, not dependent on PHP signal delivery, so it was never affected and needed no change.
+
+### Added:
+- **`App\Support\PythonRunner`** — `run(scriptPath, args, timeoutSeconds, suppressStderr = false)` and `runAndDecodeJson(...)`. Wraps every command with the Unix `timeout` utility (GNU coreutils, present in the Docker image's `php:8.2-fpm` base — confirmed via `docker exec ... which timeout`). The OS kills the Python child directly if it exceeds the ceiling, which makes `exec()`'s pipe hit EOF and return immediately — completely sidesteps the PHP-signal problem instead of trying to work around it. Falls back to a plain unwrapped `exec()` on Windows (no `timeout`-equivalent there; XAMPP/manual dev setups are no worse off than before, Docker — the recommended and production path — gets the real fix). Detects a `timeout`-induced kill via exit code `124` and logs it distinctly from a normal script error.
+- Every call site converted (see the full table now in `docs/PYTHON_INTEGRATION.md`): `StockService::fetchStockDataFromPython()` (280s, called by `ProcessStockPriceSync`, `$timeout=300`), `fetchStockListFromPython()` (120s), `fetchHotIndustriesFromPython()` (60s), `CompanyFinancialService::fetchFromPython()` (35s — called up to 8×/run by `SyncCompanyFinancialJob`, `$timeout=180`), `ExchangeRateService::fetchRatesFromPython()` (30s — also runs in a live web request), `BackfillStockPriceChunk::handle()` (550s, job `$timeout=600`), `BackfillStockPrices`'s inline mode (550s, manual terminal run).
+- Tests (group `pythonRunner`, 5 new): `tests/Feature/Support/PythonRunnerTest.php`, genuinely spawning a real fixture Python script (`tests/Fixtures/python/sleep_and_print.py`) rather than mocking `exec()` — the whole point of this class is that a real subprocess actually gets interrupted, which a mock cannot prove. Critically asserts on **wall-clock elapsed time** (not just the returned `timed_out` flag) to prove the kill happens early rather than the test just waiting out the full sleep and reporting the flag afterward.
+
+### Verified:
+- `php artisan test --group=pythonRunner`: 5/5 passing, including the timing-sensitive kill-early assertion. Full suite: **136/136 passing**.
+- **Live, in the real dev environment, with the actual VCI outage still ongoing** (the best possible test conditions — a genuinely hung real API, not a simulated one): restarted the queue workers to pick up the fix, then monitored `queue_job_logs` and the live Redis queue depth for ~5 minutes. Confirmed 3 `ProcessStockPriceSync` jobs that would previously have hung indefinitely instead completed in **exactly ~286 seconds each** (280s ceiling + `timeout`/PHP overhead) — visible directly in `queue_job_logs.duration_ms` — and the workers correctly moved on to the next jobs afterward (pending count dropped from 786 → 783 right on schedule). This is the same real-time dashboard from the previous task proving its own value: the bug was found by looking at it, and the fix was verified by watching it too.
+
+### Docs:
+`docs/PYTHON_INTEGRATION.md` — rewrote "Calling Pattern" around `PythonRunner` (mandatory, `exec()` no longer permitted directly), added the root-cause explanation, added a table of every call site's `$timeoutSeconds` and why. `AGENTS.md` (forbidden-patterns table), `docs/STRUCTURE.md`, `docs/TESTING.md`.
+
+---
+
 ## QUEUE_MONITOR_REALTIME_ACTIVITY - September 16, 2026
 
 ### Summary:

@@ -3,6 +3,7 @@
 namespace App\Frontend\Services;
 
 use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
+use App\Support\PythonRunner;
 use Illuminate\Support\Facades\Cache;
 
 class ExchangeRateService
@@ -58,12 +59,12 @@ class ExchangeRateService
             return [];
         }
 
-        $python = config('services.python.path', 'python');
-        $script = base_path('py/get_exchange_rate.py');
-        $command = escapeshellarg($python) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg((string) $daysOrDate);
-        exec($command, $output);
+        // 30s: called from a live web request (ExchangeRateController) as well as
+        // sync:exchange-rates — must fail fast rather than hang a page load or a
+        // scheduled run. See App\Support\PythonRunner.
+        $result = PythonRunner::run(base_path('py/get_exchange_rate.py'), [$daysOrDate], 30);
 
-        return $this->parsePythonOutput($output, $daysOrDate);
+        return $this->parsePythonOutput($result['output'], $daysOrDate);
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Jobs\BackfillStockPriceChunk;
 use App\Models\Stock;
 use App\Models\StockPrice;
 use App\Frontend\Services\StockService;
+use App\Support\PythonRunner;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -113,30 +114,30 @@ class BackfillStockPrices extends Command
         Log::info("backfill:stock-prices started inline", ['start' => $startDate, 'count' => $stocks->count()]);
 
         $bar        = $this->output->createProgressBar($chunks->count());
-        $pythonPath = config('services.python.path', 'python');
         $scriptPath = base_path('py/get_stock.py');
         $bar->start();
 
         foreach ($chunks as $chunk) {
             $symbolList = $chunk->pluck('symbol')->implode(',');
-            $command    = escapeshellarg($pythonPath)
-                . ' ' . escapeshellarg($scriptPath)
-                . ' ' . escapeshellarg($symbolList)
-                . ' ' . escapeshellarg($startDate)
-                . ' ' . escapeshellarg($end);
 
-            exec($command, $output, $returnVar);
+            // 550s per chunk — same ceiling as the queued equivalent (BackfillStockPriceChunk),
+            // so a hung API call fails a chunk fast instead of blocking this terminal
+            // session indefinitely. See App\Support\PythonRunner.
+            $run = PythonRunner::run(
+                $scriptPath,
+                [$symbolList, $startDate, $end],
+                550
+            );
 
             // Find last JSON line in output (vnstock may print banners above it)
             $jsonStr = '';
-            for ($i = count($output) - 1; $i >= 0; $i--) {
-                $line = trim($output[$i]);
+            for ($i = count($run['output']) - 1; $i >= 0; $i--) {
+                $line = trim($run['output'][$i]);
                 if (str_starts_with($line, '{') || str_starts_with($line, '[')) {
                     $jsonStr = $line;
                     break;
                 }
             }
-            $output = []; // reset for next exec call
 
             $result = $jsonStr ? json_decode($jsonStr, true) : null;
             if (! is_array($result) || ! isset($result['data'])) {

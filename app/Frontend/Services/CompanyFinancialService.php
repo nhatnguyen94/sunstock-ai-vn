@@ -3,6 +3,7 @@
 namespace App\Frontend\Services;
 
 use App\Frontend\Interfaces\CompanyFinancialRepositoryInterface;
+use App\Support\PythonRunner;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -88,24 +89,23 @@ class CompanyFinancialService
      */
     private function fetchFromPython(string $symbol, string $type, string $period): array
     {
-        $pythonPath = config('services.python.path', 'python');
-        $scriptPath = base_path('py/get_company_finance.py');
-
-        $cmd = escapeshellarg($pythonPath)
-            . ' ' . escapeshellarg($scriptPath)
-            . ' ' . escapeshellarg($symbol)
-            . ' ' . escapeshellarg($type)
-            . ' ' . escapeshellarg($period);
-
-        $output    = [];
-        $returnVar = 0;
-        // Redirect stderr to NUL on Windows, /dev/null on Unix
-        $redirect = DIRECTORY_SEPARATOR === '\\' ? ' 2>NUL' : ' 2>/dev/null';
-        exec($cmd . $redirect, $output, $returnVar);
+        // 35s: comfortably above vnstock's own ~30s internal HTTP read timeout (so a
+        // legitimately-slow-but-completing call isn't cut off early), while still
+        // bounding each of the up to 8 calls/run (4 types × 2 periods) SyncCompanyFinancialJob
+        // makes. This also indirectly restores Laravel's own job $timeout=180s: PHP can only
+        // act on a pending SIGALRM once exec() returns control to it, so bounding each
+        // individual call is what gives the job's own timeout a chance to actually fire
+        // between calls, instead of exec() blocking it out for the whole run.
+        $result = PythonRunner::run(
+            base_path('py/get_company_finance.py'),
+            [$symbol, $type, $period],
+            35,
+            suppressStderr: true
+        );
 
         // Scan backward from last line to find JSON output
-        for ($i = count($output) - 1; $i >= 0; $i--) {
-            $line = trim($output[$i]);
+        for ($i = count($result['output']) - 1; $i >= 0; $i--) {
+            $line = trim($result['output'][$i]);
             if (str_starts_with($line, '{')) {
                 $decoded = json_decode($line, true);
                 if (json_last_error() === JSON_ERROR_NONE) {
@@ -116,7 +116,7 @@ class CompanyFinancialService
 
         Log::warning('CompanyFinancialService: no JSON from Python', [
             'symbol' => $symbol, 'type' => $type, 'period' => $period,
-            'exit'   => $returnVar,
+            'exit'   => $result['exit_code'],
         ]);
 
         return ['error' => 'Failed to fetch financial data'];

@@ -8,6 +8,7 @@
 
 namespace App\Frontend\Services;
 
+use App\Support\PythonRunner;
 use Illuminate\Support\Facades\Log;
 
 class StockService
@@ -199,16 +200,20 @@ class StockService
         
         $symbolString = implode(',', $validatedSymbols);
 
-        $pythonPath = config('services.python.path', 'python');
-        $scriptPath = base_path('py/get_stock.py');
-        $command = escapeshellarg($pythonPath) . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($symbolString);
-        exec($command, $output, $returnVar);
+        // 280s: comfortably under ProcessStockPriceSync's own $timeout=300s — see
+        // App\Support\PythonRunner for why a hard OS-level timeout is needed here.
+        // A chunk (up to 20 symbols) is fetched in ONE Python call, looping per symbol
+        // internally — if the data source is down for most/all of the chunk, there is
+        // no value in grinding through all 20 (nothing will succeed); better to give up
+        // at this ceiling and let the job's normal retry, or the next scheduled run,
+        // pick it back up than tie up a worker for the chunk's full worst-case duration.
+        $result = PythonRunner::run(base_path('py/get_stock.py'), [$symbolString], 280);
 
         // Find the JSON string (usually the last line containing '{')
         $jsonStr = '';
-        for ($i = count($output) - 1; $i >= 0; $i--) {
-            if (strpos(trim($output[$i]), '{') === 0) {
-                $jsonStr = trim($output[$i]);
+        for ($i = count($result['output']) - 1; $i >= 0; $i--) {
+            if (strpos(trim($result['output'][$i]), '{') === 0) {
+                $jsonStr = trim($result['output'][$i]);
                 break;
             }
         }
@@ -223,15 +228,13 @@ class StockService
      */
     public function fetchStockListFromPython()
     {
-        $pythonPath = config('services.python.path', 'python');
-        $scriptPath = base_path('py/get_stock_list.py');
-        $command = escapeshellarg($pythonPath) . ' ' . escapeshellarg($scriptPath);
-        exec($command, $output, $returnVar);
+        // 120s: single call fetching the full symbol list, should take a few seconds normally.
+        $result = PythonRunner::run(base_path('py/get_stock_list.py'), [], 120);
 
         $jsonStr = '';
-        for ($i = count($output) - 1; $i >= 0; $i--) {
-            if (strpos(trim($output[$i]), '[') === 0 || strpos(trim($output[$i]), '{') === 0) {
-                $jsonStr = trim($output[$i]);
+        for ($i = count($result['output']) - 1; $i >= 0; $i--) {
+            if (strpos(trim($result['output'][$i]), '[') === 0 || strpos(trim($result['output'][$i]), '{') === 0) {
+                $jsonStr = trim($result['output'][$i]);
                 break;
             }
         }
@@ -251,23 +254,21 @@ class StockService
             $limit = 30;
         }
 
-        $pythonPath = config('services.python.path', 'python');
-        $scriptPath = base_path('py/get_hot_industries.py');
-        $command = escapeshellarg($pythonPath) . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg((string) $limit);
-        exec($command, $output, $returnVar);
+        // 60s: single call, small dataset, should be fast normally.
+        $result = PythonRunner::run(base_path('py/get_hot_industries.py'), [$limit], 60);
 
-        if ($returnVar !== 0) {
+        if ($result['exit_code'] !== 0) {
             Log::error('Python script error', [
-                'output' => $output,
-                'returnVar' => $returnVar,
+                'output' => $result['output'],
+                'returnVar' => $result['exit_code'],
             ]);
             return [];
         }
 
         $jsonStr = '';
-        for ($i = count($output) - 1; $i >= 0; $i--) {
-            if (strpos(trim($output[$i]), '[') === 0 || strpos(trim($output[$i]), '{') === 0) {
-                $jsonStr = trim($output[$i]);
+        for ($i = count($result['output']) - 1; $i >= 0; $i--) {
+            if (strpos(trim($result['output'][$i]), '[') === 0 || strpos(trim($result['output'][$i]), '{') === 0) {
+                $jsonStr = trim($result['output'][$i]);
                 break;
             }
         }

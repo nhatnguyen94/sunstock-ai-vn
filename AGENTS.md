@@ -84,7 +84,7 @@ After reading, you MUST output this block verbatim with your own answers filled 
 | `if ($user->role === 'admin')` | `if ($user->hasRole(Role::ADMIN))` | Use Role constants, never hardcode strings |
 | `Route::get('/admin/...')` without `admin` middleware | `Route::middleware(['admin'])->group(...)` | ALL backend routes need `admin` middleware |
 | Insert data without Gate check | Always use `Gate::authorize()` first | RBAC must be enforced before action |
-| Direct `shell_exec()` Python call | Use Service class with error handling | All Python calls go through Services |
+| Direct `exec()`/`shell_exec()` Python call | Use `App\Support\PythonRunner::run()`/`runAndDecodeJson()` | Plain `exec()` can't be interrupted by Laravel's job timeout — confirmed as a real bug, see `docs/PYTHON_INTEGRATION.md` |
 | Update `docs/HISTORY.md` before coding | Update HISTORY.md as FINAL STEP | Documentation updated AFTER complete |
 | Forget `composer dump-autoload` | Run after ALL new files created | Autoloading won't work without this |
 | Use `dd()` in Services | Return only JSON or structured data | Python stdout must be clean JSON |

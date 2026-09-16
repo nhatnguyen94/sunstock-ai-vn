@@ -106,6 +106,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 
 ### Support Classes
 - `app/Support/ActivityLogger.php` - Static helper `ActivityLogger::log(eventType, description, properties, user)`. Swallows all Throwable — never crashes calling code. Used in controllers for audit trail.
+- `app/Support/PythonRunner.php` - **Mandatory** wrapper for every `py/*.py` call (`run()`/`runAndDecodeJson()`) — wraps `exec()` with the Unix `timeout` utility so a hung Python subprocess can't block a worker/request past a configured ceiling, which plain `exec()` + Laravel's own job `--timeout` cannot guarantee (pcntl signal delivery doesn't interrupt a blocked syscall). See `docs/PYTHON_INTEGRATION.md` for the full per-call-site timeout table and the real bug this fixes.
 
 ### Notifications
 - `app/Notifications/PortfolioAlertNotification.php` - `ShouldQueue` mail notification; sent once when a `PortfolioItem` crosses `target_price` or `stop_loss_price`. Always queued `onQueue('high')` so it isn't delayed by heavy `default`-queue sync jobs.

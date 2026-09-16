@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\StockPrice;
+use App\Support\PythonRunner;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -53,21 +54,20 @@ class BackfillStockPriceChunk implements ShouldQueue
         $symbolList = implode(',', array_column($this->chunk, 'symbol'));
         Log::info("BackfillStockPriceChunk: start [{$symbolList}] {$this->startDate}→{$this->endDate}");
 
-        $pythonPath = config('services.python.path', 'python');
-        $scriptPath = base_path('py/get_stock.py');
-
-        $cmd = escapeshellarg($pythonPath)
-            . ' ' . escapeshellarg($scriptPath)
-            . ' ' . escapeshellarg($symbolList)
-            . ' ' . escapeshellarg($this->startDate)
-            . ' ' . escapeshellarg($this->endDate);
-
-        exec($cmd, $output, $exitCode);
+        // 550s: comfortably under this job's own $timeout=600s (10 min — long history
+        // fetch, per the class-level comment). See App\Support\PythonRunner for why a
+        // hard OS-level timeout is required here instead of relying on Laravel's own
+        // job timeout, which cannot interrupt a blocked exec() call.
+        $run = PythonRunner::run(
+            base_path('py/get_stock.py'),
+            [$symbolList, $this->startDate, $this->endDate],
+            550
+        );
 
         // vnstock may print version banners before JSON — scan from last line upward
         $jsonStr = '';
-        for ($i = count($output) - 1; $i >= 0; $i--) {
-            $line = trim($output[$i]);
+        for ($i = count($run['output']) - 1; $i >= 0; $i--) {
+            $line = trim($run['output'][$i]);
             if (str_starts_with($line, '{') || str_starts_with($line, '[')) {
                 $jsonStr = $line;
                 break;
@@ -77,7 +77,7 @@ class BackfillStockPriceChunk implements ShouldQueue
         $result = $jsonStr ? json_decode($jsonStr, true) : null;
 
         if (! is_array($result) || ! isset($result['data'])) {
-            Log::warning("BackfillStockPriceChunk: no data for [{$symbolList}]", ['exit' => $exitCode]);
+            Log::warning("BackfillStockPriceChunk: no data for [{$symbolList}]", ['exit' => $run['exit_code']]);
             return;
         }
 

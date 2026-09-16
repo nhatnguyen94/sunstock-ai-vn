@@ -2,7 +2,7 @@
 
 ## Overview
 
-Python scripts in `py/` are called from Laravel Service classes using PHP's `exec()` function. All scripts output **pure JSON** to stdout.
+Python scripts in `py/` are called from Laravel Service classes via **`App\Support\PythonRunner`** — never call `exec()` directly, see "Calling Pattern" below for why. All scripts output **pure JSON** to stdout.
 
 ## Python Config
 
@@ -22,24 +22,43 @@ PYTHON_PATH=python3
 PYTHON_PATH=C:/Python311/python.exe
 ```
 
-## Calling Pattern (Used in `StockService`)
+## Calling Pattern — `App\Support\PythonRunner` (MANDATORY, never call `exec()` directly)
 
 ```php
-$pythonPath = config('services.python.path', 'python');
-$scriptPath = base_path('py/get_stock.py');
-$command = escapeshellarg($pythonPath) . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($argument);
-exec($command, $output, $returnVar);
+use App\Support\PythonRunner;
 
-// JSON is always the LAST line starting with '{' or '['
+// Manual JSON-scan (when you need $exit_code/$timed_out, or custom parsing —
+// e.g. ExchangeRateService::parsePythonOutput() does its own multi-line parsing):
+$result = PythonRunner::run(base_path('py/get_stock.py'), [$argument], 280);
+// $result = ['output' => string[], 'exit_code' => int, 'timed_out' => bool]
+
+// Or, if you just want the decoded JSON (most callers):
+$decoded = PythonRunner::runAndDecodeJson(base_path('py/get_stock.py'), [$argument], 280);
+// null if no JSON-looking line was found in the output
+```
+
+Every argument in the array is shell-escaped individually — never build the command string yourself or interpolate arguments into a raw string.
+
+### Why `PythonRunner` exists instead of plain `exec()`
+
+**A real bug, found and fixed 2026-09-16 (see `docs/HISTORY.md`, `PYTHON_EXEC_TIMEOUT_FIX`):** a `ProcessStockPriceSync` job — which declares `public $timeout = 300` — was still shown as "processing" **9+ minutes** in, because the external VCI API (`trading.vietcap.com.vn`) was hanging on every request. Laravel's job/worker timeout relies on `pcntl_alarm()` delivering a `SIGALRM` that the PHP process must be free to handle — but while PHP is blocked inside `exec()`'s own blocking read, waiting on the Python subprocess, it cannot service that signal. The configured timeout was never actually enforced; the worker stayed stuck until the Python subprocess itself eventually returned (which, against a hung API, could be never).
+
+`PythonRunner::run()` wraps every command with the Unix `timeout` utility (GNU coreutils — present in the Docker image, `php:8.2-fpm` is Debian-based; **not** available on Windows, so this class silently falls back to a plain unwrapped `exec()` on Windows — same as before this fix, not worse, for XAMPP/manual dev setups). The OS itself kills the Python child if it runs past `$timeoutSeconds`, which makes `exec()`'s pipe hit EOF and return immediately — no dependency on PHP signal handling at all. Confirmed live: the same stuck jobs, after this fix, correctly terminated at ~286s (their 280s ceiling + a few seconds of `timeout`/PHP overhead) instead of hanging indefinitely.
+
+**Picking `$timeoutSeconds` for a new call site:** it must stay comfortably below whatever timeout governs the *calling* context (a job's own `$timeout`, the worker's `--timeout`, or — for a web request — reasonable UX), so that when it fires, there's still time to log/return cleanly. If one PHP method can invoke Python multiple times in a loop (e.g. `CompanyFinancialService::fetchFromPython()`, called up to 8× per `SyncCompanyFinancialJob` run), size each individual call well below `(job timeout) / (max calls)` — see that method's own comment for the reasoning. Bounding each individual call also has a secondary benefit: PHP only gets a chance to act on a pending job-timeout signal once `exec()` returns control to it, so keeping calls short is what lets Laravel's own job `$timeout` have a chance to fire at all between calls, on top of PythonRunner's own hard ceiling.
+
+### JSON scanning
+
+```php
+// PythonRunner::runAndDecodeJson() does this for you; shown here for when you
+// need the raw $result['output'] instead (see manual example above).
 $jsonStr = '';
-for ($i = count($output) - 1; $i >= 0; $i--) {
-    if (str_starts_with(trim($output[$i]), '{') || str_starts_with(trim($output[$i]), '[')) {
-        $jsonStr = trim($output[$i]);
+for ($i = count($result['output']) - 1; $i >= 0; $i--) {
+    if (str_starts_with(trim($result['output'][$i]), '{') || str_starts_with(trim($result['output'][$i]), '[')) {
+        $jsonStr = trim($result['output'][$i]);
         break;
     }
 }
-
-$result = json_decode($jsonStr, true) ?? ['error' => 'Parse error'];
 ```
 
 > **Why scan from the end?** Python's `vnstock` library may print warnings to stdout. The actual JSON is always the last non-empty JSON-like line.
@@ -82,6 +101,20 @@ $result = json_decode($jsonStr, true) ?? ['error' => 'Parse error'];
 - **Args**: None (interactive or reads from env)
 - **Output**: Status message or error JSON
 
+## Every `PythonRunner` call site and its `$timeoutSeconds`
+
+| Caller | Script | Context | Ceiling |
+|---|---|---|---|
+| `StockService::fetchStockDataFromPython()` | `get_stock.py` | `ProcessStockPriceSync` job (`$timeout=300`) | 280s |
+| `StockService::fetchStockListFromPython()` | `get_stock_list.py` | `sync:stock-data` command | 120s |
+| `StockService::fetchHotIndustriesFromPython()` | `get_hot_industries.py` | `sync:hot-industries` command | 60s |
+| `CompanyFinancialService::fetchFromPython()` | `get_company_finance.py` | `SyncCompanyFinancialJob` (`$timeout=180`), up to 8 calls/run | 35s |
+| `ExchangeRateService::fetchRatesFromPython()` | `get_exchange_rate.py` | Web request (`ExchangeRateController`) + `sync:exchange-rates` | 30s |
+| `BackfillStockPriceChunk::handle()` | `get_stock.py` | Queued job (`$timeout=600`) | 550s |
+| `BackfillStockPrices` (inline mode) | `get_stock.py` | Manual terminal run (`--dispatch` not passed) | 550s |
+
+Changing a job's own `$timeout`/a command's expected runtime? Update the matching row here and the matching `PythonRunner::run()` call together — they're meant to move as a pair.
+
 ## Rules for Python Scripts
 
 1. **Only JSON to stdout** — no `print("debug message")`, no logging to stdout
@@ -93,18 +126,11 @@ $result = json_decode($jsonStr, true) ?? ['error' => 'Parse error'];
 ## Adding a New Python Script
 
 1. Create `py/my_script.py` following the template above
-2. Add a method to the relevant Service class (e.g., `StockService`)
-3. Use the standard calling pattern (see above)
-4. Validate inputs with `escapeshellarg()` **always** — never interpolate user data into shell commands
+2. Add a method to the relevant Service class (e.g., `StockService`) that calls `App\Support\PythonRunner::run()` or `runAndDecodeJson()` — **never** call `exec()` directly, see "Calling Pattern" above
+3. Pick a `$timeoutSeconds` below whatever timeout governs the caller (job `$timeout`, worker `--timeout`, or reasonable UX for a web request) — see the sizing guidance above
+4. Arguments go in the `$args` array, one per element — `PythonRunner` shell-escapes each individually; never build the command string yourself
 5. Document the new script in this file
 
 ## Exchange Rate Service Pattern
 
-`ExchangeRateService` calls `py/get_exchange_rate.py` and stores results in the `exchange_rates` table via `ExchangeRateRepository`.
-
-```php
-// Typical flow in ExchangeRateService
-$output = $this->callPython('get_exchange_rate.py', $date);
-$rates = json_decode($output, true);
-$this->exchangeRateRepository->upsertRates($date, $rates);
-```
+`ExchangeRateService::fetchRatesFromPython()` calls `py/get_exchange_rate.py` via `PythonRunner::run()` and stores results in the `exchange_rates` table via `ExchangeRateRepository`.
