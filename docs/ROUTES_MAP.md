@@ -105,6 +105,7 @@
 | GET | `/admin/queue` | `admin.queue.index` | `QueueMonitorController` | `index` | `manage-queue` |
 | GET | `/admin/queue/stats` | `admin.queue.stats` | `QueueMonitorController` | `stats` | `manage-queue` |
 | POST | `/admin/queue/failed/retry-all` | `admin.queue.retry-all` | `QueueMonitorController` | `retryAll` | `manage-queue` |
+| DELETE | `/admin/queue/failed` | `admin.queue.destroy-all` | `QueueMonitorController` | `destroyAll` | `manage-queue` |
 | POST | `/admin/queue/failed/{uuid}/retry` | `admin.queue.retry` | `QueueMonitorController` | `retry` | `manage-queue` |
 | DELETE | `/admin/queue/failed/{uuid}` | `admin.queue.destroy` | `QueueMonitorController` | `destroy` | `manage-queue` |
 

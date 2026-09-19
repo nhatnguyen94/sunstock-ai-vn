@@ -207,4 +207,31 @@ class QueueMonitorControllerTest extends TestCase
         $response->assertJson(['success' => true]);
         $this->assertDatabaseCount('failed_jobs', 0);
     }
+
+    #[Group('queueMonitor')]
+    public function test_destroy_all_deletes_every_failed_job_and_reports_the_count(): void
+    {
+        $this->actingAsUserWithPermissions(['manage-queue']);
+        $this->insertFailedJob();
+        $this->insertFailedJob();
+        $this->insertFailedJob();
+
+        $response = $this->delete('/admin/queue/failed');
+
+        $response->assertOk();
+        $response->assertJson(['success' => true, 'message' => 'Đã xoá 3 job thất bại.']);
+        $this->assertDatabaseCount('failed_jobs', 0);
+    }
+
+    #[Group('queueMonitor')]
+    public function test_destroy_all_is_forbidden_without_manage_queue_permission(): void
+    {
+        $this->actingAsUserWithPermissions([]);
+        $uuid = $this->insertFailedJob();
+
+        $response = $this->delete('/admin/queue/failed');
+
+        $response->assertForbidden();
+        $this->assertDatabaseHas('failed_jobs', ['uuid' => $uuid]);
+    }
 }

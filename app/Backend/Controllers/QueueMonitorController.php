@@ -3,6 +3,7 @@
 namespace App\Backend\Controllers;
 
 use App\Backend\Interfaces\QueueMonitorServiceInterface;
+use App\Support\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
@@ -53,6 +54,18 @@ class QueueMonitorController extends Controller
                 : ['success' => false, 'message' => 'Không tìm thấy job.'],
             $ok ? 200 : 404
         );
+    }
+
+    public function destroyAll(): JsonResponse
+    {
+        $count = $this->queueMonitorService->deleteAllFailedJobs();
+
+        ActivityLogger::log('admin_action', "Xoá toàn bộ job thất bại: {$count} job");
+
+        return response()->json([
+            'success' => true,
+            'message' => "Đã xoá {$count} job thất bại.",
+        ]);
     }
 
     public function retryAll(): JsonResponse

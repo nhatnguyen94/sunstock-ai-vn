@@ -19,6 +19,8 @@ interface QueueMonitorServiceInterface
 
     public function retryAllFailedJobs(): int;
 
+    public function deleteAllFailedJobs(): int;
+
     /** @return array{processing: Collection, recent: Collection, processedToday: int} */
     public function getLiveActivity(): array;
 }

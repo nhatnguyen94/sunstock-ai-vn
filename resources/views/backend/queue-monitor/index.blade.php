@@ -100,6 +100,7 @@
                 <span class="text-muted me-3">{{ $failedJobs->total() }} job</span>
                 @if($failedJobs->total() > 0)
                 <button class="btn btn-sm btn-outline-success" id="btn-retry-all">Retry tất cả</button>
+                <button class="btn btn-sm btn-outline-danger ms-1" id="btn-delete-all">Xoá tất cả</button>
                 @endif
             </div>
         </div>
@@ -270,6 +271,23 @@ document.querySelectorAll('.btn-delete').forEach(btn => {
         }
         this.disabled = false;
     });
+});
+
+document.getElementById('btn-delete-all')?.addEventListener('click', async function () {
+    if (!confirm('Xoá VĨNH VIỄN toàn bộ job thất bại? Không thể hoàn tác.')) return;
+    this.disabled = true;
+    try {
+        const res = await fetch(@json(route('admin.queue.destroy-all')), {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+        });
+        const data = await res.json();
+        showToast(data.success ? 'success' : 'danger', data.message);
+        if (data.success) setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+        showToast('danger', 'Lỗi kết nối: ' + e.message);
+    }
+    this.disabled = false;
 });
 
 document.getElementById('btn-retry-all')?.addEventListener('click', async function () {

@@ -65,6 +65,11 @@ class QueueMonitorService implements QueueMonitorServiceInterface
         return $this->queueMonitorRepository->retryAllFailedJobs();
     }
 
+    public function deleteAllFailedJobs(): int
+    {
+        return $this->queueMonitorRepository->deleteAllFailedJobs();
+    }
+
     public function getLiveActivity(): array
     {
         $now = now();

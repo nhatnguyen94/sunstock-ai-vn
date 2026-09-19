@@ -25,6 +25,9 @@ interface QueueMonitorRepositoryInterface
 
     public function retryAllFailedJobs(): int;
 
+    /** Deletes every row in failed_jobs, returns how many were removed. */
+    public function deleteAllFailedJobs(): int;
+
     /** Jobs currently being worked on right now (status=processing), most recent first. */
     public function currentlyProcessing(): Collection;
 

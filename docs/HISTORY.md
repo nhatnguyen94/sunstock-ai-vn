@@ -2,6 +2,22 @@
 
 ---
 
+## QUEUE_DELETE_ALL_FAILED_JOBS - September 19, 2026
+
+### Summary:
+Admin > Giám sát Queue's "Job thất bại" card only had "Retry tất cả"; user asked for a matching "Xoá tất cả" button.
+
+### Added:
+- `QueueMonitorRepository::deleteAllFailedJobs()` (counts `failed_jobs`, then `Artisan::call('queue:flush')` — same "reuse Laravel's own command" approach as retry-all/forget), passed through `QueueMonitorService` and both interfaces.
+- `QueueMonitorController::destroyAll()` → `DELETE /admin/queue/failed` (`admin.queue.destroy-all`, gate `manage-queue`, same group as the other queue routes). Logs an `admin_action` entry via `ActivityLogger` ("Xoá toàn bộ job thất bại: N job") since it's irreversible.
+- View: red "Xoá tất cả" button next to "Retry tất cả", guarded by a `confirm()` that says the deletion is permanent, then reloads the page on success.
+- Tests (group `queueMonitor`, +2): deletes every row and reports the exact count; forbidden without `manage-queue` (rows untouched).
+
+### Verified:
+`php artisan test`: 151/151 passing. Route registered (`route:list`). Deliberately did **not** click the button against the live dev DB — it holds ~588 real historical failed-job rows and this action is irreversible; covered by the automated test against an isolated DB instead.
+
+---
+
 ## ADMIN_ACCOUNT_AND_NEWS_CATEGORIES - September 17, 2026
 
 ### Summary:

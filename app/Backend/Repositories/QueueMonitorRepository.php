@@ -56,6 +56,15 @@ class QueueMonitorRepository implements QueueMonitorRepositoryInterface
         return $count;
     }
 
+    public function deleteAllFailedJobs(): int
+    {
+        $count = DB::table('failed_jobs')->count();
+
+        Artisan::call('queue:flush');
+
+        return $count;
+    }
+
     public function currentlyProcessing(): Collection
     {
         return QueueJobLog::where('status', 'processing')

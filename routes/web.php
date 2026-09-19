@@ -168,6 +168,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/queue', [QueueMonitorController::class, 'index'])->name('queue.index');
             Route::get('/queue/stats', [QueueMonitorController::class, 'stats'])->name('queue.stats');
             Route::post('/queue/failed/retry-all', [QueueMonitorController::class, 'retryAll'])->name('queue.retry-all');
+            Route::delete('/queue/failed', [QueueMonitorController::class, 'destroyAll'])->name('queue.destroy-all');
             Route::post('/queue/failed/{uuid}/retry', [QueueMonitorController::class, 'retry'])->name('queue.retry');
             Route::delete('/queue/failed/{uuid}', [QueueMonitorController::class, 'destroy'])->name('queue.destroy');
         });

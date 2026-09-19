@@ -51,7 +51,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `UserController.php` - Admin user management (CRUD, role assignment)
   - `RoleController.php` - Role management: CRUD + assign permissions to a role (checkbox grid grouped by `permissions.group`). Gate: `manage-roles`. Blocks destroy for system roles (`RoleService::isSystemRole()`) and roles still assigned to a user.
   - `PermissionController.php` - Permission management: CRUD (name/display_name/group). Gate: `manage-permissions`. Blocks destroy for the 2 core permissions (`manage-roles`, `manage-permissions`) via `PermissionService::isCorePermission()`.
-  - `QueueMonitorController.php` - Queue dashboard: `index`/`stats` (JSON, polled), `retry`/`destroy`/`retryAll` for `failed_jobs`. Gate: `manage-queue`. See "Queue Monitoring" below.
+  - `QueueMonitorController.php` - Queue dashboard: `index`/`stats` (JSON, polled), `retry`/`destroy`/`retryAll`/`destroyAll` for `failed_jobs`. Gate: `manage-queue`. See "Queue Monitoring" below.
   - `StockController.php` - Admin stock management (list, update prices)
   - `NewsController.php` - Admin news management (list, update RSS)
   - `NewsCategoryController.php` - CRUD for `news_categories` (`/admin/news-categories`). Gate: `manage-features`. Blocks destroy for a category with existing `news` rows, or one referenced by `NewsService::SOURCES` (RSS sync would insert future articles under a `category_id` that no longer resolves).
@@ -66,7 +66,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `UserService.php` - Admin user management business logic (CRUD, role assignment). Implements `UserServiceInterface`, delegates DB to `UserRepository`.
   - `RoleService.php` - Role CRUD + `isSystemRole()` guard (admin/webadmin/adminsupport/user cannot be deleted via UI). `getPermissions()` for the picker form. Implements `RoleServiceInterface`, delegates DB to `RoleRepository`.
   - `PermissionService.php` - Permission CRUD + `isCorePermission()` guard (`manage-roles`/`manage-permissions` cannot be deleted via UI — would lock the admin out of this screen). Implements `PermissionServiceInterface`, delegates DB to `PermissionRepository`.
-  - `QueueMonitorService.php` - Queue stats + failed-job decoration (`job_class`/`short_exception`) + retry/delete/retry-all guards. Implements `QueueMonitorServiceInterface`, delegates to `QueueMonitorRepository`.
+  - `QueueMonitorService.php` - Queue stats + failed-job decoration (`job_class`/`short_exception`) + retry/delete/retry-all/delete-all. Implements `QueueMonitorServiceInterface`, delegates to `QueueMonitorRepository`.
 - **Repositories**: `app/Backend/Repositories/`
   - `StockRepository.php` - Admin stock DB operations (paginate with filters, getExchanges, create/update/delete with cache busting)
   - `NewsRepository.php` - News DB operations (paginate with filters, bulk insertNew with dedup, getSources, getLatestSyncTime)
@@ -139,12 +139,12 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - All three implement a `queueSummary(): string` method (no formal interface — checked via `method_exists()`) purely for the Queue Monitor's real-time display; unrelated to `handle()`/queue processing itself
 
 ### Queue Monitoring
-- `app/Backend/Controllers/QueueMonitorController.php` - `index` (dashboard), `stats` (JSON, polled every 5s by the page — queue depth + currently-processing + recently-finished + today's processed count), `retry`/`destroy`/`retryAll` for `failed_jobs` rows. Gate: `manage-queue`.
+- `app/Backend/Controllers/QueueMonitorController.php` - `index` (dashboard), `stats` (JSON, polled every 5s by the page — queue depth + currently-processing + recently-finished + today's processed count), `retry`/`destroy`/`retryAll`/`destroyAll` for `failed_jobs` rows. Gate: `manage-queue`.
 - `app/Backend/Services/QueueMonitorService.php` / `app/Backend/Repositories/QueueMonitorRepository.php` - Per-queue counts via `Queue::connection('redis')->pendingSize()/delayedSize()/reservedSize()`; failed jobs via `DB::table('failed_jobs')` + `Artisan::call('queue:retry'|'queue:forget')`; live activity via the `queue_job_logs` table (see below)
 - `App\Support\QueueJobLogger` - Static helper, registered against `Queue::before()/after()/failing()` in `AppServiceProvider::registerQueueMonitoring()`. Writes one `queue_job_logs` row per job attempt (started/finished/duration/status), and best-effort extracts a human-readable `summary` by unserializing the job command and calling its `queueSummary()` if present. Same "never crash the caller" pattern as `App\Support\ActivityLogger` — here the caller is a live queue worker, so this matters even more.
 - `App\Models\QueueJobLog` - `job_id` (stable per job attempt, from `Job::getJobId()`), `job_class`, `queue`, `summary`, `status` (processing/completed/failed/stale), `started_at`, `finished_at`, `duration_ms`
 - `app/Console/Commands/PruneQueueJobLogs.php` (`queue-logs:prune`, hourly via scheduler) - Marks `processing` rows stuck >20 min as `stale` (a crashed worker never fired the finish event) and deletes finished/stale rows older than 3 days
-- `resources/views/backend/queue-monitor/index.blade.php` - Tabler cards (per-queue counts) + 2 live tables (currently-processing, recently-finished, both rebuilt client-side from the JSON `stats` response every 5s) + failed-jobs table (retry/delete/retry-all), vanilla JS `fetch()` — same pattern as `backend/sync-status/index.blade.php`
+- `resources/views/backend/queue-monitor/index.blade.php` - Tabler cards (per-queue counts) + 2 live tables (currently-processing, recently-finished, both rebuilt client-side from the JSON `stats` response every 5s) + failed-jobs table (retry/delete/retry-all/delete-all), vanilla JS `fetch()` — same pattern as `backend/sync-status/index.blade.php`
 - `docker/php/supervisord.conf` (queue container) - 3 `queue:work redis --queue=high,default` processes (plain Laravel, no third-party package — a Horizon-based dashboard was tried and removed, see docs/HISTORY.md QUEUE_MONITOR_CUSTOM_PAGE for why)
 - `config/queue.php` - `connections.redis.retry_after` (660s) must stay above the workers' `--timeout` (600s), see the comment there
 
