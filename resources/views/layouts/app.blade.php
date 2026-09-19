@@ -69,6 +69,11 @@
                             </a>
                         </div>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->is('funds*') ? 'active' : '' }}" href="{{ route('funds.index') }}">
+                            <i class="bi bi-pie-chart"></i> Quỹ mở
+                        </a>
+                    </li>
                     @auth
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('portfolio*') ? 'active' : '' }}" href="{{ route('portfolio.index') }}">

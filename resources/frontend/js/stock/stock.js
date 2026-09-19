@@ -1,446 +1,255 @@
-﻿function searchSymbol(symbol) {
+// Stock page: TradingView Lightweight Charts price chart (candles / area + volume + indicators),
+// price history table, financial statements and symbol search.
+import {
+    AreaSeries, CandlestickSeries, HistogramSeries, LineSeries, LineStyle,
+    COLORS, DEC_FORMAT, PRICE_FORMAT, attachLegend, cleanSeries, fmtDec, fmtInt, fmtPrice, makeChart, toDay,
+} from '../shared/charts.js';
+import { bollinger, macd, rsi, sma } from '../shared/indicators.js';
+
+window.searchSymbol = function (symbol) {
     document.getElementById('symbol').value = symbol;
     document.querySelector('.search-section form').submit();
-}
+};
 
 if (typeof rawData !== 'undefined' && rawData.length > 0) {
-
-// â”€â”€â”€ BASE DATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const allCandles = rawData.map(d => ({
-    x: new Date(d.time),
-    y: [parseFloat(d.open), parseFloat(d.high), parseFloat(d.low), parseFloat(d.close)]
-}));
-const allCloses = rawData.map(d => ({ x: new Date(d.time), y: parseFloat(d.close) }));
-const lineSeries = rawData.map(d => [new Date(d.time).getTime(), parseFloat(d.close)]);
-
-let activeMonths = 0;
-
-// â”€â”€â”€ INDICATOR MATH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function calcSMA(pts, n) {
-    return pts.map((p, i) => ({
-        x: p.x,
-        y: i < n - 1 ? null
-            : parseFloat((pts.slice(i - n + 1, i + 1).reduce((s, c) => s + c.y, 0) / n).toFixed(2))
-    }));
+    initPriceChart();
+    initPriceTable();
 }
 
-function calcEMAValues(values, n) {
-    // values = array of numbers (may contain nulls)
-    const k = 2 / (n + 1);
-    const out = new Array(values.length).fill(null);
-    const first = values.findIndex(v => v !== null);
-    if (first < 0) return out;
-    out[first] = values[first];
-    for (let i = first + 1; i < values.length; i++) {
-        const prev = out[i - 1] !== null ? out[i - 1] : values[i];
-        out[i] = values[i] !== null
-            ? parseFloat((values[i] * k + prev * (1 - k)).toFixed(4))
-            : prev;
-    }
-    return out;
-}
+function initPriceChart() {
+    const bars = cleanSeries(rawData.map((d) => ({
+        time: toDay(d.time),
+        open: parseFloat(d.open), high: parseFloat(d.high), low: parseFloat(d.low), close: parseFloat(d.close),
+        value: parseFloat(d.close),
+        volume: parseFloat(d.volume) || 0,
+    })));
+    if (!bars.length) return;
 
-function calcBB(pts, n = 20, mult = 2) {
-    const mid = calcSMA(pts, n);
-    const upper = pts.map((p, i) => {
-        if (mid[i].y === null) return { x: p.x, y: null };
-        const slice = pts.slice(i - n + 1, i + 1).map(c => c.y);
-        const std = Math.sqrt(slice.reduce((s, v) => s + (v - mid[i].y) ** 2, 0) / n);
-        return { x: p.x, y: parseFloat((mid[i].y + mult * std).toFixed(2)) };
+    const times = bars.map((b) => b.time);
+    const closes = bars.map((b) => b.close);
+    const indexByTime = new Map(times.map((t, i) => [t, i]));
+    const el = document.getElementById('priceChart');
+    const BASE_HEIGHT = 480, SUB_HEIGHT = 170;
+
+    const chart = makeChart(el);
+
+    // Candles (default) and area (line mode) share one chart so indicators/volume/legend work in both.
+    const candle = chart.addSeries(CandlestickSeries, {
+        upColor: COLORS.up, downColor: COLORS.down, borderVisible: false,
+        wickUpColor: COLORS.up, wickDownColor: COLORS.down, priceFormat: PRICE_FORMAT,
     });
-    const lower = pts.map((p, i) => {
-        if (mid[i].y === null) return { x: p.x, y: null };
-        const slice = pts.slice(i - n + 1, i + 1).map(c => c.y);
-        const std = Math.sqrt(slice.reduce((s, v) => s + (v - mid[i].y) ** 2, 0) / n);
-        return { x: p.x, y: parseFloat((mid[i].y - mult * std).toFixed(2)) };
+    candle.setData(bars.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })));
+
+    const area = chart.addSeries(AreaSeries, {
+        lineColor: COLORS.blue, topColor: 'rgba(37,99,235,0.35)', bottomColor: 'rgba(37,99,235,0)',
+        lineWidth: 2, visible: false, priceFormat: PRICE_FORMAT,
     });
-    return { upper, mid, lower };
-}
+    area.setData(bars.map(({ time, close }) => ({ time, value: close })));
 
-function calcRSI(pts, n = 14) {
-    const out = pts.map(p => ({ x: p.x, y: null }));
-    if (pts.length < n + 1) return out;
-    let avgGain = 0, avgLoss = 0;
-    for (let i = 1; i <= n; i++) {
-        const d = pts[i].y - pts[i - 1].y;
-        if (d > 0) avgGain += d; else avgLoss -= d;
-    }
-    avgGain /= n; avgLoss /= n;
-    out[n].y = parseFloat((100 - 100 / (1 + avgGain / (avgLoss || 1e-10))).toFixed(2));
-    for (let i = n + 1; i < pts.length; i++) {
-        const d = pts[i].y - pts[i - 1].y;
-        avgGain = (avgGain * (n - 1) + Math.max(0, d)) / n;
-        avgLoss = (avgLoss * (n - 1) + Math.max(0, -d)) / n;
-        out[i].y = parseFloat((100 - 100 / (1 + avgGain / (avgLoss || 1e-10))).toFixed(2));
-    }
-    return out;
-}
+    // Volume as a translucent histogram pinned to the bottom 20% of the main pane.
+    const volume = chart.addSeries(HistogramSeries, {
+        priceScaleId: 'volume', priceFormat: { type: 'volume' },
+        lastValueVisible: false, priceLineVisible: false,
+    });
+    chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+    volume.setData(bars.map((b) => ({
+        time: b.time, value: b.volume,
+        color: b.close >= b.open ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)',
+    })));
 
-function calcMACD(pts, fast = 12, slow = 26, signal = 9) {
-    const prices = pts.map(p => p.y);
-    const ema12v = calcEMAValues(prices, fast);
-    const ema26v = calcEMAValues(prices, slow);
-    const macdV  = prices.map((_, i) =>
-        ema12v[i] !== null && ema26v[i] !== null
-            ? parseFloat((ema12v[i] - ema26v[i]).toFixed(4)) : null);
-    const sigV   = calcEMAValues(macdV, signal);
-    return {
-        macd:      pts.map((p, i) => ({ x: p.x, y: macdV[i] !== null ? parseFloat(macdV[i].toFixed(2)) : null })),
-        signal:    pts.map((p, i) => ({ x: p.x, y: sigV[i]  !== null ? parseFloat(sigV[i].toFixed(2))  : null })),
-        histogram: pts.map((p, i) => ({
-            x: p.x,
-            y: macdV[i] !== null && sigV[i] !== null ? parseFloat((macdV[i] - sigV[i]).toFixed(2)) : null
-        }))
+    // ── Legend (OHLC + change + volume + active indicator values under the crosshair) ──
+    const active = {};   // name -> { color, series: [..primary series for the legend value] }
+    const num = (v) => (v === undefined || v === null ? '—' : fmtPrice(v));
+    const vol = (v) => (v === undefined || v === null ? '—' : fmtInt(v));
+
+    function legendFor(time, seriesData) {
+        const i = indexByTime.get(time);
+        if (i === undefined) return null;
+        const b = bars[i];
+        const prev = i > 0 ? bars[i - 1].close : null;
+        const chg = prev ? ((b.close / prev - 1) * 100) : null;
+        const cls = chg === null ? '' : chg >= 0 ? 'up' : 'down';
+        const date = time.split('-').reverse().join('/');
+
+        let html = `<span class="lwc-date">${date}</span>` +
+            `<span>M <b>${num(b.open)}</b></span><span>C <b>${num(b.high)}</b></span>` +
+            `<span>T <b>${num(b.low)}</b></span><span>Đ <b class="${cls}">${num(b.close)}</b></span>` +
+            (chg === null ? '' : `<span class="${cls}">${chg >= 0 ? '+' : ''}${fmtDec(chg)}%</span>`) +
+            `<span>KL <b>${vol(b.volume)}</b></span>`;
+
+        Object.entries(active).forEach(([name, ind]) => {
+            const d = seriesData ? seriesData.get(ind.series[0]) : ind.lastValue?.(i);
+            const v = d && (d.value ?? undefined);
+            if (v !== undefined) html += `<span style="color:${ind.color}">${name} <b>${fmtDec(v)}</b></span>`;
+        });
+        return html;
+    }
+
+    const legend = attachLegend(chart, el, (param) => legendFor(param.time, param.seriesData), legendFor(times[times.length - 1], null));
+    const refreshLegend = () => legend.setInitial(legendFor(times[times.length - 1], null));
+
+    // ── Overlay indicators (MA / Bollinger) ─────────────────────────────────
+    const toLine = (values) => values.map((v, i) => (v === null ? null : { time: times[i], value: v })).filter(Boolean);
+    const overlayLine = (color, width = 1.5, extra = {}) => chart.addSeries(LineSeries, {
+        color, lineWidth: width, priceLineVisible: false, lastValueVisible: false,
+        crosshairMarkerVisible: false, priceFormat: PRICE_FORMAT, ...extra,
+    });
+
+    const OVERLAYS = {
+        MA20: () => { const s = overlayLine('#f59e0b'); s.setData(toLine(sma(closes, 20))); return { color: '#f59e0b', series: [s] }; },
+        MA50: () => { const s = overlayLine('#3b82f6'); s.setData(toLine(sma(closes, 50))); return { color: '#3b82f6', series: [s] }; },
+        MA200: () => { const s = overlayLine('#ec4899'); s.setData(toLine(sma(closes, 200))); return { color: '#ec4899', series: [s] }; },
+        BB: () => {
+            const b = bollinger(closes, 20, 2);
+            const up = overlayLine('#8b5cf6', 1), mid = overlayLine('rgba(139,92,246,0.5)', 1, { lineStyle: LineStyle.Dashed }), lo = overlayLine('#8b5cf6', 1);
+            up.setData(toLine(b.upper)); mid.setData(toLine(b.mid)); lo.setData(toLine(b.lower));
+            return { color: '#8b5cf6', series: [mid, up, lo] };
+        },
     };
-}
 
-// â”€â”€â”€ PRE-COMPUTE (full dataset) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const PRE = {
-    ma20:  calcSMA(allCloses, 20),
-    ma50:  calcSMA(allCloses, 50),
-    ma200: calcSMA(allCloses, 200),
-    bb:    calcBB(allCloses, 20, 2),
-    rsi:   calcRSI(allCloses, 14),
-    macd:  calcMACD(allCloses, 12, 26, 9),
-};
+    // ── Sub-indicators live in extra panes of the SAME chart: shared time axis + crosshair ──
+    const subPanes = [];   // names in pane order: 'RSI' | 'MACD'
 
-// â”€â”€â”€ ACTIVE INDICATORS STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const activeIndicators = new Set();
-
-// â”€â”€â”€ DATE FILTER HELPER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function getStartIndex(months) {
-    if (!months) return 0;
-    const cutoff = Date.now() - months * 30.5 * 24 * 3600000;
-    const idx = rawData.findIndex(d => d.time >= cutoff);
-    return idx >= 0 ? idx : 0;
-}
-
-// â”€â”€â”€ BUILD MAIN CHART SERIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function buildMainSeries(months) {
-    const s = getStartIndex(months);
-    const series = [{ name: 'GiÃ¡', type: 'candlestick', data: allCandles.slice(s) }];
-
-    if (activeIndicators.has('MA20'))
-        series.push({ name: 'MA20',     type: 'line', data: PRE.ma20.slice(s),    color: '#f59e0b' });
-    if (activeIndicators.has('MA50'))
-        series.push({ name: 'MA50',     type: 'line', data: PRE.ma50.slice(s),    color: '#3b82f6' });
-    if (activeIndicators.has('MA200'))
-        series.push({ name: 'MA200',    type: 'line', data: PRE.ma200.slice(s),   color: '#ec4899' });
-    if (activeIndicators.has('BB')) {
-        series.push({ name: 'BB Upper', type: 'line', data: PRE.bb.upper.slice(s), color: '#8b5cf6' });
-        series.push({ name: 'BB Mid',   type: 'line', data: PRE.bb.mid.slice(s),   color: '#8b5cf680' });
-        series.push({ name: 'BB Lower', type: 'line', data: PRE.bb.lower.slice(s), color: '#8b5cf6' });
+    function relayout() {
+        el.style.height = (BASE_HEIGHT + SUB_HEIGHT * subPanes.length) + 'px';
+        const panes = chart.panes();
+        panes.forEach((p, idx) => p.setStretchFactor(idx === 0 ? 3 : 1));
     }
-    return series;
-}
 
-// â”€â”€â”€ APEXCHARTS: CANDLESTICK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const candleOptions = {
-    series: [{ name: 'GiÃ¡', type: 'candlestick', data: allCandles }],
-    chart: {
-        id: 'mainChart',
-        type: 'candlestick',
-        height: 480,
-        toolbar: { show: true, tools: { download: true, selection: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } },
-        animations: { enabled: true, easing: 'easeinout', speed: 600 },
-        background: 'transparent',
-        fontFamily: 'Inter, sans-serif',
-    },
-    plotOptions: {
-        candlestick: {
-            colors: { upward: '#10b981', downward: '#ef4444' },
-            wick: { useFillColor: true }
-        }
-    },
-    stroke: { width: [1, 1.5, 1.5, 1.5, 1, 1, 1] },
-    legend: { show: false },
-    xaxis: {
-        type: 'datetime',
-        labels: {
-            datetimeFormatter: { year: 'yyyy', month: 'MM/yyyy', day: 'dd/MM' },
-            style: { fontSize: '11px', colors: '#6b7280' }
+    const SUB = {
+        RSI: (pane) => {
+            const s = chart.addSeries(LineSeries, {
+                color: '#06b6d4', lineWidth: 2, priceLineVisible: false,
+                priceFormat: DEC_FORMAT,
+                autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }),
+            }, pane);
+            s.setData(toLine(rsi(closes, 14)));
+            s.createPriceLine({ price: 70, color: COLORS.down, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'Quá mua' });
+            s.createPriceLine({ price: 30, color: COLORS.up, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'Quá bán' });
+            return { color: '#06b6d4', series: [s] };
         },
-        axisBorder: { show: false },
-        axisTicks: { show: false }
-    },
-    yaxis: {
-        tooltip: { enabled: true },
-        labels: {
-            formatter: v => v ? (v / 1000).toFixed(0) + 'K' : '',
-            style: { fontSize: '11px', colors: '#6b7280' }
-        }
-    },
-    tooltip: {
-        theme: 'light',
-        x: { format: 'dd/MM/yyyy' },
-        y: { formatter: v => v ? Number(v).toLocaleString('vi-VN') + ' VNÄ' : '' }
-    },
-    grid: { borderColor: '#f3f4f6', strokeDashArray: 4 }
-};
-
-// â”€â”€â”€ APEXCHARTS: AREA LINE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const lineOptions = {
-    series: [{ name: 'GiÃ¡ Ä‘Ã³ng cá»­a', data: lineSeries }],
-    chart: {
-        type: 'area',
-        height: 480,
-        toolbar: { show: true, tools: { download: true, selection: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } },
-        animations: { enabled: true, easing: 'easeinout', speed: 800, animateGradually: { enabled: true, delay: 100 } },
-        background: 'transparent',
-        fontFamily: 'Inter, sans-serif',
-    },
-    stroke: { curve: 'smooth', width: 2.5, colors: ['#2563eb'] },
-    fill: {
-        type: 'gradient',
-        gradient: {
-            shadeIntensity: 1,
-            opacityFrom: 0.45,
-            opacityTo: 0.0,
-            stops: [0, 100],
-            colorStops: [
-                { offset: 0, color: '#2563eb', opacity: 0.4 },
-                { offset: 100, color: '#2563eb', opacity: 0 }
-            ]
-        }
-    },
-    colors: ['#2563eb'],
-    xaxis: {
-        type: 'datetime',
-        labels: {
-            datetimeFormatter: { year: 'yyyy', month: 'MM/yyyy', day: 'dd/MM' },
-            style: { fontSize: '11px', colors: '#6b7280' }
+        MACD: (pane) => {
+            const m = macd(closes, 12, 26, 9);
+            const hist = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false, priceFormat: DEC_FORMAT }, pane);
+            const line = chart.addSeries(LineSeries, { color: '#10b981', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, priceFormat: DEC_FORMAT }, pane);
+            const sig = chart.addSeries(LineSeries, { color: '#f59e0b', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, priceFormat: DEC_FORMAT }, pane);
+            hist.setData(m.hist.map((v, i) => (v === null ? null : { time: times[i], value: v, color: v >= 0 ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)' })).filter(Boolean));
+            line.setData(toLine(m.line));
+            sig.setData(toLine(m.signal));
+            return { color: '#10b981', series: [line, sig, hist] };
         },
-        axisBorder: { show: false },
-        axisTicks: { show: false }
-    },
-    yaxis: {
-        labels: {
-            formatter: v => (v / 1000).toFixed(0) + 'K',
-            style: { fontSize: '11px', colors: '#6b7280' }
+    };
+
+    function toggleIndicator(name, on) {
+        if (on && !active[name]) {
+            if (SUB[name]) {
+                subPanes.push(name);
+                active[name] = SUB[name](subPanes.length);   // pane 0 is the price pane
+                relayout();
+            } else {
+                active[name] = OVERLAYS[name]();
+            }
+        } else if (!on && active[name]) {
+            active[name].series.forEach((s) => chart.removeSeries(s));   // an emptied pane disappears by itself
+            delete active[name];
+            const at = subPanes.indexOf(name);
+            if (at >= 0) { subPanes.splice(at, 1); relayout(); }
         }
-    },
-    tooltip: {
-        theme: 'light',
-        x: { format: 'dd/MM/yyyy' },
-        y: { formatter: v => Number(v).toLocaleString('vi-VN') + ' VNÄ' }
-    },
-    grid: { borderColor: '#f3f4f6', strokeDashArray: 4 },
-    markers: { size: 0, hover: { size: 5 } },
-    dataLabels: { enabled: false }
-};
+        refreshLegend();
+    }
 
-// â”€â”€â”€ APEXCHARTS: RSI SUB-CHART â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const rsiOptions = {
-    series: [{ name: 'RSI', data: [] }],
-    chart: { type: 'line', height: 160, toolbar: { show: false }, background: 'transparent', fontFamily: 'Inter, sans-serif' },
-    stroke: { width: 1.5, colors: ['#06b6d4'] },
-    colors: ['#06b6d4'],
-    xaxis: {
-        type: 'datetime',
-        labels: { datetimeFormatter: { day: 'dd/MM' }, style: { fontSize: '10px', colors: '#9ca3af' } },
-        axisBorder: { show: false }, axisTicks: { show: false }
-    },
-    yaxis: {
-        min: 0, max: 100,
-        tickAmount: 4,
-        labels: { formatter: v => v.toFixed(0), style: { fontSize: '10px', colors: '#9ca3af' } }
-    },
-    annotations: {
-        yaxis: [
-            { y: 70, borderColor: '#ef4444', borderWidth: 1, strokeDashArray: 4, label: { text: '70', style: { color: '#ef4444', fontSize: '10px', background: 'transparent' } } },
-            { y: 30, borderColor: '#10b981', borderWidth: 1, strokeDashArray: 4, label: { text: '30', style: { color: '#10b981', fontSize: '10px', background: 'transparent' } } },
-        ]
-    },
-    tooltip: { theme: 'light', x: { format: 'dd/MM/yyyy' }, y: { formatter: v => v !== null ? v.toFixed(2) : '' } },
-    grid: { borderColor: '#f3f4f6', strokeDashArray: 4 },
-    dataLabels: { enabled: false },
-    legend: { show: false }
-};
+    [['indMA20', 'MA20'], ['indMA50', 'MA50'], ['indMA200', 'MA200'], ['indBB', 'BB'], ['indRSI', 'RSI'], ['indMACD', 'MACD']]
+        .forEach(([id, name]) => document.getElementById(id)?.addEventListener('change', (e) => toggleIndicator(name, e.target.checked)));
 
-// â”€â”€â”€ APEXCHARTS: MACD SUB-CHART â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const macdOptions = {
-    series: [
-        { name: 'MACD',      type: 'line', data: [] },
-        { name: 'Signal',    type: 'line', data: [] },
-        { name: 'Histogram', type: 'bar',  data: [] },
-    ],
-    chart: { type: 'line', height: 180, toolbar: { show: false }, background: 'transparent', fontFamily: 'Inter, sans-serif' },
-    stroke: { width: [1.5, 1.5, 0] },
-    colors: ['#10b981', '#f59e0b', '#6b7280'],
-    plotOptions: { bar: { colors: { ranges: [{ from: -1e9, to: 0, color: '#ef4444' }, { from: 0, to: 1e9, color: '#10b981' }] } } },
-    xaxis: {
-        type: 'datetime',
-        labels: { datetimeFormatter: { day: 'dd/MM' }, style: { fontSize: '10px', colors: '#9ca3af' } },
-        axisBorder: { show: false }, axisTicks: { show: false }
-    },
-    yaxis: { labels: { formatter: v => v !== null ? v.toFixed(2) : '', style: { fontSize: '10px', colors: '#9ca3af' } } },
-    tooltip: { theme: 'light', x: { format: 'dd/MM/yyyy' } },
-    grid: { borderColor: '#f3f4f6', strokeDashArray: 4 },
-    dataLabels: { enabled: false },
-    legend: { show: true, fontSize: '11px', position: 'top', horizontalAlign: 'left', offsetY: -5, itemMargin: { horizontal: 8 } }
-};
+    // ── Candle / line toggle ────────────────────────────────────────────────
+    function setMode(mode) {
+        candle.applyOptions({ visible: mode === 'candle' });
+        area.applyOptions({ visible: mode === 'line' });
+        document.getElementById('btnCandle').classList.toggle('active', mode === 'candle');
+        document.getElementById('btnLine').classList.toggle('active', mode === 'line');
+    }
+    document.getElementById('btnCandle').addEventListener('click', () => setMode('candle'));
+    document.getElementById('btnLine').addEventListener('click', () => setMode('line'));
 
-// â”€â”€â”€ RENDER CHARTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-let candleChart = new ApexCharts(document.getElementById('apexCandleChart'), candleOptions);
-let lineChart   = new ApexCharts(document.getElementById('apexLineChart'),   lineOptions);
-let rsiChart    = null;
-let macdChart   = null;
-candleChart.render();
-lineChart.render();
-
-// â”€â”€â”€ CHART TYPE TOGGLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-document.getElementById('btnCandle').addEventListener('click', function () {
-    document.getElementById('apexCandleChart').classList.add('active');
-    document.getElementById('apexLineChart').classList.remove('active');
-    document.getElementById('indicatorToolbar').style.display = '';
-    this.classList.add('active');
-    document.getElementById('btnLine').classList.remove('active');
-    candleChart.updateOptions({}, false, true);
-});
-document.getElementById('btnLine').addEventListener('click', function () {
-    document.getElementById('apexLineChart').classList.add('active');
-    document.getElementById('apexCandleChart').classList.remove('active');
-    document.getElementById('indicatorToolbar').style.display = 'none';
-    this.classList.add('active');
-    document.getElementById('btnCandle').classList.remove('active');
-    lineChart.updateOptions({}, false, true);
-});
-
-// â”€â”€â”€ REFRESH SUB-CHARTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function refreshSubCharts(months) {
-    const s = getStartIndex(months);
-    if (rsiChart)  rsiChart.updateSeries([{ name: 'RSI', data: PRE.rsi.slice(s) }]);
-    if (macdChart) macdChart.updateSeries([
-        { name: 'MACD',      type: 'line', data: PRE.macd.macd.slice(s) },
-        { name: 'Signal',    type: 'line', data: PRE.macd.signal.slice(s) },
-        { name: 'Histogram', type: 'bar',  data: PRE.macd.histogram.slice(s) },
-    ]);
-}
-
-// â”€â”€â”€ PERIOD FILTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-document.querySelectorAll('.period-btn').forEach(btn => {
-    btn.addEventListener('click', function () {
-        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    // ── Period buttons zoom the time axis (all history stays scrollable) ────
+    function setPeriod(months) {
+        if (!months) { chart.timeScale().fitContent(); return; }
+        const last = new Date(times[times.length - 1] + 'T00:00:00Z');
+        const from = new Date(last.getTime() - months * 30.5 * 86400000).toISOString().slice(0, 10);
+        const first = times.find((t) => t >= from) || times[0];
+        chart.timeScale().setVisibleRange({ from: first, to: times[times.length - 1] });
+    }
+    document.querySelectorAll('.period-btn[data-months]').forEach((btn) => btn.addEventListener('click', function () {
+        document.querySelectorAll('.period-btn[data-months]').forEach((b) => b.classList.remove('active'));
         this.classList.add('active');
-        activeMonths = parseInt(this.dataset.months) || 0;
-        const s = getStartIndex(activeMonths);
-        // Main charts
-        candleChart.updateOptions({ series: buildMainSeries(activeMonths) }, false, false);
-        lineChart.updateSeries([{ name: 'GiÃ¡ Ä‘Ã³ng cá»­a', data: lineSeries.slice(s) }]);
-        // Sub-charts
-        refreshSubCharts(activeMonths);
+        setPeriod(parseInt(this.dataset.months, 10) || 0);
+    }));
+
+    // ── Save as PNG (replaces the old toolbar's download button) ────────────
+    document.getElementById('btnShot')?.addEventListener('click', () => {
+        chart.takeScreenshot().toBlob((blob) => {
+            if (!blob) return;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${typeof stockSymbol !== 'undefined' ? stockSymbol : 'chart'}-${times[times.length - 1]}.png`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        });
     });
-});
 
-// â”€â”€â”€ INDICATOR TOGGLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function handleIndicatorToggle(name, checked) {
-    if (checked) activeIndicators.add(name); else activeIndicators.delete(name);
+    chart.timeScale().fitContent();
+}
 
-    // RSI â€” separate sub-chart
-    if (name === 'RSI') {
-        const wrapper = document.getElementById('rsiChartWrapper');
-        if (checked) {
-            wrapper.style.display = '';
-            if (!rsiChart) {
-                const s = getStartIndex(activeMonths);
-                rsiChart = new ApexCharts(document.getElementById('rsiChart'),
-                    Object.assign({}, rsiOptions, { series: [{ name: 'RSI', data: PRE.rsi.slice(s) }] }));
-                rsiChart.render();
-            } else {
-                refreshSubCharts(activeMonths);
-            }
-        } else {
-            wrapper.style.display = 'none';
-        }
-        return;
+// ─── DATA TABLE ─────────────────────────────────────────────────────────────
+function initPriceTable() {
+    const pageSize = 20;
+    let currentPage = 1;
+    const newestFirst = rawData.slice().reverse();
+
+    function renderTable(page) {
+        currentPage = page;
+        const start = (page - 1) * pageSize;
+        const tbody = document.getElementById('priceTableBody');
+        tbody.innerHTML = newestFirst.slice(start, start + pageSize).map((item) => {
+            const date = new Date(item.time).toLocaleDateString('vi-VN');
+            const isUp = parseFloat(item.close) >= parseFloat(item.open);
+            return `<tr>
+                <td style="font-weight:600;">${date}</td>
+                <td>${Number(item.open).toLocaleString()}</td>
+                <td class="price-positive">${Number(item.high).toLocaleString()}</td>
+                <td class="price-negative">${Number(item.low).toLocaleString()}</td>
+                <td style="font-weight:700;color:${isUp ? '#10b981' : '#ef4444'};">
+                    <i class="bi bi-${isUp ? 'arrow-up' : 'arrow-down'}"></i>
+                    ${Number(item.close).toLocaleString()}
+                </td>
+                <td class="volume-cell">${Number(item.volume).toLocaleString()}</td>
+                <td><span class="badge badge-primary">${item.currency || 'VND'}</span></td>
+            </tr>`;
+        }).join('');
+        renderPagination();
     }
 
-    // MACD â€” separate sub-chart
-    if (name === 'MACD') {
-        const wrapper = document.getElementById('macdChartWrapper');
-        if (checked) {
-            wrapper.style.display = '';
-            const s = getStartIndex(activeMonths);
-            if (!macdChart) {
-                const opts = JSON.parse(JSON.stringify(macdOptions));
-                opts.series[0].data = PRE.macd.macd.slice(s);
-                opts.series[1].data = PRE.macd.signal.slice(s);
-                opts.series[2].data = PRE.macd.histogram.slice(s);
-                macdChart = new ApexCharts(document.getElementById('macdChart'), opts);
-                macdChart.render();
-            } else {
-                refreshSubCharts(activeMonths);
-            }
-        } else {
-            wrapper.style.display = 'none';
-        }
-        return;
+    function renderPagination() {
+        const totalPages = Math.ceil(rawData.length / pageSize);
+        const p = document.getElementById('tablePagination');
+        let h = '';
+        if (currentPage > 1) h += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a></li>`;
+        const sp = Math.max(1, currentPage - 2), ep = Math.min(totalPages, currentPage + 2);
+        if (sp > 1) { h += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`; if (sp > 2) h += `<li class="page-item disabled"><span class="page-link">...</span></li>`; }
+        for (let i = sp; i <= ep; i++) h += `<li class="page-item${i === currentPage ? ' active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+        if (ep < totalPages) { if (ep < totalPages - 1) h += `<li class="page-item disabled"><span class="page-link">...</span></li>`; h += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`; }
+        if (currentPage < totalPages) h += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a></li>`;
+        p.innerHTML = h;
     }
 
-    // Overlay indicators (MA20/50/200, BB) â€” rebuild main chart series
-    candleChart.updateOptions({ series: buildMainSeries(activeMonths) }, false, false);
+    renderTable(1);
+    document.getElementById('tablePagination').addEventListener('click', (e) => {
+        const link = e.target.closest('[data-page]');
+        if (!link) return;
+        e.preventDefault();
+        renderTable(parseInt(link.dataset.page, 10));
+    });
 }
-
-document.getElementById('indMA20').addEventListener('change',  e => handleIndicatorToggle('MA20',  e.target.checked));
-document.getElementById('indMA50').addEventListener('change',  e => handleIndicatorToggle('MA50',  e.target.checked));
-document.getElementById('indMA200').addEventListener('change', e => handleIndicatorToggle('MA200', e.target.checked));
-document.getElementById('indBB').addEventListener('change',    e => handleIndicatorToggle('BB',    e.target.checked));
-document.getElementById('indRSI').addEventListener('change',   e => handleIndicatorToggle('RSI',   e.target.checked));
-document.getElementById('indMACD').addEventListener('change',  e => handleIndicatorToggle('MACD',  e.target.checked));
-
-// â”€â”€â”€ DATA TABLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const pageSize = 20;
-let currentPage = 1;
-
-function renderTable(page) {
-    currentPage = page;
-    const start = (page - 1) * pageSize;
-    const pageData = rawData.slice().reverse().slice(start, start + pageSize);
-    const tbody = document.getElementById('priceTableBody');
-    tbody.innerHTML = pageData.map(item => {
-        const date = new Date(item.time).toLocaleDateString('vi-VN');
-        const close = parseFloat(item.close);
-        const open  = parseFloat(item.open);
-        const isUp  = close >= open;
-        return `<tr>
-            <td style="font-weight:600;">${date}</td>
-            <td>${Number(item.open).toLocaleString()}</td>
-            <td class="price-positive">${Number(item.high).toLocaleString()}</td>
-            <td class="price-negative">${Number(item.low).toLocaleString()}</td>
-            <td style="font-weight:700;color:${isUp ? '#10b981' : '#ef4444'};">
-                <i class="bi bi-${isUp ? 'arrow-up' : 'arrow-down'}"></i>
-                ${Number(item.close).toLocaleString()}
-            </td>
-            <td class="volume-cell">${Number(item.volume).toLocaleString()}</td>
-            <td><span class="badge badge-primary">${item.currency || 'VND'}</span></td>
-        </tr>`;
-    }).join('');
-    renderPagination();
-}
-
-function renderPagination() {
-    const totalPages = Math.ceil(rawData.length / pageSize);
-    const p = document.getElementById('tablePagination');
-    let h = '';
-    if (currentPage > 1) h += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a></li>`;
-    const sp = Math.max(1, currentPage - 2), ep = Math.min(totalPages, currentPage + 2);
-    if (sp > 1) { h += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`; if (sp > 2) h += `<li class="page-item disabled"><span class="page-link">...</span></li>`; }
-    for (let i = sp; i <= ep; i++) h += `<li class="page-item${i === currentPage ? ' active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
-    if (ep < totalPages) { if (ep < totalPages - 1) h += `<li class="page-item disabled"><span class="page-link">...</span></li>`; h += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`; }
-    if (currentPage < totalPages) h += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a></li>`;
-    p.innerHTML = h;
-}
-renderTable(1);
-
-// Pagination event delegation
-document.getElementById('tablePagination').addEventListener('click', function (e) {
-    const link = e.target.closest('[data-page]');
-    if (!link) return;
-    e.preventDefault();
-    renderTable(parseInt(link.dataset.page));
-});
-
-} // end if rawData
 
 // ─── FINANCE SECTION ─────────────────────────────────────────────────────────
 (function () {
@@ -560,7 +369,7 @@ document.querySelector('.search-section form').addEventListener('submit', functi
     const btnIcon = btn.querySelector('i');
     btn.disabled = true;
     if (btnIcon) btnIcon.className = 'loading-spinner';
-    if (btnText) btnText.textContent = 'Äang tÃ¬m...';
-    setTimeout(() => { btn.disabled = false; if (btnIcon) btnIcon.className = 'bi bi-search'; if (btnText) btnText.textContent = 'Tra cá»©u'; }, 5000);
+    if (btnText) btnText.textContent = 'Đang tìm...';
+    setTimeout(() => { btn.disabled = false; if (btnIcon) btnIcon.className = 'bi bi-search'; if (btnText) btnText.textContent = 'Tra cứu'; }, 5000);
 });
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); document.getElementById('symbol').focus(); } });

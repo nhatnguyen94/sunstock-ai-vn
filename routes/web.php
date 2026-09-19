@@ -15,8 +15,10 @@ use App\Backend\Controllers\TimelineController;
 use App\Backend\Controllers\UserController;
 use App\Frontend\Controllers\AiController;
 use App\Frontend\Controllers\AuthController;
+use App\Frontend\Controllers\CompanyProfileController;
 use App\Frontend\Controllers\EmailVerificationController;
 use App\Frontend\Controllers\ExchangeRateController;
+use App\Frontend\Controllers\FundController;
 use App\Frontend\Controllers\NewsController as FrontendNewsController;
 use App\Frontend\Controllers\PasswordResetController;
 use App\Frontend\Controllers\PortfolioController;
@@ -37,6 +39,20 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::get('/stock/screener', [StockController::class, 'screener'])->name('stock.screener');
 
     Route::get('/stocks-list', [StockController::class, 'getStockSymbols']);
+
+    // Company profile (vnstock Company API, DB-cached): shareholders, officers, subsidiaries, events
+    Route::get('/company/{symbol}', [CompanyProfileController::class, 'show'])
+        ->where('symbol', '[A-Za-z0-9]{2,10}')->name('company.show');
+    Route::post('/company/{symbol}/load', [CompanyProfileController::class, 'load'])
+        ->where('symbol', '[A-Za-z0-9]{2,10}')->name('company.load');
+
+    // Open-ended fund catalog (vnstock Fund API / Fmarket). /funds/compare must stay above /funds/{code}.
+    Route::get('/funds', [FundController::class, 'index'])->name('funds.index');
+    Route::get('/funds/compare', [FundController::class, 'compare'])->name('funds.compare');
+    Route::get('/funds/{code}', [FundController::class, 'show'])
+        ->where('code', '[A-Za-z0-9._-]{2,40}')->name('funds.show');
+    Route::get('/funds/{code}/detail', [FundController::class, 'detail'])
+        ->where('code', '[A-Za-z0-9._-]{2,40}')->name('funds.detail');
 
     Route::get('/exchange-rate', [ExchangeRateController::class, 'index'])->name('exchange-rate.index');
     Route::get('/exchange-rate/search', [ExchangeRateController::class, 'search'])->name('exchange-rate.search');

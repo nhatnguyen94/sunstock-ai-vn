@@ -2,7 +2,7 @@
 
 @section('head')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css" />
-@vite('resources/frontend/css/stock/compare.css')
+@vite(['resources/frontend/css/stock/compare.css', 'resources/frontend/css/shared/charts.css'])
 @endsection
 
 @section('content')
@@ -115,7 +115,6 @@
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
 
 <script>

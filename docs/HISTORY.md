@@ -2,6 +2,39 @@
 
 ---
 
+## COMPANY_PROFILE_FUND_CATALOG_LIGHTWEIGHT_CHARTS - September 19, 2026
+
+### Summary:
+User asked for two features suggested from free vnstock APIs — a company profile page (#1) and an open-ended fund catalog (#3) — then asked to replace the "ugly" ApexCharts with TradingView Lightweight Charts, downloaded locally for speed, using whatever of its features made sense.
+
+### Added — Company profile (`/company/{symbol}`, group `companyProfile`):
+- `py/get_company_profile.py`: 9 vnstock `Company` calls (KBS + VCI) concurrently (~4s); every section isolated (`errors`), KBS primary, VCI adds valuation/events/long shareholder list, officers merged by normalised name to attach holdings; unknown ticker detection (vnstock returns an all-zero row, not an error) and a `transient` flag so a data-source outage is never cached as "no such company".
+- `company_profiles` table/model (`STALE_DAYS=3`), `CompanyProfileRepository`/`Interface`, `CompanyProfileService` (stale-while-revalidate with one deduplicated `SyncCompanyProfileJob`, `load()` first-visit/forced refresh with 5-min cooldown, 15-min negative cache, `present()`), `CompanyProfileController` (`show`, POST `load`), `sync:company-profiles` (`--symbol/--seed/--limit/--dispatch`, weekly), view + JS (loader shell, tabs, donuts), link from the stock page.
+- `App\Support\SingleFlight`: N simultaneous cache misses run one Python process.
+
+### Added — Fund catalog (`/funds`, `/funds/{code}`, `/funds/compare`, group `fundCatalog`):
+- `py/get_fund_list.py` (one Fmarket call = all 68 funds), `py/get_fund_detail.py` (NAV history thinned to daily-3y + weekly, allocation, industries, top holdings; 4 concurrent calls).
+- `funds` table/model (`type_code` derived from the Vietnamese label), `FundRepository` (NULL returns always last, whitelisted sort, escaped LIKE), `FundService` (catalog, `syncAll()`, `detail()` cached 6h behind `SingleFlight`, compare helpers), `FundController`, `sync:funds` (daily 18:30), navbar "Quỹ mở".
+- `App\Support\FundMetrics`: window return, max drawdown, annualised volatility (null for ALL — history is weekly before the daily window).
+- Both sync commands added to Admin > Sync Status (whitelist + rows + 2 icons).
+
+### Changed — charts (all pages) ApexCharts → Lightweight Charts 5 (npm, bundled by Vite):
+- `shared/charts.js` (house theme, legend, helpers), `shared/indicators.js` (pure maths), `shared/svgcharts.js` (donut + diverging bars — Lightweight Charts is time-series only), `css/shared/charts.css`.
+- Stock page: candles/area toggle in one chart, volume histogram, MA20/50/200 + Bollinger overlays, RSI and MACD as **panes of the same chart** (shared time axis/crosshair, overbought/oversold price lines), OHLC+change legend, period buttons zoom the time axis (all history stays scrollable), PNG screenshot button. Stock compare: percent lines re-based to a **common start date** (raw `percent` is per-stock-first-day, so stocks listed on different dates were not comparable). Fund NAV: baseline series (green above / red below the start-of-period NAV). Exchange-rate bars: SVG.
+- Fixed while touching them: compare page inline `onclick` handlers were not on `window` (ES module) → exposed; garbled UTF-8 (double-encoded) in stock.js strings/comments.
+
+### Fixed — real bug found while testing web-triggered Python:
+PHP-FPM runs as `www-data` (home `/var/www`, root-owned) so vnstock's `~/.vnstock` write failed: **every Python call made from a web request returned an error/empty result** (e.g. `get_exchange_rate.py` → `[]`), silently masked by DB fallbacks; only root queue workers/scheduler worked. `PythonRunner` now sets `HOME` to a temp dir when the effective user's home is not writable.
+Also fixed `VnFormat::date()` returning *today's date* for unparseable input (Carbon fallback) — caught by its own test.
+
+### Tests:
++85 PHPUnit tests (`companyProfile`, `fundCatalog`, `pythonRunner` HOME override) and `npm test` (10 Node tests: indicators + chart helpers). `php artisan test`: 236/236. Lessons recorded in docs/TESTING.md (router caches the controller per Route; `@json([..])` comma bug).
+
+### Verified:
+Live against real vnstock/Fmarket in Docker: company profile FPT/VCB/HPG (unknown ticker + ETF → not-found, negative cache hit in 0.1s, forced-refresh 429), 68 funds synced, fund detail via web request (3s cold, 0.1s cached). Charts rendered in a real browser from inline static copies of the built pages (the in-app browser sandbox blocks asset requests): stock page with all indicators + panes, fund NAV baseline + donut + bars, fund compare, stock compare, company donuts. Not covered by automation: hover/click interaction of the charts.
+
+---
+
 ## QUEUE_DELETE_ALL_FAILED_JOBS - September 19, 2026
 
 ### Summary:

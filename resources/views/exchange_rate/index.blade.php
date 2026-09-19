@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('head')
-@vite('resources/frontend/css/exchange_rate/index.css')
+@vite(['resources/frontend/css/exchange_rate/index.css', 'resources/frontend/css/shared/charts.css'])
 @endsection
 
 @section('content')
@@ -385,7 +385,6 @@ $keyRates = ['USD','EUR','JPY','GBP','CNY'];
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
 
 <script>
 window._exchangeRateUrl = '{{ route("exchange-rate.index") }}';

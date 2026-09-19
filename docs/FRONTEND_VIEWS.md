@@ -31,6 +31,12 @@ resources/
 │   │   │   ├── login.css          ← Login page (87 lines)
 │   │   │   ├── register.css       ← Register page (37 lines)
 │   │   │   └── password-reset.css ← Forgot/reset password pages
+│   │   ├── shared/
+│   │   │   └── charts.css       ← Styles for shared/charts.js (legend) and shared/svgcharts.js (donut, bars)
+│   │   ├── company/
+│   │   │   └── show.css         ← Company profile page
+│   │   ├── funds/
+│   │   │   └── funds.css        ← Fund catalog / detail / compare pages
 │   │   ├── exchange_rate/
 │   │   │   └── index.css        ← Exchange rate page (799 lines)
 │   │   ├── news/
@@ -56,11 +62,23 @@ resources/
 │       │   ├── login.js         ← Login JS (11 lines)
 │       │   ├── register.js      ← Register JS (6 lines)
 │       │   └── verify-email.js  ← Email verification JS (11 lines)
+│       ├── shared/
+│       │   ├── charts.js        ← Lightweight Charts setup: theme, `makeChart`, legend, helpers (toDay/cleanSeries/sliceByDays/rebase)
+│       │   ├── indicators.js    ← SMA/EMA/RSI/MACD/Bollinger (pure, unit-tested)
+│       │   ├── svgcharts.js     ← Dependency-free donut + diverging bars (what Lightweight Charts cannot draw)
+│       │   └── toast.js         ← Toast helper for page scripts
+│       ├── company/
+│       │   └── show.js          ← Company profile: loader, refresh, tabs, donuts
+│       ├── funds/
+│       │   ├── index.js         ← Catalog: pick up to 4 funds → compare bar
+│       │   ├── show.js          ← NAV baseline chart, allocation donut, holdings
+│       │   ├── compare.js       ← Rebased NAV lines, return bars, best-of-row table
+│       │   └── format.js        ← Fund-page formatting/range helpers
 │       ├── exchange_rate/
-│       │   └── index.js         ← Exchange rate JS + ApexCharts bar chart (350 lines)
+│       │   └── index.js         ← Exchange rate JS + key-rates bars (svgcharts)
 │       ├── stock/
-│       │   ├── stock.js         ← Stock chart JS: ApexCharts candlestick + area (239 lines)
-│       │   └── compare.js       ← Stock compare JS: ApexCharts multi-line (226 lines)
+│       │   ├── stock.js         ← Stock chart JS: Lightweight Charts candles/area + volume + MA/Bollinger overlays + RSI/MACD panes
+│       │   └── compare.js       ← Stock compare JS: Lightweight Charts multi-line, re-based to a common start date
 │       └── portfolio/
 │           ├── add-stock.js     ← Add stock form JS (50 lines)
 │           └── show.js          ← Portfolio chart JS (75 lines)
@@ -85,6 +103,10 @@ resources/
 | `stock/stock.blade.php` | `css/stock/stock.css` | `js/stock/stock.js` |
 | `stock/compare.blade.php` | `css/stock/compare.css` | `js/stock/compare.js` |
 | `stock/screener.blade.php` | `css/stock/screener.css` | *(none)* |
+| `company/show.blade.php` | `css/company/show.css` + `css/shared/charts.css` | `js/company/show.js` |
+| `funds/index.blade.php` | `css/funds/funds.css` | `js/funds/index.js` |
+| `funds/show.blade.php` | `css/funds/funds.css` + `css/shared/charts.css` | `js/funds/show.js` |
+| `funds/compare.blade.php` | `css/funds/funds.css` + `css/shared/charts.css` | `js/funds/compare.js` |
 | `portfolio/index.blade.php` | `css/portfolio/index.css` | *(none)* |
 | `portfolio/create.blade.php` | `css/portfolio/create.css` | *(none)* |
 | `portfolio/edit.blade.php` | `css/portfolio/edit.css` | *(none)* |
@@ -179,7 +201,8 @@ Loaded automatically by `layouts/app.blade.php` — no action needed in individu
 |---|---|---|
 | Bootstrap | 4.5.2 | CSS framework |
 | Bootstrap Icons | 1.11.3 | Icon set |
-| ApexCharts | 3.49.0 | Charts (stock, compare, exchange rate) |
+| Lightweight Charts (TradingView) | 5.x — **npm dependency, bundled by Vite** (no CDN request at runtime) | Time-series charts: stock candles/line/volume/indicator panes, stock & fund comparison, fund NAV. Apache-2.0 — keep the built-in TradingView attribution logo (`layout.attributionLogo`) |
+| `shared/svgcharts.js` | in-repo | Donut + horizontal bars (Lightweight Charts is time-series only) |
 | AOS | 2.3.4 | Animate on scroll |
 | NProgress | 0.2.0 | Page loading bar |
 | Awesomplete | 1.1.5 | Symbol autocomplete (stock pages) |
@@ -198,3 +221,12 @@ node node_modules/vite/bin/vite.js build
 # Alternative (if npm ps1 execution policy is enabled)
 npm run build
 ```
+
+## Chart conventions
+
+- **Time-series → `shared/charts.js`** (`makeChart(el)` gives the house look: Inter font, dotted grid, dashed crosshair, `vi-VN` dates). **Category charts (donut/bars) → `shared/svgcharts.js`.** Do not add another chart library or a CDN `<script>` for charts.
+- Daily bars use `'YYYY-MM-DD'` times via `toDay(ms)` — its +12h shift handles both midnight-UTC and midnight-Vietnam timestamps.
+- Set price formats **per series** (`PRICE_FORMAT`, `DEC_FORMAT`), never a chart-wide `priceFormatter` (it would also reformat RSI/MACD/volume).
+- Extra indicator panes are extra **panes of the same chart** (`chart.addSeries(Series, opts, paneIndex)`), so the time axis and crosshair stay in sync; removing a pane's last series removes the pane.
+- A chart created inside a hidden container is re-fitted automatically on its first real size (`makeChart`).
+- Pure logic (indicators, series helpers) stays DOM-free and is covered by `npm test` (see docs/TESTING.md).

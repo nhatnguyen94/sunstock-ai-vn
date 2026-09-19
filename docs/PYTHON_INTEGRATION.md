@@ -98,6 +98,24 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 - **Output**: JSON object of financial statement rows
 - **Data source**: KBS via vnstock; cached in the `company_financials` table (`STALE_DAYS = 30`), refreshed by `sync:company-financials`
 
+### `py/get_company_profile.py`
+- **Purpose**: Full company profile for one symbol — overview, ownership structure, major shareholders, officers, subsidiaries/affiliates, corporate events
+- **Args**: Symbol — called from `CompanyProfileService::runScript()` (page loader, `SyncCompanyProfileJob`, `sync:company-profiles`)
+- **How**: nine vnstock `Company` calls (KBS: overview/ownership/shareholders/officers/subsidiaries; VCI: overview/shareholders/officers/events) run concurrently in a `ThreadPoolExecutor` (~4s total instead of ~10s sequential). Every section is isolated — one failing source/section becomes an entry in `errors`, never a failed page. KBS is primary (stable); VCI adds the valuation snapshot, events and the long shareholder list; officers are merged by normalised name (honorifics stripped) so KBS positions get VCI ownership %.
+- **Output**: one JSON object (see the script's docstring). Unknown ticker → `{"error", "transient": false}`; every section failing with no "invalid symbol" message → `"transient": true` (data source down — callers must **not** cache that as "no such company").
+- **Gotchas**: vnstock returns an all-empty row (not an error) for unknown tickers — detected and turned into `error`; KBS `charter_capital` arrives in billions in some payloads and VND in others (normalised); VCI percentages are fractions (×100 applied), KBS ones already percent.
+- **Cache**: `company_profiles` table (`STALE_DAYS = 3`, stale-while-revalidate).
+
+### `py/get_fund_list.py`
+- **Purpose**: Every open-ended fund on Fmarket in one call (~0.5s) — NAV, fee, returns over 1m…inception
+- **Args**: None — `FundService::runListScript()` (`sync:funds`, first catalog visit)
+- **Output**: `{"funds": [...]}` or `{"error"}`
+
+### `py/get_fund_detail.py`
+- **Purpose**: One fund's NAV history + asset/industry allocation + top holdings (4 concurrent Fmarket calls)
+- **Args**: Fund short name (regex-validated) — `FundService::runDetailScript()` via `GET /funds/{code}/detail`
+- **Output**: NAV thinned to daily for the last 3 years and weekly before that (~1.7k points instead of ~4k); cached 6h in `Cache` behind `SingleFlight`
+
 ### `py/register_api_key.py`
 - **Purpose**: Register or configure vnstock API key for sponsored tier access
 - **Args**: None (interactive or reads from env)
@@ -114,8 +132,17 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 | `ExchangeRateService::fetchRatesFromPython()` | `get_exchange_rate.py` | Web request (`ExchangeRateController`) + `sync:exchange-rates` | 30s |
 | `BackfillStockPriceChunk::handle()` | `get_stock.py` | Queued job (`$timeout=600`) | 550s |
 | `BackfillStockPrices` (inline mode) | `get_stock.py` | Manual terminal run (`--dispatch` not passed) | 550s |
+| `CompanyProfileService::runScript()` | `get_company_profile.py` | Web request (first-visit loader / forced refresh) + `SyncCompanyProfileJob` (`$timeout=90`) + `sync:company-profiles` | 60s |
+| `FundService::runListScript()` | `get_fund_list.py` | `sync:funds` + first catalog visit | 60s |
+| `FundService::runDetailScript()` | `get_fund_detail.py` | Web request (`GET /funds/{code}/detail`) | 60s |
 
 Changing a job's own `$timeout`/a command's expected runtime? Update the matching row here and the matching `PythonRunner::run()` call together — they're meant to move as a pair.
+
+## Web-request Python calls & the `HOME` override
+
+Python launched from a **PHP-FPM request** runs as `www-data`, whose home (`/var/www`) is root-owned in the image. vnstock writes `~/.vnstock` at import time, so every web-triggered call died with `[Errno 13] Permission denied: '/var/www/.vnstock'` — scripts returned an error/empty result and callers silently fell back to whatever was cached (e.g. `get_exchange_rate.py` returned `[]` from a web request, while the same script worked from the queue worker/scheduler, which run as root). `PythonRunner::run()` now points `HOME` at `sys_get_temp_dir()/python-home` **only when the effective user's home is not writable**; root workers and Windows dev setups are unaffected. Covered by `PythonRunnerTest` (group `pythonRunner`).
+
+Caching pattern for the new pages: DB-first (`company_profiles`, `funds`) or `Cache` (fund detail), with `App\Support\SingleFlight` so N simultaneous misses run **one** Python process, and a negative cache only for a definitive "does not exist" answer.
 
 ## Sync speed — two levers, tuned together
 

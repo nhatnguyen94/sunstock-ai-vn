@@ -320,13 +320,8 @@
         border-color: #2563eb;
     }
 
-    #apexCandleChart, #apexLineChart {
-        display: none;
-    }
+    #priceChart { height: 480px; width: 100%; position: relative; }
 
-    #apexCandleChart.active, #apexLineChart.active {
-        display: block;
-    }
 
     /* Data Table */
     .data-section {
@@ -697,32 +692,6 @@
     }
     .indicator-check:hover { background: #f3f4f6; }
     .indicator-check input[type=checkbox] { cursor: pointer; }
-
-    /* ── Sub-chart header ──────────────────────────── */
-    .sub-chart-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 0.6rem 1rem 0;
-        background: white;
-        border-top: 1px solid #f3f4f6;
-    }
-    .sub-chart-label {
-        font-weight: 600;
-        font-size: 0.85rem;
-        color: #374151;
-    }
-    .sub-chart-hint {
-        font-size: 0.78rem;
-        color: #9ca3af;
-    }
-    #rsiChartWrapper, #macdChartWrapper {
-        background: white;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
 
     /* ── Finance Section ───────────────────────────── */
     .finance-section {

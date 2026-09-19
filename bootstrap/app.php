@@ -65,6 +65,17 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping()
             ->runInBackground();
 
+        // Open-ended fund catalog: Fmarket publishes NAV in the evening, one call refreshes all funds
+        $schedule->command('sync:funds')->dailyAt('18:30')
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        // Company profiles are cached on demand (first page view). Weekly, refresh the ones that went
+        // stale and warm up to 50 not-yet-cached stocks; the queue fans it out.
+        $schedule->command('sync:company-profiles --seed --limit=50 --dispatch')->weeklyOn(0, '03:00')
+            ->withoutOverlapping()
+            ->runInBackground();
+
         // Crawl RSS news from all sources every 30 minutes
         $schedule->command('sync:news')->everyThirtyMinutes()
             ->withoutOverlapping()

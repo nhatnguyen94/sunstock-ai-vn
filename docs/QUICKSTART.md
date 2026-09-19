@@ -111,6 +111,8 @@ Admin login URL: `/admin/login`
 | `/stock` | Stock chart viewer |
 | `/stock/compare` | Compare multiple stocks |
 | `/stock/screener` | Stock screener (filter/rank by financial ratios) |
+| `/company/{symbol}` | Company profile: shareholders, officers, subsidiaries, events |
+| `/funds` | Open-ended fund catalog (`/funds/{code}`, `/funds/compare?codes=A,B`) |
 | `/exchange-rate` | Exchange rate viewer |
 | `/news` | Market news |
 | `/portfolio` | User portfolio (auth + verified) |

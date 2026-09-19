@@ -2,7 +2,7 @@
 
 @section('head')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css" />
-@vite('resources/frontend/css/stock/stock.css')
+@vite(['resources/frontend/css/stock/stock.css', 'resources/frontend/css/shared/charts.css'])
 @endsection
 
 @section('content')
@@ -55,6 +55,10 @@
                     <a href="{{ url('/') }}" class="back-button">
                         <i class="bi bi-house"></i>
                         Trang chủ
+                    </a>
+                    <a href="{{ route('company.show', $symbol) }}" class="back-button">
+                        <i class="bi bi-building"></i>
+                        Hồ sơ công ty
                     </a>
                     <a href="{{ url('/stock/compare?symbols='.$symbol) }}" class="back-button">
                         <i class="bi bi-bar-chart-steps"></i>
@@ -169,28 +173,10 @@
                     <button class="period-btn" data-months="3">3T</button>
                     <button class="period-btn" data-months="6">6T</button>
                     <button class="period-btn active" data-months="0">Tất cả</button>
+                    <button class="period-btn" id="btnShot" title="Lưu biểu đồ thành ảnh PNG"><i class="bi bi-camera"></i></button>
                 </div>
             </div>
-            <div id="apexCandleChart" class="active"></div>
-            <div id="apexLineChart"></div>
-        </div>
-
-        <!-- RSI Sub-chart -->
-        <div id="rsiChartWrapper" style="display:none;margin-top:12px;" data-aos="fade-up">
-            <div class="sub-chart-header">
-                <span class="sub-chart-label"><i class="bi bi-activity" style="color:#06b6d4;"></i> RSI (14)</span>
-                <span class="sub-chart-hint">Vùng quá mua: &gt;70 &nbsp;|&nbsp; Vùng quá bán: &lt;30</span>
-            </div>
-            <div id="rsiChart"></div>
-        </div>
-
-        <!-- MACD Sub-chart -->
-        <div id="macdChartWrapper" style="display:none;margin-top:12px;" data-aos="fade-up">
-            <div class="sub-chart-header">
-                <span class="sub-chart-label"><i class="bi bi-bar-chart-line" style="color:#10b981;"></i> MACD (12, 26, 9)</span>
-                <span class="sub-chart-hint">Đường MACD vượt Signal → xu hướng tăng</span>
-            </div>
-            <div id="macdChart"></div>
+            <div id="priceChart"></div>
         </div>
 
         <!-- Data Table -->
@@ -273,10 +259,6 @@
 
 @section('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
-@if (count($data) > 0)
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
-@endif
-
 <script>
 const rawData = @json($data);
 const stockSymbol = '{{ $symbol }}';

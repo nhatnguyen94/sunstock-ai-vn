@@ -1,3 +1,5 @@
+import { LineSeries, LineStyle, attachLegend, cleanSeries, fmtDec, makeChart, rebase, sliceByDays, toDay } from '../shared/charts.js';
+
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444'];
 
 let chartInstance = null;
@@ -121,66 +123,58 @@ function renderCards(data) {
     }).join('');
 }
 
-function filterData(data, months) {
-    if (!months) return data;
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - months);
-    return data.map(stock => ({
-        ...stock,
-        prices: stock.prices.filter(p => new Date(p.time) >= cutoff)
-    }));
+/**
+ * Percent series for one stock inside the window, re-based so its first day is 0%.
+ * The API's `percent` is measured from each stock's OWN first day, so raw values from stocks listed on
+ * different dates are not comparable; `from` (the latest first-day across the selection) puts every
+ * stock on the same starting line. Slicing a window without re-basing would also not start at zero.
+ */
+function windowSeries(stock, months, from) {
+    let pts = cleanSeries((stock.prices || []).map((p) => ({ time: toDay(p.time), value: 100 + parseFloat(p.percent || 0) })));
+    if (months) pts = sliceByDays(pts, Math.round(months * 30.5));
+    if (from) pts = pts.filter((p) => p.time >= from);
+    return rebase(pts, 100).map((p) => ({ time: p.time, value: +(p.value - 100).toFixed(2) }));
 }
 
+const pct = (v) => (v >= 0 ? '+' : '') + fmtDec(v) + '%';
+
+let compareSeries = [];
+
 function renderChart(data, months) {
-    const filtered = filterData(data, months);
-    const series = filtered.map((stock, idx) => ({
-        name: stock.symbol,
-        data: (stock.prices || []).map(p => [new Date(p.time).getTime(), parseFloat(p.percent || 0)])
-    }));
+    const el = document.getElementById('compareChart');
+    if (!chartInstance) {
+        el.style.height = '420px';
+        chartInstance = makeChart(el, { rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.1 } } });
+        attachLegend(chartInstance, el, (param) => {
+            const parts = compareSeries.map(({ symbol, color, series }) => {
+                const d = param.seriesData.get(series);
+                return d && d.value !== undefined
+                    ? `<span style="color:${color}">${symbol} <b>${pct(d.value)}</b></span>` : '';
+            }).join('');
+            return `<span class="lwc-date">${param.time.split('-').reverse().join('/')}</span>${parts}`;
+        });
+    }
 
-    const options = {
-        series,
-        chart: {
-            type: 'line',
-            height: 420,
-            toolbar: { show: true },
-            animations: { enabled: true, easing: 'easeinout', speed: 700 },
-            fontFamily: 'Inter, sans-serif',
-        },
-        stroke: { curve: 'smooth', width: 2.5 },
-        colors: COLORS.slice(0, data.length),
-        xaxis: {
-            type: 'datetime',
-            labels: { datetimeFormatter: { month: 'MM/yyyy', day: 'dd/MM' }, style: { fontSize: '11px', colors: '#6b7280' } },
-            axisBorder: { show: false }, axisTicks: { show: false }
-        },
-        yaxis: {
-            labels: {
-                formatter: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%',
-                style: { fontSize: '11px', colors: '#6b7280' }
-            }
-        },
-        tooltip: {
-            shared: true, intersect: false, theme: 'light',
-            x: { format: 'dd/MM/yyyy' },
-            y: { formatter: v => (v >= 0 ? '+' : '') + v.toFixed(2) + '%' }
-        },
-        grid: { borderColor: '#f3f4f6', strokeDashArray: 4 },
-        legend: {
-            position: 'top', horizontalAlign: 'left',
-            labels: { colors: '#374151' },
-            markers: { width: 12, height: 12, radius: 4 }
-        },
-        annotations: {
-            yaxis: [{ y: 0, borderColor: '#d1d5db', borderWidth: 1, strokeDashArray: 4, label: { text: '0%', style: { color: '#9ca3af', fontSize: '10px' } } }]
-        },
-        dataLabels: { enabled: false },
-        markers: { size: 0, hover: { size: 5 } }
-    };
+    compareSeries.forEach(({ series }) => chartInstance.removeSeries(series));
 
-    if (chartInstance) { chartInstance.destroy(); }
-    chartInstance = new ApexCharts(document.getElementById('compareChart'), options);
-    chartInstance.render();
+    // Common start = the latest "first available day" among the selected stocks (or the window start, if later).
+    const firsts = data.map((stock) => windowSeries(stock, months, null)[0]?.time).filter(Boolean).sort();
+    const from = firsts.length ? firsts[firsts.length - 1] : null;
+
+    compareSeries = data.map((stock, idx) => {
+        const series = chartInstance.addSeries(LineSeries, {
+            color: COLORS[idx], lineWidth: 2.5, priceLineVisible: false,
+            priceFormat: { type: 'custom', formatter: pct, minMove: 0.01 },
+        });
+        series.setData(windowSeries(stock, months, from));
+        return { symbol: stock.symbol, color: COLORS[idx], series };
+    });
+
+    // A dashed zero line makes "above/below where I started" readable at a glance.
+    if (compareSeries.length) {
+        compareSeries[0].series.createPriceLine({ price: 0, color: '#9ca3af', lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: false });
+    }
+    requestAnimationFrame(() => chartInstance.timeScale().fitContent());
 }
 
 function renderTable(data) {
@@ -223,3 +217,6 @@ document.querySelectorAll('.period-btn2').forEach(btn => {
 });
 
 if (symbols.length > 0) { renderTags(); } else { document.getElementById('emptyState').style.display = 'block'; }
+
+// Inline onclick="..." handlers in the rendered markup need these on window (this file is an ES module).
+Object.assign(window, { addSymbolDirect, addSymbol, removeSymbol });

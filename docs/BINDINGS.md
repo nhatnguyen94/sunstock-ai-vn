@@ -13,6 +13,8 @@
 | `App\Frontend\Interfaces\UserProfileRepositoryInterface` | `App\Frontend\Repositories\UserProfileRepository` | Injected into `ProfileController` |
 | `App\Frontend\Interfaces\PortfolioRepositoryInterface` | `App\Frontend\Repositories\PortfolioRepository` | Injected into `PortfolioController` |
 | `App\Frontend\Interfaces\CompanyFinancialRepositoryInterface` | `App\Frontend\Repositories\CompanyFinancialRepository` | Injected into `CompanyFinancialService` |
+| `App\Frontend\Interfaces\CompanyProfileRepositoryInterface` | `App\Frontend\Repositories\CompanyProfileRepository` | Injected into `CompanyProfileService` |
+| `App\Frontend\Interfaces\FundRepositoryInterface` | `App\Frontend\Repositories\FundRepository` | Injected into `FundService` |
 | `App\Backend\Interfaces\NewsRepositoryInterface` | `App\Backend\Repositories\NewsRepository` | Injected into `App\Backend\Services\NewsService` (Admin) |
 | `App\Backend\Interfaces\NewsServiceInterface` | `App\Backend\Services\NewsService` | Injected into `App\Backend\Controllers\NewsController` (Admin) |
 | `App\Backend\Interfaces\StockRepositoryInterface` | `App\Backend\Repositories\StockRepository` | Injected into `App\Backend\Services\StockService` (Admin) |
@@ -25,7 +27,7 @@
 | `App\Backend\Interfaces\PermissionRepositoryInterface` | `App\Backend\Repositories\PermissionRepository` | Injected into `App\Backend\Services\PermissionService` (Admin) |
 | `App\Backend\Interfaces\PermissionServiceInterface` | `App\Backend\Services\PermissionService` | Injected into `App\Backend\Controllers\PermissionController` (Admin) |
 
-> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService` are **not** bound via interfaces — they are injected directly as concrete classes.
+> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService`, `CompanyProfileService`, `FundService` are **not** bound via interfaces — they are injected directly as concrete classes.
 
 ## Adding a New Binding
 

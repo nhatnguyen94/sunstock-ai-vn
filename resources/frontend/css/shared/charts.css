@@ -1,0 +1,46 @@
+/* Styles for shared/charts.js (Lightweight Charts legend) and shared/svgcharts.js (donut + bars). */
+
+.lwc-legend {
+    position: absolute; top: 6px; left: 10px; z-index: 5; pointer-events: none;
+    display: flex; flex-wrap: wrap; gap: 4px 12px; max-width: calc(100% - 90px);
+    font-size: 0.78rem; color: #4b5563; font-variant-numeric: tabular-nums;
+    background: rgba(255, 255, 255, 0.78); border-radius: 8px; padding: 3px 8px;
+}
+.lwc-legend b { color: #111827; font-weight: 700; }
+.lwc-legend .lwc-date { font-weight: 700; color: #1e3a5f; }
+.lwc-legend .up, .lwc-legend b.up { color: #10b981; }
+.lwc-legend .down, .lwc-legend b.down { color: #ef4444; }
+
+.svgc-empty { text-align: center; color: #6b7280; font-size: 0.9rem; padding: 1rem 0; }
+
+/* Donut */
+.svgc-donut { position: relative; width: 220px; height: 220px; margin: 0 auto; }
+.svgc-donut svg { width: 100%; height: 100%; }
+.svgc-slice { transition: opacity 0.15s ease, stroke-width 0.15s ease; cursor: pointer; }
+.svgc-slice.dim { opacity: 0.25; }
+.svgc-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 0 52px; pointer-events: none;
+}
+.svgc-center strong { font-size: 1.25rem; font-weight: 800; color: #1f2937; line-height: 1.1; }
+.svgc-center span { font-size: 0.7rem; color: #6b7280; line-height: 1.2; margin-top: 2px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.svgc-legend { list-style: none; padding: 0; margin: 1rem 0 0; font-size: 0.82rem; }
+.svgc-legend li { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: default; transition: opacity 0.15s ease; }
+.svgc-legend li:hover { background: #f8fafc; }
+.svgc-legend li.dim { opacity: 0.35; }
+.svgc-legend i { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 10px; }
+.svgc-legend span { flex: 1; min-width: 0; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svgc-legend b { color: #111827; font-variant-numeric: tabular-nums; }
+
+/* Diverging bars */
+.svgc-bars { display: flex; flex-direction: column; gap: 0.9rem; }
+.svgc-group-label { font-size: 0.78rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.svgc-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 0.82rem; }
+.svgc-name { flex: 0 0 76px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svgc-track { position: relative; flex: 1; height: 14px; background: #f8fafc; border-radius: 4px; }
+.svgc-bar { position: absolute; top: 0; height: 100%; border-radius: 3px; min-width: 2px; transition: width 0.4s ease; }
+.svgc-zero { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: #cbd5e1; }
+.svgc-val { flex: 0 0 76px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: #374151; }
+.svgc-val.up { color: #10b981; }
+.svgc-val.down { color: #ef4444; }
+.svgc-na { flex: 1; color: #9ca3af; }

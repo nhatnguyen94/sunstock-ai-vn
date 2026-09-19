@@ -84,4 +84,47 @@ class PythonRunnerTest extends TestCase
         $this->assertStringContainsString('"ok": true', implode('', $suppressed['output']));
         $this->assertStringContainsString('"ok": true', implode('', $notSuppressed['output']));
     }
+
+    #[Group('pythonRunner')]
+    public function test_home_is_redirected_to_a_writable_dir_when_the_users_home_is_not_writable(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $this->markTestSkipped('HOME override is POSIX-only (Windows dev setups run scripts unwrapped).');
+        }
+
+        // Reproduces the real bug: PHP-FPM runs as www-data whose home (/var/www) is root-owned, so vnstock
+        // died with "[Errno 13] Permission denied: '/var/www/.vnstock'" on every web-triggered Python call.
+        $original = getenv('HOME');
+        putenv('HOME=/nonexistent/unwritable/home');
+
+        try {
+            $decoded = PythonRunner::runAndDecodeJson(base_path('tests/Fixtures/python/print_home.py'), [], 10);
+        } finally {
+            $original === false ? putenv('HOME') : putenv('HOME=' . $original);
+        }
+
+        $this->assertNotNull($decoded);
+        $this->assertNotSame('/nonexistent/unwritable/home', $decoded['home']);
+        $this->assertTrue(is_writable($decoded['home']), "Python's HOME ({$decoded['home']}) must be writable");
+    }
+
+    #[Group('pythonRunner')]
+    public function test_a_writable_home_is_left_alone(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $this->markTestSkipped('HOME override is POSIX-only.');
+        }
+
+        $home = sys_get_temp_dir();   // writable by definition
+        $original = getenv('HOME');
+        putenv('HOME=' . $home);
+
+        try {
+            $decoded = PythonRunner::runAndDecodeJson(base_path('tests/Fixtures/python/print_home.py'), [], 10);
+        } finally {
+            $original === false ? putenv('HOME') : putenv('HOME=' . $original);
+        }
+
+        $this->assertSame($home, $decoded['home']);
+    }
 }

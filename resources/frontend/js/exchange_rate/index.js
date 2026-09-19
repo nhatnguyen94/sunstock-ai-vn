@@ -1,3 +1,5 @@
+import { bars } from '../shared/svgcharts.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     // Update current time
     function updateTime() {
@@ -279,50 +281,20 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ApexCharts: Key Rates Bar Chart
+// Key rates bar chart (dependency-free — see shared/svgcharts.js)
 (function renderKeyRatesChart() {
     const el = document.getElementById('keyRatesChart');
     const data = window._chartRatesData;
-    if (!el || !window.ApexCharts || !Array.isArray(data) || data.length === 0) {
+    if (!el || !Array.isArray(data) || data.length === 0) {
         return;
     }
 
-    const options = {
-        chart: {
-            type: 'bar',
-            height: 260,
-            toolbar: { show: false },
-            fontFamily: 'Inter, sans-serif',
-        },
-        series: [{ name: 'Giá bán (VNĐ)', data: data.map(r => r.sell) }],
-        xaxis: {
-            categories: data.map(r => `${r.flag} ${r.code}`),
-            labels: { style: { fontSize: '12px', colors: '#6b7280' } },
-            axisBorder: { show: false },
-            axisTicks: { show: false },
-        },
-        yaxis: {
-            labels: {
-                formatter: (val) => new Intl.NumberFormat('vi-VN').format(val),
-                style: { fontSize: '11px', colors: '#9ca3af' },
-            },
-        },
-        plotOptions: {
-            bar: { borderRadius: 6, columnWidth: '50%', distributed: true },
-        },
-        colors: data.map(r => r.color),
-        legend: { show: false },
-        dataLabels: {
-            enabled: true,
-            formatter: (val) => new Intl.NumberFormat('vi-VN').format(val),
-            style: { fontSize: '11px', fontWeight: 700 },
-            offsetY: -20,
-        },
-        grid: { borderColor: '#f1f5f9' },
-        tooltip: {
-            y: { formatter: (val) => new Intl.NumberFormat('vi-VN').format(val) + ' VNĐ' },
-        },
-    };
-
-    new ApexCharts(el, options).render();
+    bars(el, {
+        groups: [{
+            label: 'Giá bán (VNĐ)',
+            bars: data.map((r) => ({ name: `${r.flag} ${r.code}`, value: r.sell, color: r.color })),
+        }],
+        format: (v) => new Intl.NumberFormat('vi-VN').format(v),
+        signed: false,
+    });
 })();

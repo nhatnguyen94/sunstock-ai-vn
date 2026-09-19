@@ -92,6 +92,7 @@ After reading, you MUST output this block verbatim with your own answers filled 
 | Test method/class with no `#[Group(...)]` tag | Every test MUST have a feature group so it can be run in isolation | Lets you verify just your change without running the full (slow) suite |
 | Group name in kebab-case, e.g. `#[Group('portfolio-alerts')]` | **camelCase only**, e.g. `#[Group('portfolioAlerts')]` | Mandatory naming convention — kebab-case groups will be rejected |
 | Commit message without a `[branch-name]` prefix | `[master] <summary> (<detail>)` — e.g. `[master] Add stock screener` | Mandatory commit format — see "AFTER EVERY TASK" |
+| A new chart library, or a CDN `<script>` for charts (ApexCharts, Chart.js...) | `resources/frontend/js/shared/charts.js` (Lightweight Charts, bundled) for time-series and `shared/svgcharts.js` for donut/bars | One look, one bundle, no runtime CDN dependency — see docs/FRONTEND_VIEWS.md "Chart conventions" |
 
 ---
 
@@ -148,4 +149,4 @@ Rules there are **supplemental only** — project architecture always takes prio
 ---
 
 **Last Updated**: September 15, 2026  
-**Revision**: 3.4 (RBAC is now DB-driven permissions, not hardcoded Gates — see docs/RBAC.md; docs cross-checked against code for a full consistency pass, incl. docs/QUICKSTART.md command names and `RefreshDatabase` references)
+**Revision**: 3.5 (company profile + fund catalog features; charts on Lightweight Charts; PythonRunner HOME fix) — previously 3.4 (RBAC is now DB-driven permissions, not hardcoded Gates — see docs/RBAC.md; docs cross-checked against code for a full consistency pass, incl. docs/QUICKSTART.md command names and `RefreshDatabase` references)

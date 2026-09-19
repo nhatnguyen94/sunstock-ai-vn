@@ -3,6 +3,8 @@
 namespace App\Backend\Controllers;
 
 use App\Models\CompanyFinancial;
+use App\Models\CompanyProfile;
+use App\Models\Fund;
 use App\Models\ExchangeRate;
 use App\Models\HotIndustry;
 use App\Models\News;
@@ -28,6 +30,8 @@ class SyncStatusController extends Controller
         'sync:stock-prices'      => ['sync:stock-prices',      []],
         'sync:stock-data'        => ['sync:stock-data',        []],
         'sync:company-financials'=> ['sync:company-financials', ['--stale' => true, '--dispatch' => true]],
+        'sync:funds'             => ['sync:funds',             []],
+        'sync:company-profiles'  => ['sync:company-profiles',  ['--seed' => true, '--limit' => 50, '--dispatch' => true]],
     ];
 
     public function index(): View
@@ -88,6 +92,24 @@ class SyncStatusController extends Controller
                 'row_count'   => CompanyFinancial::count(),
                 'last_sync'   => CompanyFinancial::max('synced_at'),
                 'description' => 'Income/Balance/Cashflow/Ratio — chạy hàng tháng (ngày 5 lúc 02:00)',
+            ],
+            [
+                'key'         => 'sync:company-profiles',
+                'label'       => 'Hồ sơ công ty',
+                'icon'        => 'building',
+                'color'       => 'cyan',
+                'row_count'   => CompanyProfile::count(),
+                'last_sync'   => CompanyProfile::max('synced_at'),
+                'description' => 'Cổ đông, ban lãnh đạo, công ty con, sự kiện — cache khi có người xem; làm mới Chủ nhật 03:00 (nút này: làm mới hồ sơ cũ + nạp thêm 50 mã)',
+            ],
+            [
+                'key'         => 'sync:funds',
+                'label'       => 'Quỹ mở (Fmarket)',
+                'icon'        => 'chart-pie',
+                'color'       => 'pink',
+                'row_count'   => Fund::count(),
+                'last_sync'   => Fund::max('synced_at'),
+                'description' => 'NAV + lợi suất toàn bộ quỹ mở (1 lần gọi) — chạy hàng ngày lúc 18:30',
             ],
         ];
 

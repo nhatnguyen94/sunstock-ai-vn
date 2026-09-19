@@ -38,6 +38,8 @@
 - **📊 Technical Indicators** — Overlay MA20/50/200, Bollinger Bands on the main chart; RSI(14) and MACD(12,26,9) display as dedicated sub-charts below. All indicators update when filtering by time period (1M/3M/6M/1Y/All).
 - **🏦 Company Financials** — On-demand financial statement viewer: Income Statement, Balance Sheet, Cash Flow, and Financial Ratios — quarterly or annual — powered by the KBS data source via vnstock.
 - **🔎 Stock Screener** — Filter and rank the whole market by financial ratios (P/E, ROE, ...) sourced from the synced financial data.
+- **🏢 Company Profile** — `/company/{symbol}`: overview & valuation snapshot, ownership structure and major shareholders (donut charts), board / executives / supervisory board with their holdings, subsidiaries & affiliates, and corporate events (upcoming dividends & meetings, insider trades). Cached in the DB with stale-while-revalidate; first visit loads in ~4s, later ones are instant.
+- **💼 Open-ended Funds** — `/funds`: 68 Fmarket funds filterable by type / management company / name and sortable by any return window; per-fund page with NAV chart (green/red vs. start of period), max drawdown, volatility, asset allocation and top holdings (linked to company profiles); compare up to 4 funds side by side.
 - **Compare Stocks** — Side-by-side chart comparison for multiple symbols.
 - **Hot Industries** — Discover top-performing stocks in Banking, Real Estate, and IT sectors.
 - **Portfolio Management** — Create portfolios, track holdings, monitor profit/loss in real time from actually-synced prices, set price targets and stop-loss levels (with automatic one-shot email alerts when crossed), get AI rebalancing suggestions.
@@ -56,7 +58,7 @@
 | Data Fetching | Python 3 + vnstock 4.x library |
 | AI | Groq API — `llama-3.3-70b-versatile` (free, 14,400 req/day, ~0.4s response) |
 | Database | MySQL 8 (RANGE-partitioned by year for scale) |
-| Charts | ApexCharts 3.49 (candlestick, line, bar, mixed) |
+| Charts | TradingView Lightweight Charts 5 (bundled locally by Vite: candles, area, volume, multi-pane indicators) + in-repo SVG donut/bars |
 | Frontend | Blade Templates + Bootstrap 4.5 (main site, CDN) + Tailwind CSS 4 (Vite, page-specific styles) |
 | Admin Panel | Blade Templates + Tabler / Bootstrap 5 (CDN) |
 | Authorization | Custom RBAC (`roles`) + DB-driven permissions (`permissions`/`permission_role`) — see [docs/RBAC.md](docs/RBAC.md) |
@@ -180,6 +182,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-19 | **Company Profile page** (`/company/{symbol}`) and **Open-ended Fund catalog** (`/funds`, detail, compare) from free vnstock `Company`/`Fund` APIs; **charts moved from ApexCharts (CDN) to TradingView Lightweight Charts (bundled locally)** with volume, MA/Bollinger overlays and RSI/MACD as real chart panes; fixed a real bug where every Python call made from a web request failed (`Permission denied: /var/www/.vnstock`) |
 | 2026-09-17 | **News Category management** + **self-service admin password change** — `/admin/news-categories` (CRUD, with a guard against deleting a category still used by the RSS sync sources) and `/admin/account` (any backend account, no extra permission needed) |
 | 2026-09-16 | **Real-time queue activity** — `/admin/queue` now shows exactly which job is processing right now (with a live-updating elapsed timer), recently-finished jobs with duration, and a "processed today" counter, powered by a new `queue_job_logs` table |
 | 2026-09-15 | **Queue monitoring dashboard** — custom-built (Laravel Horizon was tried, then dropped for being harder to read than this app needs) at `/admin/queue` (gate `manage-queue`): per-queue live counts, failed-job retry/delete; fixed a real `retry_after` < `timeout` misconfiguration that was silently duplicating and failing long-running sync jobs |
@@ -225,6 +228,8 @@ MIT License © 2025–2026
 - **📊 Chỉ báo kỹ thuật** — Thêm MA20/50/200, Bollinger Bands lên biểu đồ chính; RSI(14) và MACD(12,26,9) hiển thị dưới dạng biểu đồ phụ riêng biệt. Tất cả chỉ báo cập nhật theo bộ lọc thời gian (1T/3T/6T/1N/Tất cả).
 - **🏦 Tài chính doanh nghiệp** — Xem báo cáo tài chính theo yêu cầu: Kết quả kinh doanh, Bảng cân đối kế toán, Lưu chuyển tiền tệ, Chỉ số tài chính — theo quý hoặc năm — từ nguồn dữ liệu KBS qua vnstock.
 - **🔎 Bộ lọc cổ phiếu (Screener)** — Lọc và xếp hạng toàn thị trường theo các chỉ số tài chính (P/E, ROE, ...) từ dữ liệu đã đồng bộ.
+- **🏢 Hồ sơ công ty** — `/company/{symbol}`: tổng quan & định giá, cơ cấu sở hữu và cổ đông lớn (biểu đồ tròn), HĐQT / ban điều hành / BKS kèm tỷ lệ nắm giữ, công ty con & liên kết, sự kiện doanh nghiệp (cổ tức, ĐHCĐ sắp tới, giao dịch nội bộ). Cache DB kiểu stale-while-revalidate; lần đầu ~4 giây, các lần sau tức thì.
+- **💼 Quỹ mở** — `/funds`: 68 quỹ Fmarket, lọc theo loại / công ty quản lý / tên, sắp xếp theo mọi kỳ lợi suất; trang chi tiết có biểu đồ NAV (xanh/đỏ so với đầu kỳ), sụt giảm tối đa, biến động, phân bổ tài sản, top khoản đầu tư (link sang hồ sơ công ty); so sánh tối đa 4 quỹ.
 - **So sánh cổ phiếu** — So sánh biểu đồ nhiều mã cổ phiếu cùng lúc.
 - **Ngành hot** — Khám phá cổ phiếu nổi bật trong các ngành Ngân hàng, Bất động sản, CNTT.
 - **Quản lý danh mục** — Tạo danh mục đầu tư, theo dõi lợi nhuận/lỗ theo thời gian thực từ giá đã đồng bộ thật, đặt mức giá mục tiêu và cắt lỗ (tự động gửi email cảnh báo một lần khi chạm mốc), gợi ý cân bằng danh mục bằng AI.
@@ -334,6 +339,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-19 | **Trang hồ sơ công ty** (`/company/{symbol}`) và **danh mục quỹ mở** (`/funds`, chi tiết, so sánh) từ vnstock `Company`/`Fund` miễn phí; **đổi biểu đồ từ ApexCharts (CDN) sang TradingView Lightweight Charts (bundle local)** có volume, MA/Bollinger và RSI/MACD dạng pane thật; sửa lỗi thật: mọi lệnh Python gọi từ web request đều thất bại (`Permission denied: /var/www/.vnstock`) |
 | 2026-09-17 | **Quản lý Danh mục Tin tức** + **tự đổi mật khẩu admin** — `/admin/news-categories` (CRUD, chặn xoá danh mục đang được nguồn RSS sync dùng) và `/admin/account` (bất kỳ tài khoản backend nào, không cần thêm quyền) |
 | 2026-09-16 | **Real-time queue activity** — `/admin/queue` giờ hiện đúng job nào đang chạy (kèm đồng hồ đếm thời gian chạy live), job vừa xử lý xong kèm thời lượng, và số job đã xử lý trong ngày — dùng bảng `queue_job_logs` mới |
 | 2026-09-15 | **Dashboard giám sát Queue** — tự viết (Laravel Horizon từng thử rồi bỏ vì khó theo dõi hơn mức app này cần) tại `/admin/queue` (gate `manage-queue`): số liệu live theo từng queue, retry/xoá job fail; fix lỗi cấu hình thật `retry_after` < `timeout` khiến job sync chạy lâu bị nhân đôi và fail oan |

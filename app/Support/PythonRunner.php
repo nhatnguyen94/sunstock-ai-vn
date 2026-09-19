@@ -28,6 +28,14 @@ use Illuminate\Support\Facades\Log;
  * behavior, so this class falls back to a plain, unwrapped exec() there —
  * same as before this fix, not worse. Docker (the recommended setup, and
  * where this app actually runs in production) gets the real fix.
+ *
+ * Second, independent problem this class also solves: vnstock writes its config
+ * and id files to `~/.vnstock` at import time. Queue workers/scheduler run as root
+ * (writable home), but a PHP-FPM request runs as www-data whose home (/var/www) is
+ * root-owned in the image — so every Python call made *from a web request* died with
+ * `[Errno 13] Permission denied: '/var/www/.vnstock'` (scripts returned an error /
+ * empty result, and callers silently fell back to whatever was cached). When the
+ * effective user's home is not writable, run() points HOME at a private temp dir.
  */
 class PythonRunner
 {
@@ -48,7 +56,7 @@ class PythonRunner
 
         $command = PHP_OS_FAMILY === 'Windows'
             ? self::buildCommand($pythonPath, $scriptPath, $args)
-            : 'timeout ' . escapeshellarg((string) $timeoutSeconds) . ' ' . self::buildCommand($pythonPath, $scriptPath, $args);
+            : self::homeOverride() . 'timeout ' . escapeshellarg((string) $timeoutSeconds) . ' ' . self::buildCommand($pythonPath, $scriptPath, $args);
 
         if ($suppressStderr) {
             $command .= PHP_OS_FAMILY === 'Windows' ? ' 2>NUL' : ' 2>/dev/null';
@@ -90,6 +98,30 @@ class PythonRunner
         }
 
         return null;
+    }
+
+    /**
+     * `HOME=/tmp/... ` prefix when the current user cannot write to its own home, else ''.
+     * (PHP-FPM clears the environment, so HOME is often unset even though Python — which
+     * falls back to the passwd entry — still resolves it to the unwritable /var/www.)
+     */
+    private static function homeOverride(): string
+    {
+        $home = getenv('HOME') ?: '';
+        if ($home === '' && function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            $home = posix_getpwuid(posix_geteuid())['dir'] ?? '';
+        }
+
+        if ($home !== '' && is_dir($home) && is_writable($home)) {
+            return '';
+        }
+
+        $fallback = sys_get_temp_dir() . '/python-home';
+        if (! is_dir($fallback)) {
+            @mkdir($fallback, 0700, true);
+        }
+
+        return 'HOME=' . escapeshellarg($fallback) . ' ';
     }
 
     private static function buildCommand(string $pythonPath, string $scriptPath, array $args): string
