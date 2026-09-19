@@ -601,22 +601,4 @@
         }
         .dropdown-item:hover { background: var(--light-blue) !important; color: var(--primary-blue) !important; }
 
-/* ── Awesomplete global reset (override CDN default styles) ───────── */
-.awesomplete > ul {
-    border: none !important;
-    border-radius: 14px !important;
-    padding: 6px !important;
-    box-shadow: 0 16px 40px rgba(15,23,42,0.14), 0 4px 12px rgba(15,23,42,0.08) !important;
-    background: #fff !important;
-}
-.awesomplete > ul::before { display: none !important; }
-.awesomplete > ul > li {
-    border-radius: 10px !important;
-    padding: 10px 14px !important;
-    color: #1e293b !important;
-}
-.awesomplete > ul > li:hover,
-.awesomplete > ul > li[aria-selected="true"] {
-    background: #eff6ff !important;
-    color: #1e293b !important;
-}
+/* Autocomplete styles: css/shared/autocomplete.css */

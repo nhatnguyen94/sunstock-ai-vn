@@ -125,6 +125,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Support/SingleFlight.php` - `run(key, cached, produce)`: when N requests miss the same cache at once only ONE runs the expensive producer (a ~4s Python subprocess); the rest wait on a `Cache::lock` and re-read the result. Used by `CompanyProfileService` and `FundService`
 - `app/Support/FundMetrics.php` - Pure NAV-series maths (no I/O): `windowStats()` → return %, max drawdown, annualised volatility for 1M/3M/6M/1Y/3Y/ALL (volatility is null for ALL: history is thinned to weekly before the daily window)
 - `app/Support/VnFormat.php` - Null-safe Vietnamese formatting for Blade (`number`, `percent`, `bigMoney`, `date`, `trendClass`); used via `@use('App\Support\VnFormat', 'F')`
+- `app/Support/Mojibake.php` - `repairCp437()`: inverse of "UTF-8 bytes shown as Windows console CP437" (`C├┤ng ty` → `Công ty`); returns null unless the result is valid UTF-8 and differs. Used by migration `2026_09_19_000003_repair_mojibake_in_stock_symbol_names` (182 `stock_symbols.name` rows)
 
 ### Notifications
 - `app/Notifications/PortfolioAlertNotification.php` - `ShouldQueue` mail notification; sent once when a `PortfolioItem` crosses `target_price` or `stop_loss_price`. Always queued `onQueue('high')` so it isn't delayed by heavy `default`-queue sync jobs.

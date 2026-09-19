@@ -168,10 +168,25 @@ public function updateStockPriceFromPython(string $symbol): void
             $this->getOrUpdateSymbols();
         }
 
-        return StockSymbol::when($query, function ($qBuilder) use ($query) {
-            $qBuilder->where('symbol', 'like', "%$query%")
-                ->orWhere('name', 'like', "%$query%");
-        })
+        $query = trim($query);
+        // Escape LIKE wildcards so "%" / "_" typed by a user are matched literally
+        $like = addcslashes($query, '%_\\');
+
+        return StockSymbol::select(['symbol', 'name', 'exchange'])
+            ->when($query !== '', function ($qBuilder) use ($like) {
+                $qBuilder->where(function ($q) use ($like) {
+                    $q->where('symbol', 'like', "%{$like}%")
+                        ->orWhere('name', 'like', "%{$like}%");
+                });
+            })
+            // Relevance: exact ticker, then ticker prefix, then ticker contains, then name-only matches
+            ->when($query !== '', function ($qBuilder) use ($query, $like) {
+                $qBuilder->orderByRaw(
+                    'CASE WHEN symbol = ? THEN 0 WHEN symbol LIKE ? THEN 1 WHEN symbol LIKE ? THEN 2 ELSE 3 END',
+                    [$query, "{$like}%", "%{$like}%"]
+                );
+            })
+            ->orderBy('symbol')
             ->limit(20)
             ->get()
             ->toArray();

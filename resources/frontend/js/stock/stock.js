@@ -4,6 +4,7 @@ import {
     AreaSeries, CandlestickSeries, HistogramSeries, LineSeries, LineStyle,
     COLORS, DEC_FORMAT, PRICE_FORMAT, attachLegend, cleanSeries, fmtDec, fmtInt, fmtPrice, makeChart, toDay,
 } from '../shared/charts.js';
+import { stockAutocomplete } from '../shared/autocomplete.js';
 import { bollinger, macd, rsi, sma } from '../shared/indicators.js';
 
 window.searchSymbol = function (symbol) {
@@ -344,23 +345,12 @@ function initPriceTable() {
     });
 })();
 
-// Awesomplete autocomplete
-let awesomplete = new Awesomplete(document.getElementById('symbol'), { minChars: 1, maxItems: 15, autoFirst: true, list: [] });
-let searchTimeout;
-document.getElementById('symbol').addEventListener('input', function() {
-    const val = this.value.trim();
-    const notFoundMsg = document.getElementById('notFoundMsg');
-    if (val.length < 1) { notFoundMsg.classList.remove('show'); return; }
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        fetch('/stocks-list?q=' + encodeURIComponent(val))
-            .then(r => r.json())
-            .then(data => {
-                notFoundMsg.classList[data.length === 0 ? 'add' : 'remove']('show');
-                awesomplete.list = data.map(item => ({ label: `<b>${item.symbol}</b><span>${item.name ? ' - '+item.name : ''}</span>`, value: item.symbol }));
-            })
-            .catch(() => notFoundMsg.classList.add('show'));
-    }, 300);
+// Symbol autocomplete
+const stockSearchForm = document.querySelector('.search-section form');
+stockAutocomplete(document.getElementById('symbol'), {
+    maxItems: 8,
+    onResults: (data) => document.getElementById('notFoundMsg').classList.toggle('show', Array.isArray(data) && data.length === 0),
+    onPick: () => stockSearchForm.requestSubmit(),   // picking a suggestion searches straight away
 });
 document.getElementById('symbol').addEventListener('focus', () => document.getElementById('notFoundMsg').classList.remove('show'));
 document.querySelector('.search-section form').addEventListener('submit', function() {

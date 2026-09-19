@@ -1,7 +1,6 @@
 @extends('layouts.app')
 
 @section('head')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css" />
 @vite(['resources/frontend/css/stock/stock.css', 'resources/frontend/css/shared/charts.css'])
 @endsection
 
@@ -258,7 +257,6 @@
 @endsection
 
 @section('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
 <script>
 const rawData = @json($data);
 const stockSymbol = '{{ $symbol }}';

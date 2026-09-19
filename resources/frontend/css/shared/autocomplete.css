@@ -1,0 +1,149 @@
+/* Stock autocomplete (Awesomplete + shared/autocomplete.js).
+   Palette = app tokens: primary #2563eb, light-blue #eff6ff, text #1f2937 / #6b7280, border #e5e7eb.
+   Replaces the CDN awesomplete.css and the three per-page copies of these rules. */
+
+/* ── Awesomplete base (what the CDN stylesheet provided) ─────────────────── */
+.awesomplete { display: block; position: relative; width: 100%; }
+.awesomplete [hidden] { display: none; }
+.awesomplete .visually-hidden { position: absolute; clip: rect(0, 0, 0, 0); }
+.awesomplete > input { display: block; }
+.awesomplete > ul:empty { display: none; }
+
+/* Wrapper is a flex child in both search forms */
+.search-input-container .awesomplete,
+.search-input-wrapper .awesomplete { flex: 1; display: flex; align-items: center; }
+
+/* ── Dropdown panel ──────────────────────────────────────────────────────── */
+.awesomplete > ul {
+    position: absolute; left: 0; right: 0; top: 100%; z-index: 9999;
+    box-sizing: border-box; min-width: 100%;
+    margin: 8px 0 0; padding: 6px; list-style: none;
+    background: #fff;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 14px;
+    box-shadow: 0 18px 40px -12px rgba(15, 23, 42, 0.18), 0 4px 10px rgba(15, 23, 42, 0.05);
+    max-height: 340px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+    animation: ac-in 0.14s ease-out;
+}
+.awesomplete > ul::before { display: none; }   /* CDN arrow */
+.awesomplete > ul::-webkit-scrollbar { width: 6px; }
+.awesomplete > ul::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+
+@keyframes ac-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Rows ────────────────────────────────────────────────────────────────── */
+.awesomplete > ul > li {
+    position: relative;
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 12px;
+    margin: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-primary, #1f2937);
+    cursor: pointer;
+    transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+.awesomplete > ul > li + li { margin-top: 2px; }
+
+/* Ticker chip — soft by default, solid when active */
+.ac-symbol {
+    flex: 0 0 auto; min-width: 66px; text-align: center;
+    padding: 5px 9px; border-radius: 8px;
+    background: var(--light-blue, #eff6ff); color: #1d4ed8;
+    font-size: 0.86rem; font-weight: 700; letter-spacing: 0.03em; line-height: 1.2;
+    transition: background-color 0.12s ease, color 0.12s ease;
+}
+.ac-body { flex: 1 1 auto; min-width: 0; }
+.ac-name {
+    display: block; font-size: 0.86rem; line-height: 1.3; color: #4b5563;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: color 0.12s ease;
+}
+.ac-exchange {
+    flex: 0 0 auto; padding: 2px 8px; border-radius: 999px;
+    background: #f1f5f9; color: #64748b;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+    transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+/* Matched text: a calm tint of the brand blue, never neon yellow */
+.awesomplete mark {
+    background: rgba(37, 99, 235, 0.14); color: inherit;
+    font-weight: 700; border-radius: 3px; padding: 0 1px;
+}
+
+/* ── The ONE highlighted row (keyboard selection; hover moves it too) ────── */
+.awesomplete > ul > li[aria-selected="true"] {
+    background: #eff6ff;
+    box-shadow: inset 3px 0 0 var(--primary-blue, #2563eb);
+    color: var(--text-primary, #1f2937);
+}
+.awesomplete > ul > li[aria-selected="true"] .ac-symbol {
+    background: var(--primary-blue, #2563eb); color: #fff;
+}
+.awesomplete > ul > li[aria-selected="true"] .ac-symbol mark {
+    background: rgba(255, 255, 255, 0.28); color: #fff;
+}
+.awesomplete > ul > li[aria-selected="true"] .ac-name { color: #1e40af; }
+.awesomplete > ul > li[aria-selected="true"] .ac-exchange { background: #dbeafe; color: #1d4ed8; }
+
+/* Deliberately NO separate :hover colour: the mousemove handler in shared/autocomplete.js moves the
+   selection to the hovered row, so mouse and keyboard share a single highlight. */
+
+/* ── Input affordances: clear button + loading spinner ───────────────────── */
+.awesomplete .ac-clear {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
+    background: #f1f5f9; color: #64748b; font-size: 0.7rem; line-height: 1;
+    display: none; align-items: center; justify-content: center; cursor: pointer; z-index: 6;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.awesomplete .ac-clear:hover { background: #e2e8f0; color: #1f2937; }
+.awesomplete.has-value:not(.is-loading) .ac-clear { display: inline-flex; }
+
+.awesomplete.is-loading::after {
+    content: ''; position: absolute; right: 16px; top: 50%; margin-top: -9px;
+    width: 18px; height: 18px; border-radius: 50%; z-index: 6;
+    border: 2px solid #dbeafe; border-top-color: var(--primary-blue, #2563eb);
+    animation: ac-spin 0.7s linear infinite;
+}
+@keyframes ac-spin { to { transform: rotate(360deg); } }
+
+/* Room for the button/spinner inside the three search inputs */
+.awesomplete > input.search-input,
+.awesomplete > input.search-input-comp { padding-right: 48px; }
+
+@media (max-width: 575px) {
+    .ac-exchange { display: none; }
+    .ac-symbol { min-width: 58px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .awesomplete > ul { animation: none; }
+    .awesomplete.is-loading::after { animation-duration: 1.6s; }
+}
+
+/* ── Search input polish (home, stock page, compare page) ────────────────── */
+.awesomplete > input.search-input,
+.awesomplete > input.search-input-comp {
+    background: #f8fafc;
+    border-color: var(--border-color, #e5e7eb);
+    transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+.awesomplete > input.search-input:hover,
+.awesomplete > input.search-input-comp:hover { border-color: #cbd5e1; }
+.awesomplete > input.search-input:focus,
+.awesomplete > input.search-input-comp:focus {
+    background: #fff;
+    border-color: var(--primary-blue, #2563eb);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    outline: none;
+}
+.search-input-container .search-icon,
+.search-input-wrapper .search-icon { transition: color 0.18s ease; }
+.search-input-container:focus-within .search-icon,
+.search-input-wrapper:focus-within .search-icon { color: var(--primary-blue, #2563eb); }

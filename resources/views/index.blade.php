@@ -10,7 +10,6 @@
 @endphp
 
 @section('head')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css" />
 @vite('resources/frontend/css/index.css')
 @endsection
 
@@ -421,7 +420,6 @@
 
 
 @section('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
 
 <script>
 window._isAuth = {{ json_encode(Auth::check()) }};

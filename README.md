@@ -182,6 +182,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-19 | **Search autocomplete redesign** — single highlight (hover and keyboard selection no longer look like two selected rows), ranked results (exact ticker first), ticker chips, clear button and spinner; repaired 182 garbled company names |
 | 2026-09-19 | **Company Profile page** (`/company/{symbol}`) and **Open-ended Fund catalog** (`/funds`, detail, compare) from free vnstock `Company`/`Fund` APIs; **charts moved from ApexCharts (CDN) to TradingView Lightweight Charts (bundled locally)** with volume, MA/Bollinger overlays and RSI/MACD as real chart panes; fixed a real bug where every Python call made from a web request failed (`Permission denied: /var/www/.vnstock`) |
 | 2026-09-17 | **News Category management** + **self-service admin password change** — `/admin/news-categories` (CRUD, with a guard against deleting a category still used by the RSS sync sources) and `/admin/account` (any backend account, no extra permission needed) |
 | 2026-09-16 | **Real-time queue activity** — `/admin/queue` now shows exactly which job is processing right now (with a live-updating elapsed timer), recently-finished jobs with duration, and a "processed today" counter, powered by a new `queue_job_logs` table |
@@ -339,6 +340,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-19 | **Làm lại ô tìm kiếm mã** — chỉ còn 1 dòng highlight (hover và chọn bằng phím không còn trông như 2 dòng cùng được chọn), kết quả xếp hạng (mã khớp chính xác lên đầu), chip mã, nút xoá, spinner; sửa 182 tên công ty bị lỗi mã hóa |
 | 2026-09-19 | **Trang hồ sơ công ty** (`/company/{symbol}`) và **danh mục quỹ mở** (`/funds`, chi tiết, so sánh) từ vnstock `Company`/`Fund` miễn phí; **đổi biểu đồ từ ApexCharts (CDN) sang TradingView Lightweight Charts (bundle local)** có volume, MA/Bollinger và RSI/MACD dạng pane thật; sửa lỗi thật: mọi lệnh Python gọi từ web request đều thất bại (`Permission denied: /var/www/.vnstock`) |
 | 2026-09-17 | **Quản lý Danh mục Tin tức** + **tự đổi mật khẩu admin** — `/admin/news-categories` (CRUD, chặn xoá danh mục đang được nguồn RSS sync dùng) và `/admin/account` (bất kỳ tài khoản backend nào, không cần thêm quyền) |
 | 2026-09-16 | **Real-time queue activity** — `/admin/queue` giờ hiện đúng job nào đang chạy (kèm đồng hồ đếm thời gian chạy live), job vừa xử lý xong kèm thời lượng, và số job đã xử lý trong ngày — dùng bảng `queue_job_logs` mới |

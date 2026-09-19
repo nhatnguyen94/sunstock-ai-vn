@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
     <!-- NProgress – page loading indicator -->
     <link rel="stylesheet" href="https://unpkg.com/nprogress@0.2.0/nprogress.css">
-    @vite('resources/frontend/css/layouts/app.css')
+    @vite(['resources/frontend/css/layouts/app.css', 'resources/frontend/css/shared/autocomplete.css'])
     @yield('head')
 </head>
 <body>

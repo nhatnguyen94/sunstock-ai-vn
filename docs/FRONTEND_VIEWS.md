@@ -32,6 +32,7 @@ resources/
 │   │   │   ├── register.css       ← Register page (37 lines)
 │   │   │   └── password-reset.css ← Forgot/reset password pages
 │   │   ├── shared/
+│   │   │   ├── autocomplete.css ← Dropdown + search-input styles (replaces the CDN awesomplete.css and 3 per-page copies); loaded by layouts/app.blade.php
 │   │   │   └── charts.css       ← Styles for shared/charts.js (legend) and shared/svgcharts.js (donut, bars)
 │   │   ├── company/
 │   │   │   └── show.css         ← Company profile page
@@ -63,6 +64,7 @@ resources/
 │       │   ├── register.js      ← Register JS (6 lines)
 │       │   └── verify-email.js  ← Email verification JS (11 lines)
 │       ├── shared/
+│       │   ├── autocomplete.js  ← `stockAutocomplete(input, {onPick,onResults})`: Awesomplete (npm) + DOM-built rows, single hover/keyboard highlight, debounced+abortable fetch, clear button, spinner
 │       │   ├── charts.js        ← Lightweight Charts setup: theme, `makeChart`, legend, helpers (toDay/cleanSeries/sliceByDays/rebase)
 │       │   ├── indicators.js    ← SMA/EMA/RSI/MACD/Bollinger (pure, unit-tested)
 │       │   ├── svgcharts.js     ← Dependency-free donut + diverging bars (what Lightweight Charts cannot draw)
@@ -230,3 +232,10 @@ npm run build
 - Extra indicator panes are extra **panes of the same chart** (`chart.addSeries(Series, opts, paneIndex)`), so the time axis and crosshair stay in sync; removing a pane's last series removes the pane.
 - A chart created inside a hidden container is re-fitted automatically on its first real size (`makeChart`).
 - Pure logic (indicators, series helpers) stays DOM-free and is covered by `npm test` (see docs/TESTING.md).
+
+## Search autocomplete conventions
+
+- Every symbol search box (home, `/stock`, `/stock/compare`) uses `shared/autocomplete.js` — do not instantiate `Awesomplete` directly and do not restyle `.awesomplete` in page CSS (all styling is in `css/shared/autocomplete.css`, loaded globally by the layout).
+- **One highlighted row at a time**: keyboard selection and mouse hover are the same state (`aria-selected`), styled in brand blue with a solid ticker chip and a left accent bar. There is intentionally no separate `:hover` colour — two competing highlights was the original UX bug. Hover moves the selection *without* Awesomplete's `goto()` because that call also scrolls the list.
+- Rows are built with DOM nodes (`textContent`), never HTML strings; matched text uses a soft `<mark>` tint, not the CDN's neon yellow.
+- The endpoint `GET /stocks-list?q=` returns `{symbol,name,exchange}` ranked server-side (exact ticker, prefix, contains, name); the client therefore sets `filter: () => true, sort: false`.

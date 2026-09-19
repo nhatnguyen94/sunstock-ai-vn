@@ -1,71 +1,21 @@
+import { stockAutocomplete } from './shared/autocomplete.js';
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Awesomplete
     const symbolInput = document.getElementById('symbol');
-    const awesomplete = new Awesomplete(symbolInput, {
-        minChars: 1,
-        maxItems: 15,
-        autoFirst: true,
-        list: [],
-        replace: function(suggestion) {
-            this.input.value = suggestion.value;
-        }
-    });
+    const notFoundMsg = document.getElementById('notFoundMsg');
 
-    // Auto submit form when an item is selected from dropdown
-    symbolInput.addEventListener('awesomplete-selectcomplete', function(e) {
-        const searchForm = document.querySelector('.search-form-wrapper');
-        const searchBtn = searchForm.querySelector('.search-btn');
-        const btnText = searchBtn.querySelector('.btn-text');
-        const btnIcon = searchBtn.querySelector('i');
-        
-        searchBtn.disabled = true;
-        btnIcon.className = 'loading';
-        btnText.textContent = 'Đang tìm...';
-        
-        searchForm.submit();
-    });
-
-    let searchTimeout;
-
-    // Search suggestions with debounce
-    symbolInput.addEventListener('input', function(e) {
-        // Don't trigger search if the input was updated by selection
-        if (e.isTrusted === false) return;
-        
-        const val = this.value.trim();
-        const notFoundMsg = document.getElementById('notFoundMsg');
-        
-        if (val.length < 1) {
-            notFoundMsg.classList.remove('show');
-            return;
-        }
-        
-        // Clear previous timeout
-        clearTimeout(searchTimeout);
-        
-        // Set new timeout
-        searchTimeout = setTimeout(() => {
-            fetch('/stocks-list?q=' + encodeURIComponent(val))
-                .then(res => res.json())
-                .then(data => {
-                    if (data.length === 0) {
-                        notFoundMsg.classList.add('show');
-                    } else {
-                        notFoundMsg.classList.remove('show');
-                    }
-                    
-                    const list = data.map(item => ({
-                        label: `<b>${item.symbol}</b><span>${item.name}</span>`,
-                        value: item.symbol
-                    }));
-                    
-                    awesomplete.list = list;
-                })
-                .catch(err => {
-                    console.error('Lỗi lấy danh sách mã:', err);
-                    notFoundMsg.classList.add('show');
-                });
-        }, 300); // 300ms debounce
+    stockAutocomplete(symbolInput, {
+        maxItems: 8,
+        onResults: (data) => notFoundMsg.classList.toggle('show', Array.isArray(data) && data.length === 0),
+        // Picking a suggestion searches straight away
+        onPick: () => {
+            const form = document.querySelector('.search-form-wrapper');
+            const btn = form.querySelector('.search-btn');
+            btn.disabled = true;
+            btn.querySelector('i').className = 'loading';
+            btn.querySelector('.btn-text').textContent = 'Đang tìm...';
+            form.submit();
+        },
     });
 
     // Form submission with loading state

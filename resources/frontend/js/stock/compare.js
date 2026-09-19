@@ -1,4 +1,5 @@
 import { LineSeries, LineStyle, attachLegend, cleanSeries, fmtDec, makeChart, rebase, sliceByDays, toDay } from '../shared/charts.js';
+import { stockAutocomplete } from '../shared/autocomplete.js';
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -6,22 +7,9 @@ let chartInstance = null;
 let allChartData = [];
 let activeMonths = 1;
 
-const awesomplete = new Awesomplete(document.getElementById('symbolInput'), {
-    minChars: 1, maxItems: 10, autoFirst: true, list: []
-});
-let searchTimeout;
-document.getElementById('symbolInput').addEventListener('input', function() {
-    const val = this.value.trim();
-    if (val.length < 1) return;
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        fetch('/stocks-list?q=' + encodeURIComponent(val))
-            .then(r => r.json())
-            .then(data => { awesomplete.list = data.map(item => item.symbol); });
-    }, 250);
-});
-document.getElementById('symbolInput').addEventListener('awesomplete-selectcomplete', function() { addSymbol(); });
-document.getElementById('symbolInput').addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addSymbol(); } });
+const symbolInput = document.getElementById('symbolInput');
+stockAutocomplete(symbolInput, { maxItems: 8, onPick: () => addSymbol() });
+symbolInput.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addSymbol(); } });
 
 function addSymbolDirect(sym) { document.getElementById('symbolInput').value = sym; addSymbol(); }
 

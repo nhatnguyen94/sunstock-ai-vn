@@ -2,6 +2,30 @@
 
 ---
 
+## SEARCH_AUTOCOMPLETE_REDESIGN - September 19, 2026
+
+### Summary:
+User found the symbol-search dropdown ugly: the highlighted row was a heavy colour and the hovered row looked identical to the keyboard-selected one, so two rows appeared "selected" at once.
+
+### Root causes:
+- The CDN `awesomplete.css` (neon `mark`, dark selected row) was loaded together with **three separate copies** of override CSS (`index.css`, `stock.css`, `layouts/app.css` with `!important`) that gave `:hover` and `[aria-selected]` the *same* background — and the mouse hover never moved the keyboard selection, so both could be lit at once.
+- Awesomplete's default row renderer wraps matches in `<mark>` on the raw label HTML; labels were HTML strings (`<b>SYM</b><span>name</span>`), so typing `b`/`span` could corrupt the markup and company names were injected unescaped.
+- Results were unranked (`LIKE %q%`, limit 20, no ORDER BY) — typing `FPT` did not guarantee FPT was first.
+
+### Changed:
+- New `resources/frontend/js/shared/autocomplete.js` (`stockAutocomplete`) used by home, stock and compare pages: DOM-built rows (ticker chip + company name + exchange pill), soft-blue match tint, **single highlight** (mouse hover moves the selection, without Awesomplete's scroll-jumping `goto()`), debounced + `AbortController`-cancelled fetch (a slow old response can't overwrite a newer one), clear (×) button, loading spinner, pick-to-search on the stock page (as on home).
+- New `css/shared/autocomplete.css` — the only stylesheet for the dropdown and the search inputs (brand palette, focus ring, icon turns blue on focus, reduced-motion, mobile). The three duplicate blocks and the CDN CSS/JS were removed; `awesomplete` is now an npm dependency bundled by Vite.
+- `StockRepository::searchSymbols()`: ranked exact → prefix → contains → name-only, returns only `symbol,name,exchange`, LIKE wildcards escaped.
+- Data fix: 182 of 1777 `stock_symbols.name` values were stored as CP437 mojibake (`C├┤ng ty Cß╗ò phß║ºn`) by an old Windows-console sync and were visible as gibberish rows; these are mostly delisted symbols so re-syncing could not repair them. New `App\Support\Mojibake` + idempotent migration `2026_09_19_000003` repaired all 182 (verified 182 → 0).
+
+### Tests:
+Group `stockSearch` (+6). `php artisan test` all green; `npm test` unchanged.
+
+### Verified:
+Real browser (static copy of the built home/stock pages with a stubbed `/stocks-list`): dropdown renders, exactly one `aria-selected` row at any time while moving the mouse across rows, no scroll jump, clear button + focus ring. Keyboard navigation relies on Awesomplete's own handling and was not exercised in the browser tool.
+
+---
+
 ## COMPANY_PROFILE_FUND_CATALOG_LIGHTWEIGHT_CHARTS - September 19, 2026
 
 ### Summary:
