@@ -9,6 +9,33 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0/dist/css/tabler.min.css" rel="stylesheet"/>
   <style>
     .card-footer .pagination { margin-bottom: 0; }
+
+    /* Sidebar sub-menus: Tabler's `.nav` is a horizontal flex row, so the items of an expanded group used
+       to sit side by side and wrap. They are a vertical, indented list with a small dot bullet. */
+    .navbar-vertical .nav-sub { display: flex; flex-direction: column; flex-wrap: nowrap; padding: 0.15rem 0 0.35rem; }
+    .navbar-vertical .nav-sub.collapsing, .navbar-vertical .nav-sub.show { display: flex; }
+    .navbar-vertical .nav-sub:not(.show):not(.collapsing) { display: none; }
+    .navbar-vertical .nav-sub .nav-link {
+      display: flex; align-items: center; padding: 0.45rem 1rem 0.45rem 2.6rem;
+      font-size: 0.875rem; color: rgba(255, 255, 255, 0.65); border-radius: 6px; margin: 1px 0.5rem;
+    }
+    .navbar-vertical .nav-sub .nav-link:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
+    .navbar-vertical .nav-sub .nav-link.active { color: #fff; font-weight: 600; background: rgba(66, 153, 225, 0.22); }
+    .nav-link-bullet {
+      flex: 0 0 auto; width: 6px; height: 6px; margin-right: 0.75rem; border-radius: 50%;
+      background: currentColor; opacity: 0.45; transition: opacity .15s ease, transform .15s ease;
+    }
+    .nav-sub .nav-link:hover .nav-link-bullet { opacity: 0.8; }
+    .nav-sub .nav-link.active .nav-link-bullet { opacity: 1; background: #4299e1; transform: scale(1.25); }
+
+    /* Top-right account block: avatar + name over role badges, never overlapping */
+    .account-toggle { display: flex; align-items: center; gap: 0.6rem; padding: 0 !important; }
+    .account-meta { line-height: 1.25; text-align: left; }
+    .account-meta .account-name { font-weight: 600; font-size: 0.875rem; color: var(--tblr-body-color); white-space: nowrap; }
+    .account-meta .account-roles { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.15rem; }
+    /* Tabler makes `.navbar .badge` position:absolute (it is meant to be a notification dot on a nav icon),
+       which threw the role badge on top of the avatar. Here it is an ordinary inline label. */
+    .navbar-nav .nav-link.account-toggle .account-meta .badge { position: static !important; transform: none !important; top: auto !important; right: auto !important; }
   </style>
   @stack('styles')
 </head>
@@ -52,22 +79,28 @@
           </li>
           @endcan
 
-          {{-- Hệ thống --}}
-          @can('manage-users')
+          {{-- Hệ thống — visible to anyone holding at least one of its permissions; open on any of its pages --}}
+          @php
+            $systemOpen   = Request::routeIs('admin.users*', 'admin.roles*', 'admin.permissions*', 'admin.queue*');
+            $featuresOpen = Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*', 'admin.sync-status*');
+          @endphp
+          @canany(['manage-users', 'manage-roles', 'manage-permissions', 'manage-queue'])
           <li class="nav-item">
-            <a class="nav-link {{ Request::routeIs('admin.users*') ? '' : 'collapsed' }}"
+            <a class="nav-link {{ $systemOpen ? '' : 'collapsed' }}"
                href="#sidebar-system" data-bs-toggle="collapse" role="button"
-               aria-expanded="{{ Request::routeIs('admin.users*') ? 'true' : 'false' }}">
+               aria-expanded="{{ $systemOpen ? 'true' : 'false' }}">
               <span class="nav-link-icon d-md-none d-lg-inline-block">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><circle cx="12" cy="12" r="3"/></svg>
               </span>
               <span class="nav-link-title">Hệ thống</span>
             </a>
-            <div class="nav collapse {{ Request::routeIs('admin.users*') ? 'show' : '' }}" id="sidebar-system">
-              <a class="nav-link {{ Request::routeIs('admin.users.index') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+            <div class="nav nav-sub collapse {{ $systemOpen ? 'show' : '' }}" id="sidebar-system">
+              @can('manage-users')
+              <a class="nav-link {{ Request::routeIs('admin.users*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
                 <span class="nav-link-bullet"></span>
                 <span class="nav-link-title">Quản lý Users</span>
               </a>
+              @endcan
               @can('manage-roles')
               <a class="nav-link {{ Request::routeIs('admin.roles*') ? 'active' : '' }}" href="{{ route('admin.roles.index') }}">
                 <span class="nav-link-bullet"></span>
@@ -88,20 +121,20 @@
               @endcan
             </div>
           </li>
-          @endcan
+          @endcanany
 
           {{-- Tính năng --}}
           @can('manage-features')
           <li class="nav-item">
-            <a class="nav-link {{ Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*', 'admin.sync-status*') ? '' : 'collapsed' }}"
+            <a class="nav-link {{ $featuresOpen ? '' : 'collapsed' }}"
                href="#sidebar-features" data-bs-toggle="collapse" role="button"
-               aria-expanded="{{ Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*', 'admin.sync-status*') ? 'true' : 'false' }}">
+               aria-expanded="{{ $featuresOpen ? 'true' : 'false' }}">
               <span class="nav-link-icon d-md-none d-lg-inline-block">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
               </span>
               <span class="nav-link-title">Tính năng</span>
             </a>
-            <div class="nav collapse {{ Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*', 'admin.sync-status*') ? 'show' : '' }}" id="sidebar-features">
+            <div class="nav nav-sub collapse {{ $featuresOpen ? 'show' : '' }}" id="sidebar-features">
               <a class="nav-link {{ Request::routeIs('admin.stocks*') ? 'active' : '' }}" href="{{ route('admin.stocks.index') }}">
                 <span class="nav-link-bullet"></span>
                 <span class="nav-link-title">Quản lý Stock</span>
@@ -182,13 +215,13 @@
         </nav>
         <div class="navbar-nav flex-row order-md-last">
           <div class="nav-item dropdown">
-            <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
-              <span class="avatar avatar-sm">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
-              <div class="d-none d-xl-block ps-2">
-                <div>{{ Auth::user()->name }}</div>
-                <div class="mt-1 small text-muted">
+            <a href="#" class="nav-link account-toggle text-reset" data-bs-toggle="dropdown" aria-label="Open user menu">
+              <span class="avatar avatar-sm bg-blue-lt">{{ mb_strtoupper(mb_substr(Auth::user()->name, 0, 1)) }}</span>
+              <div class="account-meta d-none d-xl-block">
+                <div class="account-name">{{ Auth::user()->name }}</div>
+                <div class="account-roles">
                   @foreach(Auth::user()->roles as $role)
-                    <span class="badge badge-outline text-blue">{{ $role->display_name }}</span>
+                    <span class="badge bg-blue-lt">{{ $role->display_name }}</span>
                   @endforeach
                 </div>
               </div>

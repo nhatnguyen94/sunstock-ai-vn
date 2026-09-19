@@ -2,6 +2,18 @@
 
 ---
 
+## ADMIN_SIDEBAR_AND_ACCOUNT_UI_FIXES - September 19, 2026
+
+### Fixed (two UI bugs the user found in the admin layout, `layouts/admin.blade.php`):
+1. **Sidebar sub-menus** (Hệ thống: Quản lý Users / Vai trò / Quyền hạn / Giám sát Queue; also Tính năng) rendered side by side and wrapped: the sub-menu container was `<div class="nav collapse">` and Tabler's `.nav` is a horizontal flex row. Now `.nav-sub` (vertical, indented, dot bullets, single active style). Also: the *Hệ thống* group only auto-expanded on `admin.users*` pages (now on roles / permissions / queue too) and was hidden unless the user had `manage-users` (now `@canany` of its four permissions; each link keeps its own `@can`) — a role holding only `manage-queue` previously had no visible way to the queue page.
+2. **"Quản trị viên" badge on top of the avatar**: Tabler styles `.navbar-nav .nav-link .badge` as `position:absolute` (a notification dot for nav icons), so the role badge left the flow and landed over the avatar/name. The account block is now `.account-toggle` (flex, gap) with name over role badges and the badge forced back to `position:static`.
+Also `mb_substr` for the avatar initial (was `substr`, wrong for a name starting with a multi-byte letter).
+
+### Verified:
+Layout geometry measured in a real browser at 1500px (static render of the layout as the admin user): sub-menu links stacked vertically at the same left edge; avatar right edge 1384 < badge left 1393, badge top 28 > name bottom 26, all inside the 56px header. `queueMonitor` + `permissions` groups green.
+
+---
+
 ## SEARCH_AUTOCOMPLETE_REDESIGN - September 19, 2026
 
 ### Summary:

@@ -239,3 +239,8 @@ npm run build
 - **One highlighted row at a time**: keyboard selection and mouse hover are the same state (`aria-selected`), styled in brand blue with a solid ticker chip and a left accent bar. There is intentionally no separate `:hover` colour — two competing highlights was the original UX bug. Hover moves the selection *without* Awesomplete's `goto()` because that call also scrolls the list.
 - Rows are built with DOM nodes (`textContent`), never HTML strings; matched text uses a soft `<mark>` tint, not the CDN's neon yellow.
 - The endpoint `GET /stocks-list?q=` returns `{symbol,name,exchange}` ranked server-side (exact ticker, prefix, contains, name); the client therefore sets `filter: () => true, sort: false`.
+
+## Admin layout (Tabler) gotchas
+
+- Tabler's `.nav` is a **horizontal** flex row: a collapsible sidebar group must use `.nav-sub` (defined in `layouts/admin.blade.php`), not a bare `nav collapse`.
+- Tabler makes `.navbar-nav .nav-link .badge` **`position:absolute`** (notification dot). A text badge inside a nav link needs `position: static !important` (see `.account-meta .badge`).
