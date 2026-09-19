@@ -34,7 +34,7 @@
     </div>
 
     <!-- Main Navigation -->
-    <nav class="navbar navbar-expand-lg main-navbar">
+    <nav class="navbar navbar-expand-xl main-navbar">
         <div class="container">
             <a class="navbar-brand" href="{{ url('/') }}">
                 <i class="bi bi-graph-up-arrow brand-icon"></i>
@@ -46,7 +46,7 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto align-items-lg-center">
+                <ul class="navbar-nav ml-auto align-items-xl-center">
                     <li class="nav-item">
                         <a class="nav-link {{ request()->is('/') ? 'active' : '' }}" href="{{ url('/') }}">
                             <i class="bi bi-house-door"></i> Trang chủ
@@ -106,13 +106,13 @@
                     </li>
                     
                     @guest
-                        <li class="nav-item ml-lg-2">
+                        <li class="nav-item ml-xl-2">
                             <a class="nav-link" href="{{ route('login') }}"
                                style="background:rgba(255,255,255,0.15); border-radius:8px;">
                                 <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
                             </a>
                         </li>
-                        <li class="nav-item ml-lg-1">
+                        <li class="nav-item ml-xl-1">
                             <a href="{{ route('register') }}"
                                style="background:#fbbf24; color:#1e3a5f !important; border-radius:8px; padding:0.5rem 1rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:0.95rem; transition:all 0.2s ease;"
                                onmouseover="this.style.background='#f59e0b'"
@@ -121,10 +121,10 @@
                             </a>
                         </li>
                     @else
-                        <li class="nav-item dropdown ml-lg-2">
+                        <li class="nav-item dropdown ml-xl-2">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" data-toggle="dropdown">
-                                <span class="user-avatar">{{ strtoupper(substr(Auth::user()->profile->username ?? Auth::user()->name, 0, 1)) }}</span>
-                                {{ Auth::user()->profile->username ?? Auth::user()->name }}
+                                <span class="user-avatar">{{ strtoupper(mb_substr(Auth::user()->profile->username ?? Auth::user()->name, 0, 1)) }}</span>
+                                <span class="user-name">{{ Auth::user()->profile->username ?? Auth::user()->name }}</span>
                             </a>
                             <div class="dropdown-menu dropdown-menu-right">
                                 <div class="px-3 py-2 mb-1" style="border-bottom:1px solid var(--border-color);">

@@ -39,7 +39,8 @@
         }
 
         .navbar-brand {
-            font-size: 1.75rem;
+            font-size: 1.6rem;
+            white-space: nowrap;
             font-weight: 700;
             color: white !important;
             display: flex;
@@ -61,16 +62,36 @@
             background-clip: text;
         }
 
+        /* One line per item, always: labels never wrap, so every item is the same height and the text
+           baselines line up across the whole bar (wrapping "Trang chủ" / "Quỹ mở" onto 2 lines looked ragged). */
         .navbar-nav .nav-link {
             color: rgba(255,255,255,0.9) !important;
             font-weight: 500;
-            padding: 0.75rem 1.25rem !important;
+            font-size: 0.95rem;
+            line-height: 1.2;
+            white-space: nowrap;
+            padding: 0.6rem 0.8rem !important;
             border-radius: 8px;
             transition: all 0.3s ease;
-            margin: 0 4px;
+            margin: 0 2px;
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+
+        /* The 7 items + brand + account menu need room on desktop: widen the bar from the xl breakpoint
+           (below that the menu collapses to the hamburger — see navbar-expand-xl in layouts/app.blade.php). */
+        @media (min-width: 1200px) {
+            .main-navbar > .container { max-width: 1320px; }
+        }
+
+        /* Long usernames must not push the bar to a second line */
+        .navbar-nav .nav-link .user-name { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Collapsed (hamburger) menu: full-width, comfortably tappable rows */
+        @media (max-width: 1199.98px) {
+            .navbar-collapse { padding: 0.5rem 0 0.75rem; }
+            .navbar-nav .nav-link { padding: 0.7rem 0.9rem !important; margin: 2px 0; }
         }
 
         .navbar-nav .nav-link:hover {
