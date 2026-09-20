@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     supervisor \
     procps \
+    default-mysql-client \
     python3 \
     python3-pip \
     python3-venv \

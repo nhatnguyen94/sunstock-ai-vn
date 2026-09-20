@@ -145,6 +145,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Support/ActivityLogger.php` - Static helper `ActivityLogger::log(eventType, description, properties, user)`. Swallows all Throwable — never crashes calling code. Used in controllers for audit trail.
 - `app/Support/PythonRunner.php` - **Mandatory** wrapper for every `py/*.py` call (`run()`/`runAndDecodeJson()`) — wraps `exec()` with the Unix `timeout` utility so a hung Python subprocess can't block a worker/request past a configured ceiling, which plain `exec()` + Laravel's own job `--timeout` cannot guarantee (pcntl signal delivery doesn't interrupt a blocked syscall). See `docs/PYTHON_INTEGRATION.md` for the full per-call-site timeout table and the real bug this fixes.
 - `app/Support/SingleFlight.php` - `run(key, cached, produce)`: when N requests miss the same cache at once only ONE runs the expensive producer (a ~4s Python subprocess); the rest wait on a `Cache::lock` and re-read the result. Used by `CompanyProfileService` and `FundService`
+- `app/Support/DatabaseBackup.php` - mysqldump → `<root>/<year>/<month>/<day>/<db>_db.zip` (root = `config/backup.php` `path` or `<parent of project>/database_backup`, bind-mounted at `/backups` in Docker); truncation check, validates the zip, `latest()`/`isFresh()`, never deletes. Restore steps: `docs/DOCKER.md` §6b
 - `app/Support/TradingCalendar.php` - `lastCompletedSession()` (weekday ≥ 15:15 VN → that day, otherwise the previous weekday; Sat/Sun/Monday morning → Friday) and `isSessionOpen()`; holidays unknown by design
 - *(admin UI)* `resources/views/layouts/admin.blade.php` (shell), `resources/frontend/css/admin/app.css` (Tabler 1.5 + design tokens + components), `resources/frontend/js/admin/app.js` + `helpers.js` (palette, theme, toasts, confirm dialog)
 - `app/Support/FundMetrics.php` - Pure NAV-series maths (no I/O): `windowStats()` → return %, max drawdown, annualised volatility for 1M/3M/6M/1Y/3Y/ALL (volatility is null for ALL: history is thinned to weekly before the daily window)
@@ -160,6 +161,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Http/Middleware/AdminAccess.php` - Blocks non-backend users; registered as alias `admin` in `bootstrap/app.php`
 
 ### Console Commands
+- `app/Console/Commands/BackupDatabase.php` - `db:backup {--force} {--days=7} {--list}`: weekly mysqldump zip via `App\Support\DatabaseBackup`; skips while a valid backup < 7 days old exists; run by `scheduler-entrypoint.sh` at start and hourly by the scheduler
 - `app/Console/Commands/SyncNews.php` - Crawl all RSS sources and save new articles; called by scheduler every 30 min
 - `app/Console/Commands/SyncStockData.php` - Artisan command to sync stock symbols/details from Python
 - `app/Console/Commands/SyncStockPrices.php` - Sync daily stock prices; skips symbols already synced today (`--force` to override)

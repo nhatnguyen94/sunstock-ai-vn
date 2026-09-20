@@ -25,6 +25,7 @@ services:
       - .:/var/www/html                                          # code mount (dev)
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-custom.ini:ro
       - vendor_data:/var/www/html/vendor                        # vendor in named volume (faster on Windows)
+      - ../database_backup:/backups                             # weekly DB backups live BESIDE the project, outside Docker storage
     depends_on:
       mysql:
         condition: service_healthy
@@ -32,6 +33,7 @@ services:
         condition: service_started
     environment:
       - PYTHONIOENCODING=utf-8
+      - DB_BACKUP_PATH=/backups
     networks:
       - stocknet
     restart: unless-stopped
@@ -94,6 +96,7 @@ services:
     volumes:
       - .:/var/www/html
       - vendor_data:/var/www/html/vendor
+      - ../database_backup:/backups                             # weekly DB backups (db:backup) — see docs/DOCKER.md
     depends_on:
       mysql:
         condition: service_healthy
@@ -101,6 +104,7 @@ services:
         condition: service_started
     environment:
       - PYTHONIOENCODING=utf-8
+      - DB_BACKUP_PATH=/backups
     networks:
       - stocknet
     restart: unless-stopped

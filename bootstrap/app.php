@@ -65,6 +65,13 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping()
             ->runInBackground();
 
+        // Weekly database backup (zip beside the project, see App\Support\DatabaseBackup). Checked hourly because the
+        // stack may be off at any fixed time: the command itself is a cheap no-op while a backup from the last 7 days exists.
+        $schedule->command('db:backup')->hourly()
+            ->timezone('Asia/Ho_Chi_Minh')
+            ->withoutOverlapping(120)
+            ->runInBackground();
+
         // Market overview (indices, breadth, liquidity, movers, a quote per symbol): one ~4 s KBS call. Every 5 minutes
         // through the session, plus a closing snapshot after the ATC auction and one in the evening for late data.
         $schedule->command('sync:market-overview')->weekdays()->everyFiveMinutes()

@@ -7,6 +7,11 @@
 
 cd /var/www/html || exit 1
 
+# Safety net first: a weekly database backup OUTSIDE Docker storage (see docs/DOCKER.md "Backup database").
+# Skips itself when a valid backup from the last 7 days exists, so it is a no-op on most starts.
+echo "[scheduler-entrypoint] Checking weekly database backup..."
+php artisan db:backup || echo "[scheduler-entrypoint] db:backup failed, continuing"
+
 echo "[scheduler-entrypoint] Running startup data sync..."
 
 php artisan sync:stock-data              || echo "[scheduler-entrypoint] sync:stock-data failed, continuing"

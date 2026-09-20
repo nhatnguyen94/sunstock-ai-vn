@@ -287,6 +287,52 @@ docker compose up -d --build php queue scheduler
 
 ---
 
+## 6b. Backup database tự động (hàng tuần)
+
+Database nằm trong volume `mysql_data` của Docker — nếu Docker Desktop bị reset/xóa dữ liệu (đã từng xảy ra: mất hết container + image) thì volume cũng có thể mất theo. Vì vậy có một job backup ghi ra **ngoài Docker**, vào thư mục nằm ngang hàng với source code:
+
+```
+C:\xampp\htdocs\stock-app\          ← source code
+C:\xampp\htdocs\database_backup\    ← backup (tự tạo, "ngang cấp" với thư mục project)
+    2026\9\20\stock_app_db.zip      ← năm \ tháng \ ngày (không đệm số 0)
+                └── stock_app_db.sql
+```
+
+Đường dẫn **không hard-code**: là `<thư mục cha của project>\database_backup`, nên project nằm ở đâu thì thư mục backup nằm cạnh đó (`docker-compose.yml` mount `../database_backup` vào container tại `/backups`).
+
+**Quy tắc "mỗi tuần một lần":** `php artisan db:backup` tìm zip hợp lệ (có file `.sql` bên trong, không rỗng) mới nhất; nếu nó **dưới 7 ngày tuổi thì bỏ qua**, ngược lại mới dump. Không backup theo ngày để đỡ tốn dung lượng.
+
+**Khi nào chạy:**
+- Mỗi lần mở Docker: `scheduler` chạy `db:backup` đầu tiên trong `scheduler-entrypoint.sh` (nếu đã có backup trong tuần thì bỏ qua ngay).
+- Máy bật suốt: scheduler kiểm tra mỗi giờ (`hourly`) — chỉ là kiểm tra rẻ, chỉ dump khi đã quá 7 ngày.
+
+```powershell
+docker compose exec php php artisan db:backup            # backup nếu chưa có bản nào trong 7 ngày
+docker compose exec php php artisan db:backup --force    # backup ngay bây giờ
+docker compose exec php php artisan db:backup --days=3   # đổi chu kỳ (mặc định 7)
+docker compose exec php php artisan db:backup --list     # liệt kê các bản backup đang có
+```
+
+**An toàn:** dump bằng `mysqldump --single-transaction` (không khóa bảng, dữ liệu nhất quán) vào thư mục tạm, kiểm tra dòng `-- Dump completed` (phát hiện file cụt), nén, kiểm tra zip đọc được rồi mới đổi tên thành file cuối — lỗi giữa chừng không để lại file "trông như backup". Mật khẩu truyền qua biến môi trường, không nằm trên command line. Job **không bao giờ xóa** bản cũ.
+
+**Lưu ý:**
+- Cần build lại image một lần để có `mysqldump`: `docker compose up -d --build`.
+- Mỗi bản ≈ 40 MB (SQL ≈ 200 MB nén lại). **Chưa có tự động dọn bản cũ** — thỉnh thoảng xóa thư mục năm/tháng cũ bằng tay.
+- Chỉ backup nội dung MySQL (không gồm Redis, `vendor`, `.env`).
+- Đổi vị trí: đặt `DB_BACKUP_PATH` trong compose (đường dẫn trong container) và sửa phần mount tương ứng.
+
+**Khôi phục:**
+
+```powershell
+# 1. Giải nén ra file .sql (ví dụ bản 2026-09-20)
+Expand-Archive C:\xampp\htdocs\database_backup\2026\9\20\stock_app_db.zip -DestinationPath C:\temp\restore
+
+# 2. Nạp vào MySQL container (thay <DB_PASSWORD> bằng mật khẩu trong .env)
+docker compose exec -T -e MYSQL_PWD=<DB_PASSWORD> mysql mysql -u root stock_app < C:\temp\restore\stock_app_db.sql
+```
+
+---
+
 ## 7. Khôi phục về XAMPP (nếu cần)
 
 ```powershell

@@ -2,6 +2,23 @@
 
 ---
 
+## WEEKLY_DB_BACKUP - September 20, 2026
+
+### Summary:
+After Docker Desktop lost all containers/images (recovered, volumes intact) the user asked for an automatic weekly database backup stored OUTSIDE Docker: a `database_backup` folder beside the source tree (path derived from where the project lives), laid out `year/month/day/<db>_db.zip` holding `<db>_db.sql`, run when Docker starts, skipped when a valid zip from the last week already exists (weekly, not daily, to save disk).
+
+### Implementation:
+- **`App\Support\DatabaseBackup`** — `mysqldump --single-transaction` into a temp dir, verifies the trailing `-- Dump completed` (truncation guard), zips, re-opens the zip to validate, then renames into `<root>/Y/n/j/<db>_db.zip`. Failure leaves nothing that could pass for a backup and never touches older ones. `latest()`/`isFresh($days)` only count readable zips that contain a non-empty `.sql`. Root = `config('backup.path')` or `dirname(base_path())/database_backup`.
+- **`db:backup {--force} {--days=7} {--list}`** — skip message when fresh, exit 1 on failure.
+- **Wiring** — `docker/php/Dockerfile` installs `default-mysql-client`; compose bind-mounts `../database_backup:/backups` into `php` + `scheduler` (`DB_BACKUP_PATH=/backups`); `scheduler-entrypoint.sh` runs `db:backup` first at every start; `bootstrap/app.php` also schedules it hourly (no-op unless the weekly window has passed — the stack may be off at any fixed hour).
+
+### Verified:
+Real backup taken by the scheduler's start-up run: `C:\xampp\htdocs\database_backup\2026\9\20\stock_app_db.zip` (39.2 MB from a 197.8 MB dump, 22 s); a second `db:backup` skips, `--list` shows it. Tests: 17 (`dbBackup`); PHP 418 → 435.
+
+### Not done / caveats:
+No automatic retention (each week adds ≈40 MB), restore is manual (steps in `docs/DOCKER.md` §6b, the restore itself was not rehearsed), only MySQL contents are covered, and the root cause of Docker Desktop wiping itself is unknown.
+
+---
 ## ADMIN_REDESIGN_2026 - September 20, 2026
 
 ### Summary:
