@@ -5,8 +5,7 @@
 @section('page_title', 'Tin tức thị trường')
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-    <li class="breadcrumb-item active">Tin tức</li>
+    <i class="ti ti-chevron-right"></i><span class="current">Tin tức</span>
 @endsection
 
 @section('page_actions')
@@ -14,12 +13,7 @@
         <form action="{{ route('admin.news.update-rss') }}" method="POST" class="d-inline" id="sync-form">
             @csrf
             <button type="submit" class="btn btn-primary" id="sync-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24"
-                     stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
-                    <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
-                </svg>
+                <i class="ti ti-refresh me-2"></i>
                 Cập nhật RSS
             </button>
         </form>
@@ -27,85 +21,44 @@
 @endsection
 
 @section('content')
-
-    {{-- Flash messages --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if(session('warning'))
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            {{ session('warning') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    {{-- Filter card --}}
-    <div class="card mb-3">
-        <div class="card-body">
-            <form method="GET" action="{{ route('admin.news.index') }}" class="row g-2 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label">Tìm kiếm tiêu đề</label>
-                    <input type="text" name="search" class="form-control"
-                           placeholder="Nhập từ khóa..." value="{{ $filters['search'] ?? '' }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Chuyên mục</label>
-                    <select name="category_id" class="form-select">
-                        <option value="">Tất cả chuyên mục</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}" @selected(($filters['category_id'] ?? '') == $cat->id)>{{ $cat->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Nguồn</label>
-                    <select name="source" class="form-select">
-                        <option value="">Tất cả nguồn</option>
-                        @foreach($sources as $src)
-                            <option value="{{ $src }}" @selected(($filters['source'] ?? '') === $src)>{{ $src }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Từ ngày</label>
-                    <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Đến ngày</label>
-                    <input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}">
-                </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary flex-fill">Lọc</button>
-                    <a href="{{ route('admin.news.index') }}" class="btn btn-outline-secondary">Reset</a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {{-- Results card --}}
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">
-                Danh sách tin tức
-                <span class="badge bg-blue-lt ms-2">{{ number_format($news->total()) }} bài</span>
-            </h3>
+            <form method="GET" action="{{ route('admin.news.index') }}" class="ad-toolbar flex-fill">
+                <div class="input-icon" style="min-width:240px">
+                    <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                    <input type="search" name="search" class="form-control" placeholder="Tìm theo tiêu đề…" value="{{ $filters['search'] ?? '' }}" aria-label="Tìm tin tức">
+                </div>
+                <select name="category_id" class="form-select" aria-label="Chuyên mục" style="max-width:190px">
+                    <option value="">Mọi chuyên mục</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->id }}" @selected(($filters['category_id'] ?? '') == $cat->id)>{{ $cat->name }}</option>
+                    @endforeach
+                </select>
+                <select name="source" class="form-select" aria-label="Nguồn" style="max-width:170px">
+                    <option value="">Mọi nguồn</option>
+                    @foreach($sources as $src)
+                        <option value="{{ $src }}" @selected(($filters['source'] ?? '') === $src)>{{ $src }}</option>
+                    @endforeach
+                </select>
+                <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}" aria-label="Từ ngày" title="Từ ngày" style="max-width:160px">
+                <input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}" aria-label="Đến ngày" title="Đến ngày" style="max-width:160px">
+                <button type="submit" class="btn btn-primary">Lọc</button>
+                @if(request()->hasAny(['search', 'category_id', 'source', 'date_from', 'date_to']))
+                    <a href="{{ route('admin.news.index') }}" class="btn btn-ghost-secondary"><i class="ti ti-x me-1"></i>Xóa lọc</a>
+                @endif
+            </form>
+            <span class="badge bg-blue-lt">{{ number_format($news->total()) }} bài</span>
         </div>
 
         @if($news->isEmpty())
-            <div class="card-body text-center py-5 text-muted">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2" width="48" height="48" viewBox="0 0 24 24"
-                     stroke-width="1" stroke="currentColor" fill="none">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M4 6h16M4 12h16M4 18h7"/>
-                </svg>
-                <p>Chưa có tin tức. Nhấn <strong>Cập nhật RSS</strong> để đồng bộ lần đầu.</p>
+            <div class="empty">
+                <div class="empty-icon"><i class="ti ti-news-off"></i></div>
+                <p class="empty-title">Chưa có tin tức</p>
+                <p class="empty-subtitle text-secondary">Nhấn <strong>Cập nhật RSS</strong> để đồng bộ lần đầu, hoặc đổi bộ lọc.</p>
             </div>
         @else
             <div class="table-responsive">
-                <table class="table table-vcenter card-table table-hover">
+                <table class="table table-vcenter table-hover card-table">
                     <thead>
                         <tr>
                             <th style="width:48%">Tiêu đề</th>
@@ -119,21 +72,14 @@
                         @foreach($news as $item)
                             <tr>
                                 <td>
-                                    <div class="d-flex align-items-start gap-2">
+                                    <div class="d-flex align-items-start gap-3">
                                         @if($item->image_url)
-                                            <img src="{{ $item->image_url }}"
-                                                 class="rounded flex-shrink-0"
-                                                 style="width:64px;height:48px;object-fit:cover;"
-                                                 loading="lazy"
-                                                 onerror="this.style.display='none'">
+                                            <img src="{{ $item->image_url }}" class="rounded flex-shrink-0" style="width:72px;height:52px;object-fit:cover;" loading="lazy" alt="" onerror="this.style.display='none'">
                                         @endif
-                                        <div>
+                                        <div class="min-w-0">
                                             <div class="fw-semibold lh-sm">{{ $item->title }}</div>
                                             @if($item->description)
-                                                <div class="text-muted small mt-1"
-                                                     style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
-                                                    {{ $item->description }}
-                                                </div>
+                                                <div class="text-secondary small mt-1 text-truncate-2">{{ $item->description }}</div>
                                             @endif
                                         </div>
                                     </div>
@@ -149,19 +95,10 @@
                                     @endphp
                                     <span class="badge {{ $badge }}">{{ $item->source }}</span>
                                 </td>
-                                <td>
-                                    <span class="text-muted small">{{ $item->category?->name ?? '—' }}</span>
-                                </td>
-                                <td>
-                                    <span title="{{ $item->published_at->format('d/m/Y H:i') }}">
-                                        {{ $item->published_at->diffForHumans() }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="{{ $item->url }}" target="_blank" rel="noopener noreferrer"
-                                       class="btn btn-sm btn-outline-secondary">
-                                        Xem gốc
-                                    </a>
+                                <td class="text-secondary small">{{ $item->category?->name ?? '—' }}</td>
+                                <td class="text-nowrap small" title="{{ $item->published_at->format('d/m/Y H:i') }}">{{ $item->published_at->diffForHumans() }}</td>
+                                <td class="text-end">
+                                    <a href="{{ $item->url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">Xem gốc <i class="ti ti-external-link ms-1"></i></a>
                                 </td>
                             </tr>
                         @endforeach
@@ -170,9 +107,7 @@
             </div>
 
             @if($news->hasPages())
-                <div class="card-footer d-flex align-items-center">
-                    {{ $news->links() }}
-                </div>
+                <div class="card-footer">{{ $news->links() }}</div>
             @endif
         @endif
     </div>

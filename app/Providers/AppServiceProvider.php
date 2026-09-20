@@ -211,6 +211,9 @@ class AppServiceProvider extends ServiceProvider
         // Use Bootstrap 5 pagination views (Tabler is built on Bootstrap 5)
         Paginator::useBootstrapFive();
 
+        // "2 giờ trước" instead of "2 hours ago" in every diffForHumans() (admin and frontend)
+        \Illuminate\Support\Carbon::setLocale('vi');
+
         // Định nghĩa Gates cho phân quyền
         $this->defineGates();
 

@@ -5,13 +5,8 @@
 @section('page_title', 'Chỉnh sửa Quyền hạn: ' . $permission->display_name)
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.permissions.index') }}">Quyền hạn</a>
-    </li>
-    <li class="breadcrumb-item active">Chỉnh sửa</li>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.permissions.index') }}">Quyền hạn</a>
+    <i class="ti ti-chevron-right"></i><span class="current">Chỉnh sửa</span>
 @endsection
 
 @section('content')
@@ -79,11 +74,7 @@
             <div class="card-footer">
                 <div class="d-flex">
                     <button type="submit" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <circle cx="12" cy="12" r="2"/>
-                            <path d="M12 1v6m0 6v6"/>
-                        </svg>
+                        <i class="ti ti-eye me-2"></i>
                         Cập nhật Quyền hạn
                     </button>
                     <a href="{{ route('admin.permissions.index') }}" class="btn btn-link ms-auto">Hủy</a>

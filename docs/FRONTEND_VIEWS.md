@@ -25,7 +25,6 @@ resources/
 │   ├── css/
 │   │   ├── layouts/
 │   │   │   ├── app.css          ← Global layout styles (602 lines)
-│   │   │   └── admin.css        ← Admin layout styles (21 lines)
 │   │   ├── index.css            ← Homepage (805 lines)
 │   │   ├── auth/
 │   │   │   ├── login.css          ← Login page (87 lines)
@@ -60,7 +59,6 @@ resources/
 │   └── js/
 │       ├── layouts/
 │       │   ├── app.js           ← Global JS: AOS, NProgress, toast, AI chat (130 lines)
-│       │   └── admin.js         ← Admin layout JS (10 lines)
 │       ├── index.js             ← Homepage JS (192 lines)
 │       ├── auth/
 │       │   ├── login.js         ← Login JS (11 lines)
@@ -98,7 +96,7 @@ resources/
 | Blade View | CSS File | JS File |
 |---|---|---|
 | `layouts/app.blade.php` | `css/layouts/app.css` | `js/layouts/app.js` |
-| `layouts/admin.blade.php` | `css/layouts/admin.css` | `js/layouts/admin.js` |
+| `layouts/admin.blade.php`, `backend/auth/login.blade.php` and every `backend/**` view | `css/admin/app.css` | `js/admin/app.js` (+ `js/admin/helpers.js`) |
 | `index.blade.php` | `css/index.css` | `js/index.js` |
 | `auth/login.blade.php` | `css/auth/login.css` | `js/auth/login.js` |
 | `auth/register.blade.php` | `css/auth/register.css` | `js/auth/register.js` |
@@ -218,7 +216,7 @@ Loaded automatically by `layouts/app.blade.php` — no action needed in individu
 | Awesomplete | 1.1.5 | Symbol autocomplete (stock pages) |
 | Inter | Google Font | Typography |
 
-> **Note**: The **frontend** (this doc's scope, `layouts/app.blade.php`) uses Bootstrap **4.5.2** — do not use Bootstrap 5 class names or JS APIs here. The separate **admin panel** (`layouts/admin.blade.php`) uses Tabler/Bootstrap 5 via CDN instead; see [docs/RBAC.md](RBAC.md) and [docs/STRUCTURE.md](STRUCTURE.md) for backend views.
+> **Note**: The **frontend** (this doc's scope, `layouts/app.blade.php`) uses Bootstrap **4.5.2** — do not use Bootstrap 5 class names or JS APIs here. The separate **admin panel** (`layouts/admin.blade.php`) uses Tabler 1.5 / Bootstrap 5.3 **bundled locally** instead (see "Admin design system" below); see [docs/RBAC.md](RBAC.md) and [docs/STRUCTURE.md](STRUCTURE.md) for backend views.
 
 ---
 
@@ -250,7 +248,7 @@ npm run build
 
 ## Admin layout (Tabler) gotchas
 
-- Tabler's `.nav` is a **horizontal** flex row: a collapsible sidebar group must use `.nav-sub` (defined in `layouts/admin.blade.php`), not a bare `nav collapse`.
+- (superseded) The sidebar no longer has collapsible groups: it is flat with section labels, see "Admin design system".
 - Tabler makes `.navbar-nav .nav-link .badge` **`position:absolute`** (notification dot). A text badge inside a nav link needs `position: static !important` (see `.account-meta .badge`).
 
 ## Portfolio UI conventions
@@ -264,3 +262,13 @@ npm run build
 - **★ buttons** are plain `data-watch="SYMBOL"` elements handled by ONE delegated listener in `js/shared/watchlist.js` (`initWatchlistStars({auth, watched})`, `paintStars(root)` after rendering rows, `watchlist:change` event). Stock/company pages load it through `js/shared/watchlist-init.js` + `window.__WATCH__`.
 - **Pure helpers are unit-tested in Node**: `js/market/format.js` (number/percent/value formatting, `esc`, `exchangeLabel`) and `js/portfolio/ledger.js` (fee estimate 0.15 % buy / 0.25 % sell incl. tax, trade preview). Keep DOM code out of them.
 - **Trade modal** (`portfolio/show.blade.php`, `css/portfolio/ledger.css`): one form for buy and sell; opened from the header button (free symbol + autocomplete) or the per-holding ➕/💵 buttons (symbol locked, price prefilled). The fee is auto-estimated until the user edits it.
+
+## Admin design system (`layouts/admin.blade.php`, `css/admin/app.css`, `js/admin/app.js`)
+
+**Stack**: `@tabler/core` 1.5.1 (Bootstrap 5.3, MIT) + `@tabler/icons-webfont` + `@fontsource-variable/inter` (Vietnamese subset included), all imported by `css/admin/app.css` and bundled by Vite — no CDN request at runtime (the old shell fetched Tabler 1.0 from jsDelivr). Icons are `<i class="ti ti-…">`; inline SVG icons are gone from the admin views.
+
+**Shell**: one navigation array in the layout drives BOTH the sidebar and the command palette, each entry behind its Gate (`manage-users`, `manage-roles`, `manage-permissions`, `manage-queue`, `manage-features`, `view-timeline`). The queue link carries a failed-jobs badge (`failed_jobs` count, cached 30 s, never breaks the page). The sidebar collapses to icons on desktop (`ad-sidebar` in localStorage), the theme is light / dark / auto (`tabler-theme` in localStorage, applied by an inline `<head>` script before first paint — no light flash).
+
+**Behaviour** (`js/admin/app.js`, pure helpers in `helpers.js` are unit-tested in Node): Ctrl/⌘+K or `/` opens a command palette (accent-insensitive: "quan ly" finds "Quản lý"); `window.adToast(message, type)`; server flash messages are rendered as hidden `[data-flash]` nodes and shown as toasts; `window.adConfirm(message, {title, ok, tone})` returns a Promise; `<form data-confirm="…">` / `<button data-confirm="…">` ask before submitting (replaces every `onsubmit="return confirm(...)"`); `window.bootstrap` still exposes Modal/Dropdown/Collapse/… for page scripts. Page scripts pushed with `@push('scripts')` run before the module, so call these helpers from event handlers, not at load.
+
+**Conventions**: page header = `@section('page_pretitle'|'page_title'|'page_actions'|'breadcrumbs')` (breadcrumb sections emit `<i class="ti ti-chevron-right"></i><a…>` / `<span class="current">…</span>`); cards `.card` with `.card-header` = title left / actions right; tables `.table.table-vcenter.table-hover.card-table` with `.ad-avatar-cell`, `.ad-dot ok|warn|bad|off` status dots and `.table-row-actions` icon buttons; KPI tiles `.ad-stat` + `.ad-stat-icon blue|green|purple|orange|red|cyan`; toolbars `.ad-toolbar`; empty states `.empty`. Colours come from CSS variables (`--ad-surface`, `--ad-line`, `--ad-muted`, `--ad-ink`…) redefined under `[data-bs-theme=dark]`, so new components need no dark-mode rules of their own.

@@ -5,16 +5,9 @@
 @section('page_title', 'Chỉnh sửa User: ' . $user->name)
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.users.index') }}">Users</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.users.show', $user) }}">{{ $user->name }}</a>
-    </li>
-    <li class="breadcrumb-item active">Chỉnh sửa</li>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.users.index') }}">Users</a>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.users.show', $user) }}">{{ $user->name }}</a>
+    <i class="ti ti-chevron-right"></i><span class="current">Chỉnh sửa</span>
 @endsection
 
 @section('content')
@@ -166,11 +159,7 @@
                 <div class="alert alert-warning" role="alert">
                     <div class="d-flex">
                         <div>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="9"/>
-                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                <line x1="12" y1="16" x2="12.01" y2="16"/>
-                            </svg>
+                            <i class="ti ti-alert-circle"></i>
                         </div>
                         <div>
                             <h4 class="alert-title">Cảnh báo!</h4>
@@ -183,11 +172,7 @@
             <div class="card-footer">
                 <div class="d-flex">
                     <button type="submit" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <circle cx="12" cy="12" r="2"/>
-                            <path d="M12 1v6m0 6v6"/>
-                        </svg>
+                        <i class="ti ti-eye me-2"></i>
                         Cập nhật User
                     </button>
                     <a href="{{ route('admin.users.show', $user) }}" class="btn btn-link ms-auto">Hủy</a>

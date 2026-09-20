@@ -5,195 +5,108 @@
 @section('page_title', 'Quản lý Users')
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-    </li>
-    <li class="breadcrumb-item active">Users</li>
+    <i class="ti ti-chevron-right"></i><span class="current">Users</span>
 @endsection
 
 @section('page_actions')
-    <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <circle cx="12" cy="7" r="4"/>
-            <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
-            <line x1="19" y1="7" x2="19" y2="14"/>
-            <line x1="22" y1="10.5" x2="16" y2="10.5"/>
-        </svg>
-        Tạo User mới
-    </a>
+    <a href="{{ route('admin.users.create') }}" class="btn btn-primary"><i class="ti ti-user-plus me-1"></i> Tạo User mới</a>
 @endsection
 
 @section('content')
-    <!-- Search Form -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ route('admin.users.index') }}" class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Tìm kiếm</label>
-                    <input type="text" class="form-control" name="search" 
-                           value="{{ request('search') }}" 
-                           placeholder="Tên hoặc email...">
-                </div>
-                <div class="col-md-2 align-self-end">
-                    <button type="submit" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="M21 21l-4.35-4.35"/>
-                        </svg>
-                        Tìm
-                    </button>
-                    @if(request()->hasAny(['search']))
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary ms-2">Reset</a>
-                    @endif
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Users List -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">Danh sách Users</h3>
-            <div class="card-actions">
-                <span class="text-muted">{{ $users->total() }} users</span>
-            </div>
+            <form method="GET" action="{{ route('admin.users.index') }}" class="ad-toolbar flex-fill">
+                <div class="input-icon" style="min-width:260px">
+                    <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                    <input type="search" class="form-control" name="search" value="{{ request('search') }}" placeholder="Tìm theo tên hoặc email…" aria-label="Tìm user">
+                </div>
+                <button type="submit" class="btn btn-primary">Tìm</button>
+                @if(request()->hasAny(['search']))
+                    <a href="{{ route('admin.users.index') }}" class="btn btn-ghost-secondary"><i class="ti ti-x me-1"></i>Xóa lọc</a>
+                @endif
+            </form>
+            <span class="text-secondary small">{{ number_format($users->total()) }} users</span>
         </div>
+
         <div class="table-responsive">
-            <table class="table table-vcenter card-table">
+            <table class="table table-vcenter table-hover card-table">
                 <thead>
                     <tr>
                         <th>User</th>
-                        <th>Email</th>
-                        <th>Xác thực</th>
-                        <th>Role</th>
+                        <th>Xác thực email</th>
+                        <th>Vai trò</th>
                         <th>Ngày tạo</th>
-                        <th class="w-1">Actions</th>
+                        <th class="w-1 text-end">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($users as $user)
                     <tr>
                         <td>
-                            <div class="d-flex py-1 align-items-center">
-                                <span class="avatar me-2">{{ strtoupper(substr($user->name, 0, 1)) }}</span>
-                                <div class="flex-fill">
-                                    <div class="font-weight-medium">{{ $user->name }}</div>
-                                    @if($user->profile)
-                                        <div class="text-muted">{{ $user->profile->username }}</div>
-                                    @endif
+                            <div class="ad-avatar-cell">
+                                <span class="ad-avatar">{{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}</span>
+                                <div class="ad-lines">
+                                    <b>{{ $user->name }}</b>
+                                    <small>{{ $user->email }}@if($user->profile && $user->profile->username) · &#64;{{ $user->profile->username }}@endif</small>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <div class="font-weight-medium">{{ $user->email }}</div>
-                        </td>
-                        <td>
                             @if($user->email_verified_at)
-                                <span class="badge bg-success-lt">Verified</span>
-                                <div class="small text-muted">{{ $user->email_verified_at->format('d/m/Y H:i') }}</div>
-                                @if($user->id !== auth()->id())
-                                    <form action="{{ route('admin.users.unverify', $user) }}" method="POST" class="d-inline mt-1">
-                                        @csrf
-                                        <button type="submit" class="btn btn-xs btn-warning" 
-                                                onclick="return confirm('Hủy xác thực email cho {{ $user->email }}? User sẽ cần verify lại.')" 
-                                                title="Hủy xác thực">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-xs" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                <line x1="18" y1="6" x2="6" y2="18"/>
-                                                <line x1="6" y1="6" x2="18" y2="18"/>
-                                            </svg>
-                                        </button>
-                                    </form>
-                                @endif
+                                <span class="ad-dot ok">Đã xác thực</span>
+                                <div class="small text-secondary">{{ $user->email_verified_at->format('d/m/Y H:i') }}</div>
                             @else
-                                <span class="badge bg-warning-lt">Unverified</span>
-                                <form action="{{ route('admin.users.verify', $user) }}" method="POST" class="d-inline mt-1">
-                                    @csrf
-                                    <button type="submit" class="btn btn-xs btn-success" 
-                                            onclick="return confirm('Xác thực thủ công email cho {{ $user->email }}?')" 
-                                            title="Xác thực thủ công">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-xs" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                            <path d="M5 12l5 5l10 -10"/>
-                                        </svg>
-                                        Verify
-                                    </button>
-                                </form>
+                                <span class="ad-dot warn">Chưa xác thực</span>
                             @endif
                         </td>
                         <td>
                             @foreach($user->roles as $role)
-                                <span class="badge badge-outline text-blue">{{ $role->display_name }}</span>
+                                <span class="badge bg-blue-lt">{{ $role->display_name }}</span>
                             @endforeach
                         </td>
-                        <td class="text-muted">
-                            {{ $user->created_at->format('d/m/Y H:i') }}
-                        </td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-primary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <circle cx="12" cy="12" r="2"/>
-                                        <path d="M12 1v6m0 6v6"/>
-                                        <path d="M9 9l1.5 1.5"/>
-                                        <path d="M13.5 13.5l1.5 1.5"/>
-                                        <path d="M9 15l1.5 -1.5"/>
-                                        <path d="M13.5 10.5l1.5 -1.5"/>
-                                    </svg>
-                                </a>
-                                <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-warning">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/>
-                                        <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/>
-                                    </svg>
-                                </a>
+                        <td class="text-secondary text-nowrap">{{ $user->created_at->format('d/m/Y H:i') }}</td>
+                        <td class="text-end">
+                            <div class="table-row-actions">
+                                <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-icon btn-ghost-secondary" title="Xem chi tiết"><i class="ti ti-eye"></i></a>
+                                <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-icon btn-ghost-secondary" title="Chỉnh sửa"><i class="ti ti-pencil"></i></a>
                                 @if($user->id !== auth()->id())
-                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="d-inline" 
-                                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa user này?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                            <line x1="4" y1="7" x2="20" y2="7"/>
-                                            <line x1="10" y1="11" x2="10" y2="17"/>
-                                            <line x1="14" y1="11" x2="14" y2="17"/>
-                                            <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
-                                            <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
-                                        </svg>
-                                    </button>
-                                </form>
+                                <div class="dropdown d-inline-block">
+                                    <button type="button" class="btn btn-sm btn-icon btn-ghost-secondary" data-bs-toggle="dropdown" aria-label="Thêm thao tác"><i class="ti ti-dots-vertical"></i></button>
+                                    <div class="dropdown-menu dropdown-menu-end">
+                                        @if($user->email_verified_at)
+                                            <form action="{{ route('admin.users.unverify', $user) }}" method="POST"
+                                                  data-confirm="Hủy xác thực email cho {{ $user->email }}? User sẽ cần verify lại." data-confirm-ok="Hủy xác thực" data-confirm-title="Hủy xác thực email">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item"><i class="ti ti-mail-off me-2"></i>Hủy xác thực email</button>
+                                            </form>
+                                        @else
+                                            <form action="{{ route('admin.users.verify', $user) }}" method="POST"
+                                                  data-confirm="Xác thực thủ công email cho {{ $user->email }}?" data-confirm-ok="Xác thực" data-confirm-tone="primary" data-confirm-title="Xác thực email">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item"><i class="ti ti-mail-check me-2"></i>Xác thực thủ công</button>
+                                            </form>
+                                        @endif
+                                        <div class="dropdown-divider"></div>
+                                        <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
+                                              data-confirm="Bạn có chắc chắn muốn xóa user {{ $user->name }}? Thao tác này không thể hoàn tác." data-confirm-ok="Xóa user" data-confirm-title="Xóa user">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="dropdown-item text-danger"><i class="ti ti-trash me-2"></i>Xóa user</button>
+                                        </form>
+                                    </div>
+                                </div>
                                 @endif
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center">
+                        <td colspan="5">
                             <div class="empty">
-                                <div class="empty-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <circle cx="12" cy="7" r="4"/>
-                                        <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
-                                    </svg>
-                                </div>
+                                <div class="empty-icon"><i class="ti ti-users-minus"></i></div>
                                 <p class="empty-title">Không tìm thấy users nào</p>
-                                <p class="empty-subtitle text-muted">Thử thay đổi bộ lọc hoặc tạo user mới.</p>
-                                <div class="empty-action">
-                                    <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                            <line x1="12" y1="5" x2="12" y2="19"/>
-                                            <line x1="5" y1="12" x2="19" y2="12"/>
-                                        </svg>
-                                        Tạo User đầu tiên
-                                    </a>
-                                </div>
+                                <p class="empty-subtitle text-secondary">Thử thay đổi từ khóa hoặc tạo user mới.</p>
+                                <div class="empty-action"><a href="{{ route('admin.users.create') }}" class="btn btn-primary"><i class="ti ti-plus me-1"></i>Tạo User đầu tiên</a></div>
                             </div>
                         </td>
                     </tr>
@@ -202,9 +115,10 @@
             </table>
         </div>
         @if($users->hasPages())
-        <div class="card-footer">
-            {{ $users->links() }}
-        </div>
+            <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="text-secondary small">Hiển thị {{ $users->firstItem() }}–{{ $users->lastItem() }} / {{ $users->total() }}</span>
+                {{ $users->links() }}
+            </div>
         @endif
     </div>
 @endsection

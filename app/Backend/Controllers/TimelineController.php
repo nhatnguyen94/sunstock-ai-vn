@@ -21,7 +21,10 @@ class TimelineController extends Controller
         $filters = $request->only('type', 'date', 'search');
         $items   = $this->activityRepo->paginate($filters, 20);
 
-        return view('backend.timeline.index', compact('items'));
+        // Quick-filter chips: how much of each kind happened in the last 7 days
+        $counts = $this->activityRepo->countByType();
+
+        return view('backend.timeline.index', compact('items', 'counts'));
     }
 
     public function stats(): JsonResponse

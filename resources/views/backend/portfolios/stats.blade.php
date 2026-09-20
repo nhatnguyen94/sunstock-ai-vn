@@ -5,9 +5,8 @@
 @section('page_title', 'Thống kê Portfolio')
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-    <li class="breadcrumb-item"><a href="{{ route('admin.portfolios.index') }}">Portfolio</a></li>
-    <li class="breadcrumb-item active">Thống kê</li>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.portfolios.index') }}">Portfolio</a>
+    <i class="ti ti-chevron-right"></i><span class="current">Thống kê</span>
 @endsection
 
 @section('page_actions')

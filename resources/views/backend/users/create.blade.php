@@ -5,13 +5,8 @@
 @section('page_title', 'Tạo User mới')
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.users.index') }}">Users</a>
-    </li>
-    <li class="breadcrumb-item active">Tạo mới</li>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.users.index') }}">Users</a>
+    <i class="ti ti-chevron-right"></i><span class="current">Tạo mới</span>
 @endsection
 
 @section('content')
@@ -143,13 +138,7 @@
             <div class="card-footer">
                 <div class="d-flex">
                     <button type="submit" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <circle cx="12" cy="7" r="4"/>
-                            <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
-                            <line x1="19" y1="7" x2="19" y2="14"/>
-                            <line x1="22" y1="10.5" x2="16" y2="10.5"/>
-                        </svg>
+                        <i class="ti ti-user-plus me-2"></i>
                         Tạo User
                     </button>
                     <a href="{{ route('admin.users.index') }}" class="btn btn-link ms-auto">Hủy</a>

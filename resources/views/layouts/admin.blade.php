@@ -1,239 +1,159 @@
+@php
+    use Illuminate\Support\Facades\Cache;
+    use Illuminate\Support\Facades\DB;
+    use Illuminate\Support\Facades\Gate;
+
+    $adUser = Auth::user();
+
+    // Failed jobs badge on the queue link (cheap, cached 30 s, never breaks the page)
+    $failedJobs = 0;
+    if (Gate::allows('manage-queue')) {
+        try { $failedJobs = (int) Cache::remember('admin:failed-jobs-count', 30, fn () => DB::table('failed_jobs')->count()); } catch (\Throwable) { $failedJobs = 0; }
+    }
+
+    // One navigation definition drives the sidebar AND the command palette
+    $navGroups = [
+        ['label' => 'Tổng quan', 'items' => array_filter([
+            ['title' => 'Dashboard', 'icon' => 'ti-layout-dashboard', 'route' => 'admin.dashboard', 'active' => 'admin.dashboard'],
+            Gate::allows('view-timeline') ? ['title' => 'Timeline', 'icon' => 'ti-timeline-event', 'route' => 'admin.timeline', 'active' => 'admin.timeline*', 'keywords' => 'hoạt động nhật ký log'] : null,
+        ])],
+        ['label' => 'Hệ thống', 'items' => array_filter([
+            Gate::allows('manage-users') ? ['title' => 'Quản lý Users', 'icon' => 'ti-users', 'route' => 'admin.users.index', 'active' => 'admin.users*', 'keywords' => 'người dùng tài khoản email'] : null,
+            Gate::allows('manage-roles') ? ['title' => 'Vai trò', 'icon' => 'ti-shield-lock', 'route' => 'admin.roles.index', 'active' => 'admin.roles*', 'keywords' => 'role phân quyền'] : null,
+            Gate::allows('manage-permissions') ? ['title' => 'Quyền hạn', 'icon' => 'ti-key', 'route' => 'admin.permissions.index', 'active' => 'admin.permissions*', 'keywords' => 'permission'] : null,
+            Gate::allows('manage-queue') ? ['title' => 'Giám sát Queue', 'icon' => 'ti-activity-heartbeat', 'route' => 'admin.queue.index', 'active' => 'admin.queue*', 'count' => $failedJobs, 'keywords' => 'job hàng đợi redis failed'] : null,
+        ])],
+        ['label' => 'Nội dung & dữ liệu', 'items' => Gate::allows('manage-features') ? [
+            ['title' => 'Quản lý Stock', 'icon' => 'ti-chart-candle', 'route' => 'admin.stocks.index', 'active' => 'admin.stocks*', 'keywords' => 'cổ phiếu mã giá'],
+            ['title' => 'Quản lý News', 'icon' => 'ti-news', 'route' => 'admin.news.index', 'active' => 'admin.news.*', 'keywords' => 'tin tức bài viết rss'],
+            ['title' => 'Danh mục Tin tức', 'icon' => 'ti-tags', 'route' => 'admin.news-categories.index', 'active' => 'admin.news-categories*', 'keywords' => 'category'],
+            ['title' => 'Quản lý Portfolio', 'icon' => 'ti-briefcase', 'route' => 'admin.portfolios.index', 'active' => 'admin.portfolios*', 'keywords' => 'danh mục đầu tư'],
+            ['title' => 'Sync Status', 'icon' => 'ti-refresh-dot', 'route' => 'admin.sync-status', 'active' => 'admin.sync-status*', 'keywords' => 'đồng bộ dữ liệu nguồn'],
+        ] : []],
+    ];
+    $navGroups = array_values(array_filter($navGroups, fn ($g) => count($g['items'])));
+
+    $paletteItems = [];
+    foreach ($navGroups as $g) {
+        foreach ($g['items'] as $it) {
+            $paletteItems[] = ['title' => $it['title'], 'group' => $g['label'], 'icon' => $it['icon'], 'href' => route($it['route']), 'keywords' => $it['keywords'] ?? ''];
+        }
+    }
+    $paletteItems[] = ['title' => 'Hồ sơ cá nhân', 'group' => 'Tài khoản', 'icon' => 'ti-user-circle', 'href' => route('profile.show'), 'keywords' => 'profile'];
+    $paletteItems[] = ['title' => 'Đổi mật khẩu', 'group' => 'Tài khoản', 'icon' => 'ti-lock', 'href' => route('admin.account.edit'), 'keywords' => 'password'];
+    $paletteItems[] = ['title' => 'Xem website', 'group' => 'Liên kết', 'icon' => 'ti-external-link', 'href' => route('home'), 'keywords' => 'frontend trang chủ'];
+
+    $initial = mb_strtoupper(mb_substr($adUser->name, 0, 1));
+    $roleNames = $adUser->roles->pluck('display_name')->filter()->implode(', ');
+@endphp
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>@yield('title', 'Admin') - {{ config('app.name', 'Stock App') }}</title>
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0/dist/css/tabler.min.css" rel="stylesheet"/>
-  <style>
-    .card-footer .pagination { margin-bottom: 0; }
-
-    /* Sidebar sub-menus: Tabler's `.nav` is a horizontal flex row, so the items of an expanded group used
-       to sit side by side and wrap. They are a vertical, indented list with a small dot bullet. */
-    .navbar-vertical .nav-sub { display: flex; flex-direction: column; flex-wrap: nowrap; padding: 0.15rem 0 0.35rem; }
-    .navbar-vertical .nav-sub.collapsing, .navbar-vertical .nav-sub.show { display: flex; }
-    .navbar-vertical .nav-sub:not(.show):not(.collapsing) { display: none; }
-    .navbar-vertical .nav-sub .nav-link {
-      display: flex; align-items: center; padding: 0.45rem 1rem 0.45rem 2.6rem;
-      font-size: 0.875rem; color: rgba(255, 255, 255, 0.65); border-radius: 6px; margin: 1px 0.5rem;
-    }
-    .navbar-vertical .nav-sub .nav-link:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
-    .navbar-vertical .nav-sub .nav-link.active { color: #fff; font-weight: 600; background: rgba(66, 153, 225, 0.22); }
-    .nav-link-bullet {
-      flex: 0 0 auto; width: 6px; height: 6px; margin-right: 0.75rem; border-radius: 50%;
-      background: currentColor; opacity: 0.45; transition: opacity .15s ease, transform .15s ease;
-    }
-    .nav-sub .nav-link:hover .nav-link-bullet { opacity: 0.8; }
-    .nav-sub .nav-link.active .nav-link-bullet { opacity: 1; background: #4299e1; transform: scale(1.25); }
-
-    /* Top-right account block: avatar + name over role badges, never overlapping */
-    .account-toggle { display: flex; align-items: center; gap: 0.6rem; padding: 0 !important; }
-    .account-meta { line-height: 1.25; text-align: left; }
-    .account-meta .account-name { font-weight: 600; font-size: 0.875rem; color: var(--tblr-body-color); white-space: nowrap; }
-    .account-meta .account-roles { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.15rem; }
-    /* Tabler makes `.navbar .badge` position:absolute (it is meant to be a notification dot on a nav icon),
-       which threw the role badge on top of the avatar. Here it is an ordinary inline label. */
-    .navbar-nav .nav-link.account-toggle .account-meta .badge { position: static !important; transform: none !important; top: auto !important; right: auto !important; }
-  </style>
+  <meta name="color-scheme" content="light dark">
+  <title>@yield('title', 'Admin') · Sun Stock AI</title>
+  {{-- Apply the saved theme / sidebar state BEFORE first paint (no light flash, no layout jump) --}}
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('tabler-theme') || 'auto';
+        var dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+        if (localStorage.getItem('ad-sidebar') === 'collapsed') document.documentElement.classList.add('sidebar-collapsed');
+      } catch (e) {}
+    })();
+  </script>
+  @vite('resources/frontend/css/admin/app.css')
   @stack('styles')
 </head>
 <body class="antialiased">
-<div class="wrapper">
+<div class="page">
 
   {{-- ===== SIDEBAR ===== --}}
-  <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
-    <div class="container-fluid">
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="navbar-brand navbar-brand-autodark">
-        <a href="{{ route('admin.dashboard') }}" class="d-flex align-items-center text-white text-decoration-none">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="28" height="28" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="4" y1="19" x2="20" y2="19"/><polyline points="4,15 8,9 12,11 16,6 20,10"/></svg>
-          <span class="fw-bold fs-4">Stock Admin</span>
+  <aside class="navbar navbar-vertical navbar-expand-lg ad-sidebar" aria-label="Điều hướng quản trị">
+    <div class="container-fluid flex-lg-column align-items-stretch" style="min-height:100%">
+      <div class="d-flex align-items-center justify-content-between">
+        <a href="{{ route('admin.dashboard') }}" class="ad-brand">
+          <span class="ad-brand-mark"><i class="ti ti-chart-arrows-vertical"></i></span>
+          <span class="ad-brand-text"><b>Sun Stock AI</b><small>Bảng quản trị</small></span>
         </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adNav" aria-controls="adNav" aria-expanded="false" aria-label="Mở menu">
+          <span class="navbar-toggler-icon"></span>
+        </button>
       </div>
-      <div class="collapse navbar-collapse" id="navbar-menu">
-        <ul class="navbar-nav pt-lg-3">
 
-          {{-- Dashboard --}}
-          <li class="nav-item">
-            <a class="nav-link {{ Request::routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
-              <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="4" y="4" width="6" height="8" rx="1"/><rect x="4" y="16" width="6" height="4" rx="1"/><rect x="14" y="12" width="6" height="8" rx="1"/><rect x="14" y="4" width="6" height="4" rx="1"/></svg>
-              </span>
-              <span class="nav-link-title">Dashboard</span>
-            </a>
-          </li>
+      <div class="collapse navbar-collapse flex-column align-items-stretch" id="adNav">
+        <div class="d-lg-none px-1 pb-2">
+          <button type="button" class="ad-search w-100" data-palette-open><i class="ti ti-search"></i> Tìm trang…</button>
+        </div>
+        @foreach($navGroups as $group)
+          <div class="ad-nav-label">{{ $group['label'] }}</div>
+          <ul class="navbar-nav flex-column">
+            @foreach($group['items'] as $item)
+              @php $active = Request::routeIs($item['active']); @endphp
+              <li class="nav-item">
+                <a class="nav-link {{ $active ? 'active' : '' }}" href="{{ route($item['route']) }}" @if($active) aria-current="page" @endif
+                   data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ $item['title'] }}" data-bs-trigger="hover">
+                  <i class="ti {{ $item['icon'] }}"></i>
+                  <span>{{ $item['title'] }}</span>
+                  @if(!empty($item['count']))<span class="ad-nav-count" title="Job thất bại">{{ $item['count'] > 99 ? '99+' : $item['count'] }}</span>@endif
+                </a>
+              </li>
+            @endforeach
+          </ul>
+        @endforeach
 
-          {{-- Timeline --}}
-          @can('view-timeline')
-          <li class="nav-item">
-            <a class="nav-link {{ Request::routeIs('admin.timeline*') ? 'active' : '' }}" href="{{ route('admin.timeline') }}">
-              <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
-              </span>
-              <span class="nav-link-title">Timeline</span>
-            </a>
-          </li>
-          @endcan
-
-          {{-- Hệ thống — visible to anyone holding at least one of its permissions; open on any of its pages --}}
-          @php
-            $systemOpen   = Request::routeIs('admin.users*', 'admin.roles*', 'admin.permissions*', 'admin.queue*');
-            $featuresOpen = Request::routeIs('admin.stocks*', 'admin.news*', 'admin.portfolios*', 'admin.sync-status*');
-          @endphp
-          @canany(['manage-users', 'manage-roles', 'manage-permissions', 'manage-queue'])
-          <li class="nav-item">
-            <a class="nav-link {{ $systemOpen ? '' : 'collapsed' }}"
-               href="#sidebar-system" data-bs-toggle="collapse" role="button"
-               aria-expanded="{{ $systemOpen ? 'true' : 'false' }}">
-              <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-              </span>
-              <span class="nav-link-title">Hệ thống</span>
-            </a>
-            <div class="nav nav-sub collapse {{ $systemOpen ? 'show' : '' }}" id="sidebar-system">
-              @can('manage-users')
-              <a class="nav-link {{ Request::routeIs('admin.users*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
-                <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Quản lý Users</span>
-              </a>
-              @endcan
-              @can('manage-roles')
-              <a class="nav-link {{ Request::routeIs('admin.roles*') ? 'active' : '' }}" href="{{ route('admin.roles.index') }}">
-                <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Vai trò</span>
-              </a>
-              @endcan
-              @can('manage-permissions')
-              <a class="nav-link {{ Request::routeIs('admin.permissions*') ? 'active' : '' }}" href="{{ route('admin.permissions.index') }}">
-                <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Quyền hạn</span>
-              </a>
-              @endcan
-              @can('manage-queue')
-              <a class="nav-link {{ Request::routeIs('admin.queue*') ? 'active' : '' }}" href="{{ route('admin.queue.index') }}">
-                <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Giám sát Queue</span>
-              </a>
-              @endcan
-            </div>
-          </li>
-          @endcanany
-
-          {{-- Tính năng --}}
-          @can('manage-features')
-          <li class="nav-item">
-            <a class="nav-link {{ $featuresOpen ? '' : 'collapsed' }}"
-               href="#sidebar-features" data-bs-toggle="collapse" role="button"
-               aria-expanded="{{ $featuresOpen ? 'true' : 'false' }}">
-              <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
-              </span>
-              <span class="nav-link-title">Tính năng</span>
-            </a>
-            <div class="nav nav-sub collapse {{ $featuresOpen ? 'show' : '' }}" id="sidebar-features">
-              <a class="nav-link {{ Request::routeIs('admin.stocks*') ? 'active' : '' }}" href="{{ route('admin.stocks.index') }}">
-                <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Quản lý Stock</span>
-              </a>
-              <a class="nav-link {{ Request::routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.index') }}">
-                <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Quản lý News</span>
-              </a>
-              <a class="nav-link {{ Request::routeIs('admin.news-categories.*') ? 'active' : '' }}" href="{{ route('admin.news-categories.index') }}">
-                <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Danh mục Tin tức</span>
-              </a>
-              <a class="nav-link {{ Request::routeIs('admin.portfolios*') ? 'active' : '' }}" href="{{ route('admin.portfolios.index') }}">
-                <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Quản lý Portfolio</span>
-              </a>
-              <a class="nav-link {{ Request::routeIs('admin.sync-status*') ? 'active' : '' }}" href="{{ route('admin.sync-status') }}">
-                <span class="nav-link-bullet"></span>
-                <span class="nav-link-title">Sync Status</span>
-              </a>
-            </div>
-          </li>
-          @endcan
-
-          <li class="nav-item">
-            <div class="hr-text">Tài khoản</div>
-          </li>
-
-          {{-- Profile --}}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ route('profile.show') }}">
-              <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
-              </span>
-              <span class="nav-link-title">Hồ sơ cá nhân</span>
-            </a>
-          </li>
-
-          {{-- Change password --}}
-          <li class="nav-item">
-            <a class="nav-link {{ Request::routeIs('admin.account*') ? 'active' : '' }}" href="{{ route('admin.account.edit') }}">
-              <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="16" r="1"/><path d="M8 11v-4a4 4 0 0 1 8 0v4"/></svg>
-              </span>
-              <span class="nav-link-title">Đổi mật khẩu</span>
-            </a>
-          </li>
-
-          {{-- Logout --}}
-          <li class="nav-item">
-            <form action="{{ route('admin.logout') }}" method="POST">
-              @csrf
-              <button type="submit" class="nav-link bg-transparent border-0 w-100 text-start">
-                <span class="nav-link-icon d-md-none d-lg-inline-block">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"/><path d="M7 12h14l-3 -3m0 6l3 -3"/></svg>
-                </span>
-                <span class="nav-link-title">Đăng xuất</span>
-              </button>
-            </form>
-          </li>
-
+        <div class="ad-nav-label">Tài khoản</div>
+        <ul class="navbar-nav flex-column">
+          <li class="nav-item"><a class="nav-link" href="{{ route('profile.show') }}"><i class="ti ti-user-circle"></i><span>Hồ sơ cá nhân</span></a></li>
+          <li class="nav-item"><a class="nav-link {{ Request::routeIs('admin.account*') ? 'active' : '' }}" href="{{ route('admin.account.edit') }}"><i class="ti ti-lock"></i><span>Đổi mật khẩu</span></a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ route('home') }}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i><span>Xem website</span></a></li>
         </ul>
+
+        <div class="ad-sidebar-foot">
+          <span class="ad-avatar">{{ $initial }}</span>
+          <div class="ad-me"><b>{{ $adUser->name }}</b><small>{{ $roleNames ?: 'Quản trị' }}</small></div>
+          <button type="button" class="ad-icon-btn ad-collapse-btn d-none d-lg-inline-grid" data-sidebar-toggle title="Thu gọn / mở rộng menu" aria-label="Thu gọn menu"><i class="ti ti-layout-sidebar-left-collapse"></i></button>
+        </div>
       </div>
     </div>
   </aside>
 
-  {{-- ===== MAIN CONTENT ===== --}}
+  {{-- ===== MAIN ===== --}}
   <div class="page-wrapper">
 
-    {{-- Top header --}}
-    <header class="navbar navbar-expand-md d-none d-lg-flex d-print-none">
+    <header class="ad-topbar d-print-none">
       <div class="container-xl">
-        <nav aria-label="breadcrumb">
-          <ol class="breadcrumb breadcrumb-dots mb-0">
-            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
-            @yield('breadcrumbs')
-          </ol>
-        </nav>
-        <div class="navbar-nav flex-row order-md-last">
-          <div class="nav-item dropdown">
-            <a href="#" class="nav-link account-toggle text-reset" data-bs-toggle="dropdown" aria-label="Open user menu">
-              <span class="avatar avatar-sm bg-blue-lt">{{ mb_strtoupper(mb_substr(Auth::user()->name, 0, 1)) }}</span>
-              <div class="account-meta d-none d-xl-block">
-                <div class="account-name">{{ Auth::user()->name }}</div>
-                <div class="account-roles">
-                  @foreach(Auth::user()->roles as $role)
-                    <span class="badge bg-blue-lt">{{ $role->display_name }}</span>
-                  @endforeach
-                </div>
-              </div>
+        <button type="button" class="ad-search d-none d-lg-inline-flex" data-palette-open aria-label="Tìm trang hoặc lệnh">
+          <i class="ti ti-search"></i><span>Tìm trang, chức năng…</span><kbd>Ctrl K</kbd>
+        </button>
+        <div class="ms-auto d-flex align-items-center gap-1">
+          <a href="{{ route('home') }}" class="ad-icon-btn" target="_blank" rel="noopener" title="Xem website" aria-label="Xem website"><i class="ti ti-world"></i></a>
+          <div class="dropdown">
+            <button type="button" class="ad-icon-btn" data-bs-toggle="dropdown" aria-label="Giao diện sáng / tối" title="Giao diện"><i class="ti ti-sun" data-theme-icon></i></button>
+            <div class="dropdown-menu dropdown-menu-end">
+              <button class="dropdown-item" type="button" data-theme-choice="light"><i class="ti ti-sun me-2"></i>Sáng</button>
+              <button class="dropdown-item" type="button" data-theme-choice="dark"><i class="ti ti-moon me-2"></i>Tối</button>
+              <button class="dropdown-item" type="button" data-theme-choice="auto"><i class="ti ti-device-desktop me-2"></i>Theo hệ thống</button>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#" class="ad-user" data-bs-toggle="dropdown" aria-label="Menu tài khoản">
+              <span class="ad-avatar">{{ $initial }}</span>
+              <span class="ad-me d-none d-xl-block"><b>{{ $adUser->name }}</b><small>{{ $roleNames ?: 'Quản trị' }}</small></span>
+              <i class="ti ti-chevron-down text-secondary d-none d-xl-inline"></i>
             </a>
-            <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-              <a href="{{ route('profile.show') }}" class="dropdown-item">Hồ sơ cá nhân</a>
-              <a href="{{ route('admin.account.edit') }}" class="dropdown-item">Đổi mật khẩu</a>
-              <a href="{{ route('home') }}" class="dropdown-item">Quay về Frontend</a>
+            <div class="dropdown-menu dropdown-menu-end" style="min-width:13rem">
+              <div class="px-2 py-2 mb-1 border-bottom"><div class="fw-bold">{{ $adUser->name }}</div><div class="text-secondary small">{{ $adUser->email }}</div></div>
+              <a href="{{ route('profile.show') }}" class="dropdown-item"><i class="ti ti-user-circle me-2"></i>Hồ sơ cá nhân</a>
+              <a href="{{ route('admin.account.edit') }}" class="dropdown-item"><i class="ti ti-lock me-2"></i>Đổi mật khẩu</a>
+              <a href="{{ route('home') }}" class="dropdown-item"><i class="ti ti-arrow-back-up me-2"></i>Quay về Frontend</a>
               <div class="dropdown-divider"></div>
               <form action="{{ route('admin.logout') }}" method="POST">
                 @csrf
-                <button type="submit" class="dropdown-item">Đăng xuất</button>
+                <button type="submit" class="dropdown-item text-danger"><i class="ti ti-logout me-2"></i>Đăng xuất</button>
               </form>
             </div>
           </div>
@@ -241,38 +161,29 @@
       </div>
     </header>
 
-    {{-- Page body --}}
     <div class="page-body">
       <div class="container-xl">
 
-        @if(session('success'))
-          <div class="alert alert-success alert-dismissible mt-3" role="alert">
-            <div class="d-flex">
-              <div><svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2l4 -4"/></svg></div>
-              <div>{{ session('success') }}</div>
-            </div>
-            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-          </div>
-        @endif
-
-        @if(session('error'))
-          <div class="alert alert-danger alert-dismissible mt-3" role="alert">
-            <div class="d-flex">
-              <div><svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-              <div>{{ session('error') }}</div>
-            </div>
-            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-          </div>
-        @endif
+        {{-- Flash messages: shown as toasts by admin/app.js; the text is also in the page for no-JS / tests --}}
+        @if(session('success'))<div data-flash="success" hidden>{{ session('success') }}</div>@endif
+        @if(session('error'))<div data-flash="error" hidden>{{ session('error') }}</div>@endif
+        @if(session('info'))<div data-flash="info" hidden>{{ session('info') }}</div>@endif
+        @if(session('warning'))<div data-flash="warning" hidden>{{ session('warning') }}</div>@endif
 
         @hasSection('page_title')
-          <div class="page-header d-print-none">
-            <div class="row align-items-center">
+          <div class="page-header d-print-none ad-fade-in">
+            <div class="row align-items-end g-3">
               <div class="col">
-                <div class="page-pretitle">@yield('page_pretitle')</div>
-                <h2 class="page-title">@yield('page_title')</h2>
+                <div class="ad-crumbs">
+                  <a href="{{ route('admin.dashboard') }}"><i class="ti ti-home-2"></i> Admin</a>
+                  @hasSection('breadcrumbs')
+                    @yield('breadcrumbs')
+                  @endif
+                </div>
+                @hasSection('page_pretitle')<div class="page-pretitle">@yield('page_pretitle')</div>@endif
+                <h1 class="page-title mb-0">@yield('page_title')</h1>
               </div>
-              <div class="col-auto ms-auto d-print-none">
+              <div class="col-auto ms-auto d-print-none d-flex gap-2 flex-wrap">
                 @yield('page_actions')
               </div>
             </div>
@@ -284,35 +195,46 @@
       </div>
     </div>
 
-    {{-- Footer --}}
-    <footer class="footer footer-transparent d-print-none">
-      <div class="container-xl">
-        <div class="row text-center align-items-center flex-row-reverse">
-          <div class="col-lg-auto ms-lg-auto">
-            <ul class="list-inline list-inline-dots mb-0">
-              <li class="list-inline-item"><a href="{{ route('home') }}" class="link-secondary">Frontend</a></li>
-            </ul>
-          </div>
-          <div class="col-12 col-lg-auto mt-3 mt-lg-0">
-            <ul class="list-inline list-inline-dots mb-0">
-              <li class="list-inline-item">&copy; {{ date('Y') }} <a href="{{ route('home') }}" class="link-secondary">Stock App</a></li>
-            </ul>
-          </div>
-        </div>
+    <footer class="footer footer-transparent d-print-none pb-4">
+      <div class="container-xl d-flex justify-content-between flex-wrap gap-2 small text-secondary">
+        <span>&copy; {{ date('Y') }} Sun Stock AI · Bảng quản trị</span>
+        <span><kbd>Ctrl</kbd> + <kbd>K</kbd> để tìm nhanh trang &middot; <a href="{{ route('home') }}" class="link-secondary">Về trang web</a></span>
       </div>
     </footer>
+  </div>
+</div>
 
-  </div>{{-- /page-wrapper --}}
-</div>{{-- /wrapper --}}
+{{-- Toasts --}}
+<div class="ad-toasts" id="adToasts" aria-live="polite"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0/dist/js/tabler.min.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.alert-dismissible').forEach(function (el) {
-      setTimeout(function () { var b = el.querySelector('.btn-close'); if (b) b.click(); }, 5000);
-    });
-  });
-</script>
+{{-- Confirm dialog (window.adConfirm / [data-confirm]) --}}
+<div class="modal modal-blur fade" id="adConfirm" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-body text-center py-4">
+        <i class="ti ti-help-circle ad-confirm-icon" data-confirm-icon style="font-size:2.6rem"></i>
+        <h3 class="mt-2 mb-1" data-confirm-title>Xác nhận</h3>
+        <div class="text-secondary" data-confirm-message></div>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0 pb-4 gap-2">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-danger" data-confirm-ok>Đồng ý</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- Command palette --}}
+<div class="ad-palette" id="adPalette" role="dialog" aria-modal="true" aria-label="Tìm nhanh">
+  <div class="ad-palette-box">
+    <div class="ad-palette-input"><i class="ti ti-search text-secondary"></i><input type="text" placeholder="Gõ tên trang… (không cần dấu)" autocomplete="off" aria-label="Tìm trang"></div>
+    <div class="ad-palette-list"></div>
+    <div class="ad-palette-foot"><span><kbd>↑</kbd> <kbd>↓</kbd> chọn</span><span><kbd>Enter</kbd> mở</span><span><kbd>Esc</kbd> đóng</span></div>
+  </div>
+</div>
+<script type="application/json" id="adNavData">@json($paletteItems)</script>
+
+@vite('resources/frontend/js/admin/app.js')
 @stack('scripts')
 </body>
 </html>

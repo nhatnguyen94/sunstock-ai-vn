@@ -2,6 +2,33 @@
 
 ---
 
+## ADMIN_REDESIGN_2026 - September 20, 2026
+
+### Summary:
+Task 3 of three. User: the admin backend looks like 2010s UI/UX; find a free, current template and redesign the whole backend to keep users engaged.
+
+### Decision:
+The admin already ran Tabler, but **1.0.0 from a CDN** (2022 look: dark sidebar, plain top bar, inline SVG icons, `window.confirm()`). Switching template family would have meant rewriting all 27 views for no gain, so the app moved to **Tabler 1.5.1** (2026, MIT, Bootstrap 5.3, theme system with light/dark/auto) and the shell was rebuilt around it: same markup family, new design layer. Bundled locally through Vite with Inter (variable, Vietnamese) and Tabler Icons — no CDN at runtime, cacheable, works offline in the intranet.
+
+### Changed:
+- **Shell** (`layouts/admin.blade.php`): light sidebar with section labels, active pill, failed-jobs badge and collapse-to-icons; sticky blurred top bar with **Ctrl/⌘+K command palette** (jump to any page you may open, accent-insensitive), theme switch (light / dark / auto, no flash on load), account menu; one navigation array feeds sidebar and palette, each entry behind its Gate.
+- **Feedback**: server flash messages and script results are toasts; every destructive action uses a real confirm dialog (`data-confirm`, `window.adConfirm`) instead of the browser's `confirm()`.
+- **Pages**: new split-layout login; new dashboard (KPI tiles, traffic-light health of the five data sources, system health: failed jobs / unverified emails / ★ / ledger usage, recent users/portfolios/activity, quick actions); Users, Stocks, Portfolios, News, Sync Status, Queue monitor and Timeline rewritten (toolbars in the card header, avatar cells, status dots, row actions, empty states); Timeline is grouped by day with per-type 7-day counts (and knows the new `watchlist_added` / `portfolio_trade` events); the remaining pages (roles, permissions, categories, forms, detail pages) got the new design layer, Tabler icons instead of inline SVG, and `data-confirm`.
+- Vietnamese relative dates everywhere (`Carbon::setLocale('vi')`: "2 giờ trước" instead of "2 hours ago").
+- Dashboard: the `COUNT(*)` over the 5M-row price table is cached 10 min (it was the slowest query on the page).
+- Removed the unused `css/layouts/admin.css` and `js/layouts/admin.js`.
+
+### Bugs found on the way:
+`backend/timeline/index.blade.php` contained two complete, contradictory `@section('content')` blocks (the second silently won and used array access on model rows); replaced by one clean view. Inline `<script>` blocks pushed by pages run before the ES module, so shared helpers are only used from event handlers (documented).
+
+### Tests:
+PHP 401 → 418 (`adminShell`), Node 20 → 27. `php artisan test` 418/418, `npm test` 27/27.
+
+### Verified / not verified:
+Every admin page rendered without server errors and inspected in the browser pane via inline static copies (light and dark; dashboard, sync status, queue, timeline, user form, login). Not exercised in a real click-through: the palette and confirm dialog run only in the browser (their pure logic is unit-tested), and dark mode was checked on the dashboard only. The pane blocks the app's own assets, so previews embed the built CSS/fonts.
+
+---
+
 ## STOCK_PAGE_FIRST_LOAD_SPEED - September 20, 2026
 
 ### Summary:

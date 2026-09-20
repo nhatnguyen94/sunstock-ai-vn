@@ -5,23 +5,14 @@
 @section('page_title', 'Chi tiết Portfolio #' . $portfolio->id)
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.portfolios.index') }}">Portfolio</a>
-    </li>
-    <li class="breadcrumb-item active">Chi tiết</li>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.portfolios.index') }}">Portfolio</a>
+    <i class="ti ti-chevron-right"></i><span class="current">Chi tiết</span>
 @endsection
 
 @section('page_actions')
     <div class="btn-list">
         <a href="{{ route('admin.portfolios.index') }}" class="btn btn-outline-secondary">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <line x1="19" y1="12" x2="5" y2="12"/>
-                <polyline points="12,19 5,12 12,5"/>
-            </svg>
+            <i class="ti ti-arrow-left me-2"></i>
             Quay lại
         </a>
         
@@ -30,15 +21,10 @@
             @method('PATCH')
             <button type="submit" class="btn btn-outline-{{ $portfolio->is_active ?? true ? 'warning' : 'success' }}">
                 @if($portfolio->is_active ?? true)
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="6" y="4" width="4" height="16"/>
-                        <rect x="14" y="4" width="4" height="16"/>
-                    </svg>
+                    <i class="ti ti-player-pause me-2"></i>
                     Tạm dừng
                 @else
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="5,3 19,12 5,21 5,3"/>
-                    </svg>
+                    <i class="ti ti-player-play me-2"></i>
                     Kích hoạt
                 @endif
             </button>
@@ -73,7 +59,7 @@
                                             {{ strtoupper(substr($portfolio->user->name ?? 'U', 0, 2)) }}
                                         </div>
                                         <div>
-                                            <div class="font-weight-medium">{{ $portfolio->user->name ?? 'N/A' }}</div>
+                                            <div class="fw-medium">{{ $portfolio->user->name ?? 'N/A' }}</div>
                                             <div class="text-muted small">{{ $portfolio->user->email ?? 'N/A' }}</div>
                                         </div>
                                     </div>
@@ -192,10 +178,10 @@
                             @forelse($portfolio->items ?? [] as $item)
                             <tr>
                                 <td>
-                                    <div class="font-weight-bold text-primary">{{ $item->stock_symbol ?? 'N/A' }}</div>
+                                    <div class="fw-bold text-primary">{{ $item->stock_symbol ?? 'N/A' }}</div>
                                 </td>
                                 <td>
-                                    <div class="font-weight-medium">{{ $item->stock->name ?? 'N/A' }}</div>
+                                    <div class="fw-medium">{{ $item->stock->name ?? 'N/A' }}</div>
                                     <div class="text-muted small">{{ $item->stock->exchange ?? 'N/A' }}</div>
                                 </td>
                                 <td>
@@ -208,7 +194,7 @@
                                     <div class="text-end">{{ number_format($item->current_price ?? 0, 0, ',', '.') }} ₫</div>
                                 </td>
                                 <td>
-                                    <div class="text-end font-weight-bold">{{ number_format($item->current_value, 0, ',', '.') }} ₫</div>
+                                    <div class="text-end fw-bold">{{ number_format($item->current_value, 0, ',', '.') }} ₫</div>
                                 </td>
                                 <td>
                                     @php
@@ -238,11 +224,7 @@
                                 <td colspan="9" class="text-center py-4">
                                     <div class="empty">
                                         <div class="empty-img">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="48" height="48" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                <circle cx="12" cy="12" r="8"/>
-                                                <path d="m9 12l2 2l4 -4"/>
-                                            </svg>
+                                            <i class="ti ti-circle-check"></i>
                                         </div>
                                         <p class="empty-title">Portfolio trống</p>
                                         <p class="empty-subtitle text-muted">

@@ -5,40 +5,22 @@
 @section('page_title', '{{ $stock->symbol }} — {{ $stock->name ?? "N/A" }}')
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.stocks.index') }}">Cổ phiếu</a>
-    </li>
-    <li class="breadcrumb-item active">{{ $stock->symbol }}</li>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.stocks.index') }}">Cổ phiếu</a>
+    <i class="ti ti-chevron-right"></i><span class="current">{{ $stock->symbol }}</span>
 @endsection
 
 @section('page_actions')
     <div class="btn-list">
         <a href="{{ route('admin.stocks.edit', $stock) }}" class="btn btn-warning">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
-                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/>
-                <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/>
-                <path d="M16 5l3 3"/>
-            </svg>
+            <i class="ti ti-pencil me-1"></i>
             Chỉnh sửa
         </a>
         <form action="{{ route('admin.stocks.destroy', $stock) }}" method="POST" class="d-inline"
-              onsubmit="return confirm('Xóa mã {{ $stock->symbol }}? Thao tác này không thể hoàn tác.')">
+              data-confirm="Xóa mã {{ $stock->symbol }}? Thao tác này không thể hoàn tác." data-confirm-title="Xác nhận xóa" data-confirm-ok="Xóa">
             @csrf
             @method('DELETE')
             <button type="submit" class="btn btn-danger">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
-                     stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="4" y1="7" x2="20" y2="7"/>
-                    <line x1="10" y1="11" x2="10" y2="17"/>
-                    <line x1="14" y1="11" x2="14" y2="17"/>
-                    <path d="m5 7 1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
-                    <path d="m9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
-                </svg>
+                <i class="ti ti-trash me-1"></i>
                 Xóa
             </button>
         </form>

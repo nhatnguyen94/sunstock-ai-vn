@@ -184,6 +184,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-20 | **Admin redesign** — Tabler 1.5 (2026) bundled locally with Inter + Tabler Icons: light sidebar driven by permissions (failed-jobs badge, collapse to icons), sticky top bar, **Ctrl+K command palette**, light/dark/auto theme, toasts + a real confirm dialog instead of `window.confirm()`, split-layout login, new dashboard (KPIs + data-source health + system health), day-grouped timeline; every admin page restyled |
 | 2026-09-20 | **Stock page no longer waits ~10 s on the first click** — history is fetched from KBS directly (~1 s including Python start-up; VCI was failing/timing out), stale symbols render instantly from the DB with one background incremental refresh, the newest candle is painted from the market snapshot; fixed the web path storing nothing (it read a `date` field the script never produced) |
 | 2026-09-20 | **Market overview + watchlist + trade ledger** — home page market section (indices, breadth, liquidity, movers, real ticker) from ONE KBS call (~4 s, whole market); `/watchlist` with ★ buttons; portfolio **buy/sell ledger** with weighted-average cost, realised P&L, win rate, undo and CSV; fixed the portfolio's upcoming-events list that was always empty (container never injected its optional service) |
 | 2026-09-20 | **Gold price page** (`/gold`) — SJC + Bảo Tín Minh Châu gold/silver, world gold in VND/lượng and the domestic premium, own 15-minute price history for the chart; navbar now has one **Thị trường** menu (Exchange rate + Gold) |
@@ -348,6 +349,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-20 | **Thiết kế lại trang quản trị (admin)** — Tabler 1.5 (2026) bundle cục bộ cùng font Inter + Tabler Icons: sidebar sáng theo quyền (badge job lỗi, thu gọn thành icon), thanh trên dính, **palette Ctrl+K**, giao diện sáng/tối/tự động, toast + hộp xác nhận thật thay `window.confirm()`, trang đăng nhập chia đôi, dashboard mới (KPI + sức khỏe nguồn dữ liệu + hệ thống), timeline gom theo ngày; mọi trang admin được làm lại giao diện |
 | 2026-09-20 | **Trang cổ phiếu không còn chờ ~10 giây ở lần click đầu** — lấy lịch sử giá trực tiếp từ KBS (~1 giây kể cả khởi động Python; VCI đang lỗi/timeout), mã có dữ liệu cũ hiển thị ngay từ DB kèm một job nền nạp bổ sung, nến mới nhất lấy từ snapshot thị trường; sửa lỗi đường web không lưu gì (đọc trường `date` mà script chưa từng trả) |
 | 2026-09-20 | **Tổng quan thị trường + danh sách theo dõi + sổ giao dịch** — phần thị trường ở trang chủ (chỉ số, độ rộng, thanh khoản, top tăng/giảm, ticker thật) từ MỘT lần gọi KBS (~4 giây, toàn thị trường); `/watchlist` với nút ★; **sổ giao dịch mua/bán** trong danh mục (giá vốn bình quân, lãi/lỗ đã chốt, tỷ lệ thắng, hoàn tác, CSV); sửa lỗi lịch sự kiện của danh mục luôn rỗng (container không inject service tùy chọn) |
 | 2026-09-20 | **Trang giá vàng** (`/gold`) — vàng/bạc SJC + Bảo Tín Minh Châu, giá vàng thế giới quy ra VND/lượng và chênh lệch trong nước, tự lưu lịch sử giá mỗi 15 phút cho biểu đồ; navbar gom Tỷ giá + Giá vàng vào một menu **Thị trường** |

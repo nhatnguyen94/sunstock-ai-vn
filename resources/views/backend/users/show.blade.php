@@ -5,22 +5,13 @@
 @section('page_title', $user->name)
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.users.index') }}">Users</a>
-    </li>
-    <li class="breadcrumb-item active">{{ $user->name }}</li>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.users.index') }}">Users</a>
+    <i class="ti ti-chevron-right"></i><span class="current">{{ $user->name }}</span>
 @endsection
 
 @section('page_actions')
     <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/>
-            <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/>
-        </svg>
+        <i class="ti ti-pencil me-2"></i>
         Chỉnh sửa
     </a>
 @endsection
@@ -42,11 +33,7 @@
                 </div>
                 <div class="d-flex">
                     <a href="{{ route('admin.users.edit', $user) }}" class="card-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/>
-                            <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/>
-                        </svg>
+                        <i class="ti ti-pencil me-2"></i>
                         Chỉnh sửa
                     </a>
                 </div>
@@ -74,12 +61,7 @@
                     <div class="list-group-item">
                         <div class="row align-items-center">
                             <div class="col-auto">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="16" y1="2" x2="16" y2="6"/>
-                                    <line x1="8" y1="2" x2="8" y2="6"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
+                                <i class="ti ti-calendar"></i>
                             </div>
                             <div class="col text-truncate">
                                 <strong>Ngày tạo</strong>
@@ -93,10 +75,7 @@
                     <div class="list-group-item">
                         <div class="row align-items-center">
                             <div class="col-auto">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/>
-                                </svg>
+                                <i class="ti ti-phone"></i>
                             </div>
                             <div class="col text-truncate">
                                 <strong>Số điện thoại</strong>
@@ -124,12 +103,7 @@
                             <div class="row">
                                 <div class="col-auto">
                                     <span class="avatar bg-blue text-white">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                            <rect x="3" y="4" width="18" height="12" rx="1"/>
-                                            <line x1="7" y1="20" x2="17" y2="20"/>
-                                            <line x1="9" y1="16" x2="15" y2="16"/>
-                                        </svg>
+                                        <i class="ti ti-device-desktop"></i>
                                     </span>
                                 </div>
                                 <div class="col">
@@ -151,12 +125,7 @@
                     @else
                         <div class="empty">
                             <div class="empty-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <rect x="3" y="4" width="18" height="12" rx="1"/>
-                                    <line x1="7" y1="20" x2="17" y2="20"/>
-                                    <line x1="9" y1="16" x2="15" y2="16"/>
-                                </svg>
+                                <i class="ti ti-device-desktop"></i>
                             </div>
                             <p class="empty-title">Chưa có portfolios nào</p>
                             <p class="empty-subtitle text-muted">User này chưa tạo portfolio nào.</p>

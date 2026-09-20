@@ -5,13 +5,8 @@
 @section('page_title', 'Thêm mã cổ phiếu mới')
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.stocks.index') }}">Cổ phiếu</a>
-    </li>
-    <li class="breadcrumb-item active">Thêm mới</li>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.stocks.index') }}">Cổ phiếu</a>
+    <i class="ti ti-chevron-right"></i><span class="current">Thêm mới</span>
 @endsection
 
 @section('content')
@@ -76,13 +71,7 @@
             <div class="card-footer text-end">
                 <a href="{{ route('admin.stocks.index') }}" class="btn btn-outline-secondary me-2">Hủy</a>
                 <button type="submit" class="btn btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
-                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/>
-                        <circle cx="12" cy="14" r="2"/>
-                        <polyline points="14 4 14 8 6 8 6 4"/>
-                    </svg>
+                    <i class="ti ti-device-floppy me-1"></i>
                     Lưu cổ phiếu
                 </button>
             </div>
@@ -95,13 +84,8 @@
 @section('page_title', 'Thêm mã cổ phiếu mới')
 
 @section('breadcrumbs')
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{{ route('admin.stocks.index') }}">Cổ phiếu</a>
-    </li>
-    <li class="breadcrumb-item active">Thêm mới</li>
+    <i class="ti ti-chevron-right"></i><a href="{{ route('admin.stocks.index') }}">Cổ phiếu</a>
+    <i class="ti ti-chevron-right"></i><span class="current">Thêm mới</span>
 @endsection
 
 @section('content')
@@ -193,13 +177,7 @@
             <div class="card-footer text-end">
                 <a href="{{ route('admin.stocks.index') }}" class="btn btn-outline-secondary me-2">Hủy</a>
                 <button type="submit" class="btn btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
-                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/>
-                        <circle cx="12" cy="14" r="2"/>
-                        <polyline points="14 4 14 8 6 8 6 4"/>
-                    </svg>
+                    <i class="ti ti-device-floppy me-1"></i>
                     Lưu cổ phiếu
                 </button>
             </div>
