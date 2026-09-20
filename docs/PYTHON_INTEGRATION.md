@@ -165,6 +165,10 @@ Python launched from a **PHP-FPM request** runs as `www-data`, whose home (`/var
 
 Caching pattern for the new pages: DB-first (`company_profiles`, `funds`) or `Cache` (fund detail), with `App\Support\SingleFlight` so N simultaneous misses run **one** Python process, and a negative cache only for a definitive "does not exist" answer.
 
+## vnai must not edit AGENTS.md
+
+The `vnai` package (a vnstock dependency) rewrites `AGENTS.md` in the working directory — and `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md` — with a "Dynamic Skill Router" prompt for AI assistants whenever Python runs. It contains no secrets, but it is third-party instructions injected into a file AI tools trust, including a step that sends an API key to an external URL. `PythonRunner` therefore exports `VNSTOCK_DISABLE_AGENT_SETUP=1 VNSTOCK_AGENT_TARGETS=none` for every script, and `docker-compose.yml` sets `VNSTOCK_DISABLE_AGENT_SETUP=1` on php/queue/scheduler. If `git diff AGENTS.md` ever shows a `vnai-bootstrap` block again, something is running vnstock outside the runner.
+
 ## Sync speed — two levers, tuned together
 
 User feedback (2026-09-16): syncing felt slow, whether triggered manually or via the scheduler. Two changes, meant to be tuned as a pair:

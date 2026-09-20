@@ -65,6 +65,19 @@ class PythonRunnerTest extends TestCase
     }
 
     #[Group('pythonRunner')]
+    public function test_vnai_is_told_not_to_write_agent_instruction_files(): void
+    {
+        // vnai appended a "skill router" prompt to AGENTS.md (and machine-wide Claude/Codex/Gemini memory files) on every run
+        if (PHP_OS_FAMILY === 'Windows') {
+            $this->markTestSkipped('env prefix is only applied on POSIX');
+        }
+
+        $decoded = PythonRunner::runAndDecodeJson(base_path('tests/Fixtures/python/print_agent_env.py'), [], 5);
+
+        $this->assertSame(['disable' => '1', 'targets' => 'none'], $decoded);
+    }
+
+    #[Group('pythonRunner')]
     public function test_no_api_key_is_passed_when_none_is_configured_or_it_looks_malformed(): void
     {
         $this->withoutInheritedApiKey(function () {

@@ -33,6 +33,7 @@ services:
         condition: service_started
     environment:
       - PYTHONIOENCODING=utf-8
+      - VNSTOCK_DISABLE_AGENT_SETUP=1              # vnai must not write instructions into AGENTS.md / ~/.claude/CLAUDE.md
       - DB_BACKUP_PATH=/backups
     networks:
       - stocknet
@@ -83,6 +84,7 @@ services:
         condition: service_started
     environment:
       - PYTHONIOENCODING=utf-8
+      - VNSTOCK_DISABLE_AGENT_SETUP=1              # vnai must not write instructions into AGENTS.md / ~/.claude/CLAUDE.md
     networks:
       - stocknet
     restart: unless-stopped
@@ -104,6 +106,7 @@ services:
         condition: service_started
     environment:
       - PYTHONIOENCODING=utf-8
+      - VNSTOCK_DISABLE_AGENT_SETUP=1              # vnai must not write instructions into AGENTS.md / ~/.claude/CLAUDE.md
       - DB_BACKUP_PATH=/backups
     networks:
       - stocknet

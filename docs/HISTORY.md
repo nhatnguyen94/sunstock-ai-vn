@@ -2,6 +2,12 @@
 
 ---
 
+## VNAI_AGENTS_MD_INJECTION - September 20, 2026
+
+User asked why `AGENTS.md` kept showing as modified and was never pushed. Cause: the `vnai` package (dependency of vnstock) appends an 86-line `vnai-bootstrap` "skill router" prompt to `AGENTS.md` every time a Python script runs in the repo. No secrets in it, but it is untrusted third-party instructions in a file AI assistants obey (load skills, hit an external license URL with an API key, "never write files to disk"). Fixed at the source: `PythonRunner::noAgentSetupEnv()` + compose env `VNSTOCK_DISABLE_AGENT_SETUP=1`; `AGENTS.md` restored to the committed version; +1 test (`pythonRunner`). Verified: Python ran again after the change and `git diff AGENTS.md` stayed empty.
+
+---
+
 ## AI_PREDICT_AND_CHAT_FIX - September 20, 2026
 
 ### Summary:
