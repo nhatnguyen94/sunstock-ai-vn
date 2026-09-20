@@ -163,7 +163,7 @@ php artisan serve
 1. Get a free API key at [console.groq.com](https://console.groq.com) (no credit card required)
 2. Add to `.env`: `GROQ_API_KEY=gsk_...` — keep this out of any committed file
 3. The chat widget appears on the bottom-right of every page
-4. To change the AI model, edit `AiService::GROQ_MODELS` in `app/Frontend/Services/AiService.php`
+4. To change the AI models, set `GROQ_MODELS=model-a,model-b` in `.env` (tried in order; empty = built-in defaults in `AiService::DEFAULT_MODELS`). Groq retires models — list the current ones with `GET https://api.groq.com/openai/v1/models`
 5. Available free models: `llama-3.3-70b-versatile`, `llama3-70b-8192`, `gemma2-9b-it`
 
 ## 📁 Project Structure
@@ -184,6 +184,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-20 | **AI prediction + AI chat fixed** — Groq had retired every model the app hard-coded, so every call failed (and the error text was cached for 2 h as if it were the prediction). Models now come from `GROQ_MODELS` / `AiService::DEFAULT_MODELS` (`openai/gpt-oss-120b` first), failures are never cached and return a proper 503; the prediction is fed the real market snapshot (VN-Index, breadth, liquidity, movers) and the model is told not to invent figures; the chat popup's buttons were all dead (inline `onclick` cannot reach functions of an ES module) — rewritten with event listeners, IME-safe Enter, Markdown/table rendering, typing indicator |
 | 2026-09-20 | **Weekly database backup outside Docker** — `php artisan db:backup` writes `database_backup/<year>/<month>/<day>/stock_app_db.zip` (a folder next to the project, wherever it lives; the zip holds `stock_app_db.sql`), checked every time Docker starts and hourly, skipped while a valid backup from the last 7 days exists; consistent `mysqldump`, truncation check, never deletes old ones. See `docs/DOCKER.md` §6b |
 | 2026-09-20 | **Admin redesign** — Tabler 1.5 (2026) bundled locally with Inter + Tabler Icons: light sidebar driven by permissions (failed-jobs badge, collapse to icons), sticky top bar, **Ctrl+K command palette**, light/dark/auto theme, toasts + a real confirm dialog instead of `window.confirm()`, split-layout login, new dashboard (KPIs + data-source health + system health), day-grouped timeline; every admin page restyled |
 | 2026-09-20 | **Stock page no longer waits ~10 s on the first click** — history is fetched from KBS directly (~1 s including Python start-up; VCI was failing/timing out), stale symbols render instantly from the DB with one background incremental refresh, the newest candle is painted from the market snapshot; fixed the web path storing nothing (it read a `date` field the script never produced) |
@@ -343,13 +344,14 @@ php artisan serve
 1. Lấy API key miễn phí tại [console.groq.com](https://console.groq.com), không cần thẻ tín dụng
 2. Thêm vào `.env`: `GROQ_API_KEY=gsk_...` — không để lọt vào file nào bị commit
 3. Widget chat xuất hiện ở góc phải dưới màn hình
-4. Để đổi model AI, chỉnh sửa `AiService::GROQ_MODELS` trong `app/Frontend/Services/AiService.php`
+4. Để đổi model AI, đặt `GROQ_MODELS=model-a,model-b` trong `.env` (thử lần lượt; để trống = mặc định trong `AiService::DEFAULT_MODELS`). Groq hay gỡ model cũ — xem danh sách hiện hành bằng `GET https://api.groq.com/openai/v1/models`
 5. Xem danh sách model tại [console.groq.com/docs/models](https://console.groq.com/docs/models)
 
 ## 🆕 Nhật ký cập nhật
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-20 | **Sửa AI dự đoán thị trường + AI chat** — Groq đã gỡ toàn bộ model mà app hard-code nên mọi lời gọi đều lỗi (và câu báo lỗi còn bị cache 2 giờ như thể là kết quả dự đoán). Model giờ lấy từ `GROQ_MODELS` / `AiService::DEFAULT_MODELS` (`openai/gpt-oss-120b` đầu tiên), lỗi không bao giờ bị cache và trả 503 đúng nghĩa; dự đoán được cấp số liệu thị trường thật (VN-Index, độ rộng, thanh khoản, top tăng/giảm) và bị cấm bịa số; mọi nút trong popup chat đều chết (`onclick` inline không gọi được hàm của ES module) — viết lại bằng event listener, Enter an toàn với bộ gõ tiếng Việt, hiển thị Markdown/bảng, hiệu ứng đang trả lời |
 | 2026-09-20 | **Tự động backup database mỗi tuần, lưu ngoài Docker** — `php artisan db:backup` ghi `database_backup/<năm>/<tháng>/<ngày>/stock_app_db.zip` (thư mục ngang hàng với project, project nằm đâu thì nằm đó; zip chứa `stock_app_db.sql`), kiểm tra mỗi lần mở Docker và mỗi giờ, bỏ qua nếu đã có bản hợp lệ trong 7 ngày; dump nhất quán, kiểm tra file cụt, không bao giờ xóa bản cũ. Xem `docs/DOCKER.md` §6b |
 | 2026-09-20 | **Thiết kế lại trang quản trị (admin)** — Tabler 1.5 (2026) bundle cục bộ cùng font Inter + Tabler Icons: sidebar sáng theo quyền (badge job lỗi, thu gọn thành icon), thanh trên dính, **palette Ctrl+K**, giao diện sáng/tối/tự động, toast + hộp xác nhận thật thay `window.confirm()`, trang đăng nhập chia đôi, dashboard mới (KPI + sức khỏe nguồn dữ liệu + hệ thống), timeline gom theo ngày; mọi trang admin được làm lại giao diện |
 | 2026-09-20 | **Trang cổ phiếu không còn chờ ~10 giây ở lần click đầu** — lấy lịch sử giá trực tiếp từ KBS (~1 giây kể cả khởi động Python; VCI đang lỗi/timeout), mã có dữ liệu cũ hiển thị ngay từ DB kèm một job nền nạp bổ sung, nến mới nhất lấy từ snapshot thị trường; sửa lỗi đường web không lưu gì (đọc trường `date` mà script chưa từng trả) |

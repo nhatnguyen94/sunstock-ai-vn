@@ -41,6 +41,8 @@ return [
 
     'groq' => [
         'key' => env('GROQ_API_KEY'),
+        // Comma-separated fallback chain, tried in order. Empty = AiService::DEFAULT_MODELS.
+        'models' => env('GROQ_MODELS'),
     ],
 
     'python' => [

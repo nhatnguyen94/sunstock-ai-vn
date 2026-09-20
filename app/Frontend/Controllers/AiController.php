@@ -13,6 +13,10 @@ class AiController extends Controller
         $prompt = 'Dự đoán xu hướng thị trường chứng khoán Việt Nam tuần này. Nêu cụ thể các yếu tố tác động và khuyến nghị ngắn gọn cho nhà đầu tư.';
         $result = $aiService->predictMarket($prompt, Auth::user());
 
+        if ($result === null) {
+            return response()->json(['error' => true, 'message' => $aiService->unavailableMessage('vi')], 503);
+        }
+
         return response()->json(['result' => $result]);
     }
 }

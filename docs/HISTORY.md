@@ -2,6 +2,27 @@
 
 ---
 
+## AI_PREDICT_AND_CHAT_FIX - September 20, 2026
+
+### Summary:
+User reported two problems: (1) the home page "AI Dự đoán thị trường tuần này" answered "Dịch vụ AI tạm thời không khả dụng…"; (2) the AI chat popup opened but no button worked, typing failed and any message ended in the same service error.
+
+### Root causes:
+1. **Every model was retired.** `AiService` hard-coded `llama-3.3-70b-versatile` (404 for this key), `llama3-70b-8192` and `gemma2-9b-it` (both 400 `model_decommissioned`) — visible in `laravel.log`. On top of that `predictMarket()` cached the fallback *text* for 2 h, so even a recovered provider would have kept showing the error.
+2. **Dead popup.** `layouts/app.js` is loaded by Vite as an ES module, so `closeAiChat`, `sendAiChat`, `setAiQuestion`, `clearAiChat` are module-scoped, not global; the Blade view still used inline `onclick="sendAiChat()"` etc. → `ReferenceError` on every click. (Enter used `keypress`, which also fires on the Vietnamese IME's confirm key.)
+
+### Changes:
+- `AiService`: models from `GROQ_MODELS` (comma list) or `DEFAULT_MODELS` (`openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `groq/compound-mini`, `qwen/qwen3.8-27b` — verified against `GET /openai/v1/models` for this key), `tryAsk()` returns `null` on failure, `ask()` keeps the old message API, `max_tokens` 2048 (reasoning models), `<think>` stripped, cache key `ai_market_predict_v2_…` (drops the cached error) and only real answers are cached. Controllers return **503 + `message`** instead of an error string in a 200.
+- **Grounding:** the raw answers invented numbers (VN-Index "≈1 200" while it was 1 815,66; made-up CPI and revenues). `marketContext()` now appends the real snapshot from `MarketOverviewService` (indices, breadth, liquidity, top 5 movers) to the prediction prompt, and both system prompts forbid inventing figures. Re-run against the live API: the answer quotes the real 1 815,66 / 426 mã tăng / 22 934 tỷ.
+- Frontend: `shared/ai-chat.js` (addEventListener only, `keydown` + `isComposing` guard, busy state, typing indicator, Esc/outside-click close that ignores nodes removed by "clear", 503 message shown, user text via `textContent`), `shared/ai-text.js` (Markdown-lite incl. tables, escape-first), home prediction rewritten to use it and stay retryable after a failure.
+
+### Tests:
+PHP 435 → 454 (`aiFeatures`, 19), Node 27 → 36. Full suite green.
+
+### Verified / not verified:
+Live Groq calls through `AiService` (prediction 3–6 s, chat ~3 s). The UI logic was exercised in the browser pane on the real page markup with the bundled module injected and `fetch` stubbed — the pane blocks the app's own assets and same-origin requests, and Chrome could not resolve `sunstock-local.dev`. Checked there: open/close/clear/chips/language flag, send button, Enter, IME-Enter ignored, busy state, 503 error bubble, table/list rendering, a `<script>` in the answer stays text. Not done: a click-through on the real page in a normal browser (please hard-refresh once so the new build loads).
+
+---
 ## WEEKLY_DB_BACKUP - September 20, 2026
 
 ### Summary:

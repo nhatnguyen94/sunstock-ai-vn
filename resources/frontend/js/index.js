@@ -1,4 +1,5 @@
 import { stockAutocomplete } from './shared/autocomplete.js';
+import { formatAiText } from './shared/ai-text.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     const symbolInput = document.getElementById('symbol');
@@ -109,61 +110,57 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-let aiPredictClicked = false;
+const aiPredictBtn = document.getElementById('aiPredictBtn');
 
-function _escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
+if (aiPredictBtn) {
+    let busy = false;
 
-document.getElementById('aiPredictBtn').onclick = function() {
-    if (aiPredictClicked) return;
-    aiPredictClicked = true;
+    aiPredictBtn.addEventListener('click', async function () {
+        if (busy) return;
+        busy = true;
+        aiPredictBtn.disabled = true;
 
-    const btn = document.getElementById('aiPredictBtn');
-    btn.disabled = true;
+        const result = document.getElementById('aiPredictResult');
+        const loading = document.getElementById('aiPredictLoading');
+        const content = document.getElementById('aiPredictContent');
+        result.style.display = 'block';
+        loading.style.display = 'block';
+        content.innerHTML = '';
 
-    document.getElementById('aiPredictResult').style.display = 'block';
-    document.getElementById('aiPredictLoading').style.display = 'block';
-    document.getElementById('aiPredictContent').innerHTML = '';
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 60000);
+        const fail = (msg) => {
+            content.innerHTML = '<div style="color:var(--danger-red); font-weight:500;"><i class="bi bi-exclamation-triangle"></i> ' + formatAiText(msg).replace(/^<p>|<\/p>$/g, '') + '</div>';
+        };
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 40000);
+        try {
+            const res = await fetch('/ai-predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({}),
+                signal: controller.signal,
+            });
+            const data = await res.json().catch(() => ({}));
+            loading.style.display = 'none';
 
-    fetch('/ai-predict', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({}),
-        signal: controller.signal,
-    })
-    .then(res => {
-        clearTimeout(timeoutId);
-        if (!res.ok) throw new Error('http_' + res.status);
-        return res.json();
-    })
-    .then(data => {
-        document.getElementById('aiPredictLoading').style.display = 'none';
-        document.getElementById('aiPredictContent').innerHTML = `<div style="font-size:1.1rem; color:var(--primary-blue); font-weight:500;">
-            <i class="bi bi-stars" style="color:#fbbf24;"></i> ${_escapeHtml(data.result)}
-        </div>`;
-    })
-    .catch(err => {
-        clearTimeout(timeoutId);
-        document.getElementById('aiPredictLoading').style.display = 'none';
-        const errMsg = err.name === 'AbortError'
-            ? 'Yêu cầu quá thời gian, vui lòng thử lại!'
-            : 'Lỗi lấy dự đoán AI, vui lòng thử lại!';
-        document.getElementById('aiPredictContent').innerHTML = `<div style="color:var(--danger-red); font-weight:500;">
-            <i class="bi bi-exclamation-triangle"></i> ${_escapeHtml(errMsg)}
-        </div>`;
-        aiPredictClicked = false;
-        btn.disabled = false;
+            if (!res.ok || !data.result) {
+                fail(data.message || 'Lỗi lấy dự đoán AI, vui lòng thử lại!');
+                aiPredictBtn.disabled = false;   // a failure must stay retryable
+            } else {
+                content.innerHTML = '<div class="ai-rich"><div style="color:var(--primary-blue); font-weight:600; margin-bottom:.6rem;"><i class="bi bi-stars" style="color:#fbbf24;"></i> Dự đoán thị trường tuần này</div>'
+                    + formatAiText(data.result) + '</div>';
+            }
+        } catch (err) {
+            loading.style.display = 'none';
+            fail(err.name === 'AbortError' ? 'Yêu cầu quá thời gian, vui lòng thử lại!' : 'Lỗi lấy dự đoán AI, vui lòng thử lại!');
+            aiPredictBtn.disabled = false;
+        } finally {
+            clearTimeout(timer);
+            busy = false;
+        }
     });
-};
+}

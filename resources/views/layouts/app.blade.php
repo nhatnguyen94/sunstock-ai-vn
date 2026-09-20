@@ -274,7 +274,7 @@
 
     <!-- AI Chat Bubble -->
     <div id="aiChatBubble" style="position:fixed;bottom:30px;right:30px;z-index:9999;">
-        <button id="aiChatOpenBtn" style="background:linear-gradient(135deg,var(--primary-blue),var(--secondary-blue));color:#fff;border:none;border-radius:50%;width:64px;height:64px;box-shadow:0 8px 30px rgba(37,99,235,0.45);font-size:1.5rem;cursor:pointer;transition:all 0.3s ease;position:relative;">
+        <button id="aiChatOpenBtn" type="button" aria-label="Mở chat AI" aria-expanded="false" style="background:linear-gradient(135deg,var(--primary-blue),var(--secondary-blue));color:#fff;border:none;border-radius:50%;width:64px;height:64px;box-shadow:0 8px 30px rgba(37,99,235,0.45);font-size:1.5rem;cursor:pointer;transition:all 0.3s ease;position:relative;">
             <i class="bi bi-robot"></i>
             <span class="ai-pulse"></span>
         </button>
@@ -288,16 +288,16 @@
                     Sun Stock AI Chat
                     <span style="background:rgba(52,211,153,0.3);color:#34d399;font-size:0.7rem;padding:2px 8px;border-radius:20px;font-weight:600;">ONLINE</span>
                 </div>
-                <button onclick="closeAiChat()" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:50%;width:32px;height:32px;cursor:pointer;transition:all 0.2s ease;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+                <button id="aiChatClose" type="button" aria-label="Đóng" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:50%;width:32px;height:32px;cursor:pointer;transition:all 0.2s ease;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
 
             <!-- Suggested questions -->
             <div style="padding:0.875rem 1.25rem;background:#f8fafc;border-bottom:1px solid var(--border-color);display:flex;gap:6px;flex-wrap:wrap;">
-                <button onclick="setAiQuestion('VN-Index hôm nay thế nào?')" style="background:var(--light-blue);color:var(--primary-blue);border:1px solid rgba(37,99,235,0.2);border-radius:20px;padding:4px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;" onmouseover="this.style.background='var(--primary-blue);color:white'" onmouseout="this.style.background='var(--light-blue)'">📈 VN-Index</button>
-                <button onclick="setAiQuestion('Nên mua cổ phiếu ngân hàng nào?')" style="background:var(--light-blue);color:var(--primary-blue);border:1px solid rgba(37,99,235,0.2);border-radius:20px;padding:4px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;">🏦 Cổ phiếu NH</button>
-                <button onclick="setAiQuestion('Phân tích cổ phiếu FPT')" style="background:var(--light-blue);color:var(--primary-blue);border:1px solid rgba(37,99,235,0.2);border-radius:20px;padding:4px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;">💻 Phân tích FPT</button>
+                <button data-ai-question="VN-Index hôm nay thế nào?" type="button" style="background:var(--light-blue);color:var(--primary-blue);border:1px solid rgba(37,99,235,0.2);border-radius:20px;padding:4px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;">📈 VN-Index</button>
+                <button data-ai-question="Nên mua cổ phiếu ngân hàng nào?" type="button" style="background:var(--light-blue);color:var(--primary-blue);border:1px solid rgba(37,99,235,0.2);border-radius:20px;padding:4px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;">🏦 Cổ phiếu NH</button>
+                <button data-ai-question="Phân tích cổ phiếu FPT" type="button" style="background:var(--light-blue);color:var(--primary-blue);border:1px solid rgba(37,99,235,0.2);border-radius:20px;padding:4px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;">💻 Phân tích FPT</button>
             </div>
             
             <div style="padding:1.25rem 1.5rem;">
@@ -317,11 +317,11 @@
                 </div>
                 
                 <div style="display:flex;gap:8px;">
-                    <input type="text" id="aiChatInput" placeholder="Hỏi về cổ phiếu, thị trường..." style="flex:1;border-radius:10px;border:2px solid var(--border-color);padding:10px 14px;background:white;font-size:0.9rem;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--primary-blue)'" onblur="this.style.borderColor='var(--border-color)'">
-                    <button onclick="sendAiChat()" class="btn-primary-custom" style="padding:10px 14px;min-width:auto;border-radius:10px;">
+                    <input type="text" id="aiChatInput" autocomplete="off" maxlength="500" placeholder="Hỏi về cổ phiếu, thị trường..." style="flex:1;border-radius:10px;border:2px solid var(--border-color);padding:10px 14px;background:white;font-size:0.9rem;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--primary-blue)'" onblur="this.style.borderColor='var(--border-color)'">
+                    <button id="aiChatSend" type="button" aria-label="Gửi" class="btn-primary-custom" style="padding:10px 14px;min-width:auto;border-radius:10px;">
                         <i class="bi bi-send-fill"></i>
                     </button>
-                    <button onclick="clearAiChat()" style="background:#fee2e2;color:var(--danger-red);border:none;border-radius:10px;padding:10px 12px;cursor:pointer;transition:all 0.2s;" title="Xóa chat">
+                    <button id="aiChatClear" type="button" style="background:#fee2e2;color:var(--danger-red);border:none;border-radius:10px;padding:10px 12px;cursor:pointer;transition:all 0.2s;" title="Xóa chat">
                         <i class="bi bi-trash3"></i>
                     </button>
                 </div>

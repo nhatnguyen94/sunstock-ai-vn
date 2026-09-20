@@ -305,7 +305,11 @@ class StockController extends Controller
             return response()->json(['answer' => $lang === 'en' ? 'Please enter a valid question.' : 'Vui lòng nhập câu hỏi hợp lệ.']);
         }
 
-        $answer = $aiService->ask($question, $lang);
+        $answer = $aiService->tryAsk($question, $lang);
+
+        if ($answer === null) {
+            return response()->json(['error' => true, 'message' => $aiService->unavailableMessage($lang)], 503);
+        }
 
         return response()->json(['answer' => $answer]);
     }
