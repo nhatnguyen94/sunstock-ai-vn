@@ -393,6 +393,10 @@ cd C:\xampp\htdocs\stock-app
 docker compose [command]
 ```
 
+### 502 Bad Gateway sau khi `docker compose up -d` tạo lại container `php`
+
+Nginx giữ địa chỉ IP cũ của `php`. Chạy `docker compose restart nginx` (hoặc `docker compose up -d --force-recreate nginx`).
+
 ### Port 80/443 bị chiếm
 ```powershell
 # Tắt XAMPP Apache trước

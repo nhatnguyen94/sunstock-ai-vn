@@ -161,6 +161,8 @@ class PythonRunnerTest extends TestCase
         $this->assertNotNull($decoded);
         $this->assertNotSame('/nonexistent/unwritable/home', $decoded['home']);
         $this->assertTrue(is_writable($decoded['home']), "Python's HOME ({$decoded['home']}) must be writable");
+        // per user, so root (artisan/queue) and www-data (web) never trip over each other's 0700 directory
+        $this->assertStringEndsWith('python-home-' . (function_exists('posix_geteuid') ? posix_geteuid() : getmyuid()), $decoded['home']);
     }
 
     #[Group('pythonRunner')]

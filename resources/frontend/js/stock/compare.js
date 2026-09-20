@@ -40,7 +40,7 @@ function addSymbol() {
     if (!val) return;
     if (symbols.includes(val)) { input.value = ''; return; }
     if (symbols.length >= 4) {
-        if (typeof showToast === 'function') showToast('Chi so sanh toi da 4 ma cung luc!', 'warning');
+        if (typeof showToast === 'function') showToast('Chỉ so sánh tối đa 4 mã cùng lúc!', 'warning');
         return;
     }
     symbols.push(val);
@@ -77,7 +77,7 @@ async function fetchCompareData() {
         document.getElementById('loadingState').style.display = 'none';
         const el = document.getElementById('emptyState');
         el.style.display = 'block';
-        el.innerHTML = `<i class="bi bi-exclamation-circle" style="font-size:3rem;color:#ef4444;display:block;margin-bottom:1rem;"></i><h4 style="color:#6b7280;font-weight:700;">Loi tai du lieu</h4><p style="color:#9ca3af;">Vui long thu lai sau</p>`;
+        el.innerHTML = `<i class="bi bi-exclamation-circle" style="font-size:3rem;color:#ef4444;display:block;margin-bottom:1rem;"></i><h4 style="color:#6b7280;font-weight:700;">Lỗi tải dữ liệu</h4><p style="color:#9ca3af;">Vui lòng thử lại sau</p>`;
     }
 }
 
@@ -101,7 +101,7 @@ function renderCards(data) {
                 </div>
                 <div style="margin-top:0.75rem;display:flex;justify-content:space-between;font-size:0.75rem;color:#9ca3af;">
                     <span>Cao: <b style="color:#10b981;">${Number(stock.high).toLocaleString('vi-VN')}</b></span>
-                    <span>Thap: <b style="color:#ef4444;">${Number(stock.low).toLocaleString('vi-VN')}</b></span>
+                    <span>Thấp: <b style="color:#ef4444;">${Number(stock.low).toLocaleString('vi-VN')}</b></span>
                 </div>
                 <div style="height:4px;background:#f3f4f6;border-radius:4px;margin-top:0.75rem;overflow:hidden;">
                     <div style="height:100%;width:${Math.min(100, Math.max(5, 50 + stock.change_percent * 2))}%;background:${color};border-radius:4px;transition:width 0.8s ease;"></div>

@@ -12,25 +12,57 @@
 
 ## 📸 Screenshots
 
-| Homepage | Stock Detail |
+> Captured on 2026-09-20 from the running Docker stack with real market data. Signed-in pages use a throwaway demo account with sample holdings (removed afterwards). No credentials, tokens, e-mail addresses, admin/security pages or `.env` values appear in any image. A page-by-page walkthrough with more detail is in **[docs/WEBSITE_TOUR.md](docs/WEBSITE_TOUR.md)**.
+
+### Market at a glance
+
+| Home — hero, live ticker, search | Home — market overview (indices, breadth, liquidity, movers) |
 |---|---|
-| ![Homepage](public/images/ss_homepage.png) | ![Stock VCB](public/images/ss_stock_vcb.png) |
+| ![Home](docs/screenshots/01-home.jpg) | ![Market overview](docs/screenshots/02-home-market.jpg) |
 
-| Exchange Rates | Compare Stocks |
+### Analysis
+
+| Stock chart — candles, volume, MA/Bollinger, RSI, MACD | Company profile |
 |---|---|
-| ![Exchange](public/images/ss_exchange.png) | ![Compare](public/images/ss_compare.png) |
+| ![Stock chart](docs/screenshots/03-stock-chart.jpg) | ![Company profile](docs/screenshots/04-company-fpt.jpg) |
 
-| Portfolio | Login |
+| Compare stocks (relative growth) | Stock screener (P/E, P/B, ROE, dividend…) |
 |---|---|
-| ![Portfolio](public/images/ss_portfolio.png) | ![Login](public/images/ss_login.png) |
+| ![Compare](docs/screenshots/05-compare.jpg) | ![Screener](docs/screenshots/06-screener.jpg) |
 
-| Register |
-|---|
-| ![Register](public/images/ss_register.png) |
+### AI
 
-| AI CHAT BOT |
-|---|
-| ![AI CHAT BOT](public/images/Screenshot_7.png) |
+| AI chat assistant | AI weekly market prediction (grounded in real data) |
+|---|---|
+| ![AI chat](docs/screenshots/11-ai-chat.jpg) | ![AI prediction](docs/screenshots/12-ai-predict.jpg) |
+
+### Funds, gold and FX
+
+| Open-end funds | Fund detail (returns + NAV curve) |
+|---|---|
+| ![Funds](docs/screenshots/07-funds.jpg) | ![Fund detail](docs/screenshots/07b-fund-detail.jpg) |
+
+| Gold prices (SJC · BTMC · world) | Exchange rates |
+|---|---|
+| ![Gold](docs/screenshots/08-gold.jpg) | ![Exchange rates](docs/screenshots/09-exchange-rate.jpg) |
+
+### Your money (demo account)
+
+| Portfolios | Portfolio detail — P&L, performance, allocation |
+|---|---|
+| ![Portfolios](docs/screenshots/14-portfolio-list.jpg) | ![Portfolio detail](docs/screenshots/15-portfolio-detail.jpg) |
+
+| Holdings, buy/sell ledger actions | Watchlist |
+|---|---|
+| ![Holdings](docs/screenshots/15b-portfolio-holdings.jpg) | ![Watchlist](docs/screenshots/16-watchlist.jpg) |
+
+### Mobile
+
+<p>
+  <img src="docs/screenshots/13-mobile-home.jpg" alt="Mobile home" width="260">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/13b-mobile-market.jpg" alt="Mobile market overview" width="260">
+</p>
 
 ## 🚀 Features
 
@@ -184,6 +216,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-20 | **New screenshots + website tour** — the README gallery was outdated (and half of its images were missing); it now shows the current site (market overview, chart with indicators, company profile, compare, screener, AI chat and prediction, funds, gold, FX, portfolio with ledger, watchlist, mobile), and [docs/WEBSITE_TOUR.md](docs/WEBSITE_TOUR.md) walks through every page. Nothing sensitive is pictured (no login/admin/security screens). Found while shooting and fixed: SJC gold price truncated in its card, compare page without Vietnamese diacritics, and fund detail failing for web requests (shared `/tmp/python-home` owned by root) |
 | 2026-09-20 | **AI prediction + AI chat fixed** — Groq had retired every model the app hard-coded, so every call failed (and the error text was cached for 2 h as if it were the prediction). Models now come from `GROQ_MODELS` / `AiService::DEFAULT_MODELS` (`openai/gpt-oss-120b` first), failures are never cached and return a proper 503; the prediction is fed the real market snapshot (VN-Index, breadth, liquidity, movers) and the model is told not to invent figures; the chat popup's buttons were all dead (inline `onclick` cannot reach functions of an ES module) — rewritten with event listeners, IME-safe Enter, Markdown/table rendering, typing indicator |
 | 2026-09-20 | **Weekly database backup outside Docker** — `php artisan db:backup` writes `database_backup/<year>/<month>/<day>/stock_app_db.zip` (a folder next to the project, wherever it lives; the zip holds `stock_app_db.sql`), checked every time Docker starts and hourly, skipped while a valid backup from the last 7 days exists; consistent `mysqldump`, truncation check, never deletes old ones. See `docs/DOCKER.md` §6b |
 | 2026-09-20 | **Admin redesign** — Tabler 1.5 (2026) bundled locally with Inter + Tabler Icons: light sidebar driven by permissions (failed-jobs badge, collapse to icons), sticky top bar, **Ctrl+K command palette**, light/dark/auto theme, toasts + a real confirm dialog instead of `window.confirm()`, split-layout login, new dashboard (KPIs + data-source health + system health), day-grouped timeline; every admin page restyled |
@@ -229,6 +262,8 @@ MIT License © 2025–2026
 
 <a name="tiếng-việt"></a>
 # 🇻🇳 Tiếng Việt
+
+> 📸 Ảnh chụp màn hình: xem mục [Screenshots](#-screenshots) ở phần tiếng Anh phía trên; mô tả chi tiết từng trang ở [docs/WEBSITE_TOUR.md](docs/WEBSITE_TOUR.md).
 
 **Sun Stock AI** là nền tảng web tra cứu và quản lý cổ phiếu Việt Nam, xây dựng trên Laravel 12 và Python. Tích hợp AI phân tích thị trường, quản lý danh mục đầu tư kèm cảnh báo giá, tỷ giá ngoại tệ, tin tức, bộ lọc cổ phiếu, và hệ thống phân quyền admin tự quản lý được qua DB.
 
@@ -351,6 +386,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-20 | **Ảnh chụp mới + tour website** — bộ ảnh trong README đã cũ (một nửa file ảnh còn không tồn tại); giờ là ảnh của giao diện hiện tại (tổng quan thị trường, biểu đồ + chỉ báo, hồ sơ công ty, so sánh, bộ lọc, AI chat + dự đoán, quỹ mở, vàng, tỷ giá, danh mục có sổ giao dịch, watchlist, mobile) và [docs/WEBSITE_TOUR.md](docs/WEBSITE_TOUR.md) mô tả từng trang. Không có ảnh nhạy cảm (không có login/admin/bảo mật). Sửa luôn trong lúc chụp: giá vàng SJC bị cắt cụt, trang so sánh mất dấu tiếng Việt, trang chi tiết quỹ lỗi khi gọi từ web (thư mục `/tmp/python-home` dùng chung do root sở hữu) |
 | 2026-09-20 | **Sửa AI dự đoán thị trường + AI chat** — Groq đã gỡ toàn bộ model mà app hard-code nên mọi lời gọi đều lỗi (và câu báo lỗi còn bị cache 2 giờ như thể là kết quả dự đoán). Model giờ lấy từ `GROQ_MODELS` / `AiService::DEFAULT_MODELS` (`openai/gpt-oss-120b` đầu tiên), lỗi không bao giờ bị cache và trả 503 đúng nghĩa; dự đoán được cấp số liệu thị trường thật (VN-Index, độ rộng, thanh khoản, top tăng/giảm) và bị cấm bịa số; mọi nút trong popup chat đều chết (`onclick` inline không gọi được hàm của ES module) — viết lại bằng event listener, Enter an toàn với bộ gõ tiếng Việt, hiển thị Markdown/bảng, hiệu ứng đang trả lời |
 | 2026-09-20 | **Tự động backup database mỗi tuần, lưu ngoài Docker** — `php artisan db:backup` ghi `database_backup/<năm>/<tháng>/<ngày>/stock_app_db.zip` (thư mục ngang hàng với project, project nằm đâu thì nằm đó; zip chứa `stock_app_db.sql`), kiểm tra mỗi lần mở Docker và mỗi giờ, bỏ qua nếu đã có bản hợp lệ trong 7 ngày; dump nhất quán, kiểm tra file cụt, không bao giờ xóa bản cũ. Xem `docs/DOCKER.md` §6b |
 | 2026-09-20 | **Thiết kế lại trang quản trị (admin)** — Tabler 1.5 (2026) bundle cục bộ cùng font Inter + Tabler Icons: sidebar sáng theo quyền (badge job lỗi, thu gọn thành icon), thanh trên dính, **palette Ctrl+K**, giao diện sáng/tối/tự động, toast + hộp xác nhận thật thay `window.confirm()`, trang đăng nhập chia đôi, dashboard mới (KPI + sức khỏe nguồn dữ liệu + hệ thống), timeline gom theo ngày; mọi trang admin được làm lại giao diện |

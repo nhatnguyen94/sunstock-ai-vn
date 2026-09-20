@@ -37,9 +37,9 @@
 .gd-kpi-label { font-size: .74rem; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--text-secondary); }
 .gd-kpi-value { font-size: 1.7rem; font-weight: 800; color: var(--text-primary); margin-top: .2rem; font-variant-numeric: tabular-nums; }
 .gd-kpi-value small { font-size: .8rem; color: var(--text-secondary); font-weight: 700; }
-.gd-kpi-pair { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-top: .35rem; }
+.gd-kpi-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.4rem, 1fr)); gap: .5rem .75rem; margin-top: .35rem; }
 .gd-kpi-pair small { display: block; font-size: .72rem; color: var(--text-secondary); font-weight: 700; }
-.gd-kpi-pair b { font-size: 1.28rem; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.gd-kpi-pair b { font-size: 1.28rem; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gd-kpi-foot { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; font-size: .8rem; color: var(--text-secondary); margin-top: .6rem; padding-top: .5rem; border-top: 1px dashed var(--border-color); }
 .gd-kpi-foot b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .gd-unit { font-size: .7rem; color: var(--text-secondary); text-align: right; margin-top: .25rem; }

@@ -2,6 +2,22 @@
 
 ---
 
+## README_SCREENSHOTS_AND_WEBSITE_TOUR - September 20, 2026
+
+User: the README Screenshots section was outdated; re-shoot the site's highlights, add a detailed page-by-page `.md`, and make sure nothing sensitive (usernames, passwords, security-related or attackable surfaces) is pictured.
+
+**Done:** 18 JPEGs in `docs/screenshots/` (home + market overview, stock chart with MA/Bollinger/RSI/MACD, company profile, compare, screener with real filters, AI chat + prediction, funds list + detail, gold, FX, portfolio list/detail/holdings, watchlist, two mobile shots), `docs/WEBSITE_TOUR.md` (16 sections: what each page shows, data source, refresh), README gallery rewritten; all 8 old images removed from `public/images/` (they were outdated; `ss_login`, `ss_register` and `ss_portfolio` were also the kind of screen we no longer publish - the portfolio one showed a test username; they remain in git history).
+
+**How:** headless Chrome via playwright-core driven from the scratchpad (nothing added to the project), host mapped to the local stack. Signed-in pages used a throwaway demo user + sample portfolio created for the shoot and **deleted afterwards** (verified 0 rows left).
+
+**Sensitive-content review:** login/register/forgot-password, profile/account and the whole admin panel are not pictured; no URL bar in captures; every image viewed at full size; JPEGs contain no EXIF/XMP/comments; text scan of the images' bytes and of the new docs for e-mails, tokens and keys found nothing; the news page was left out (third-party photos and named people in headlines).
+
+**Bugs found and fixed while shooting:** (1) gold page: the SJC sell price rendered as `147.600.0` (KPI grid too narrow) - `auto-fit` grid + `nowrap`; (2) compare page had ASCII-folded Vietnamese (`So Sanh Co Phieu`, `Bieu do tang truong`) - diacritics restored; (3) fund detail showed 'Chưa lấy được dữ liệu chi tiết' for web requests - `PythonRunner` fell back to a shared `/tmp/python-home` created 0700 by root (artisan/queue), so `www-data` got `[Errno 13]` on `~/.vnstock/api_key.json`; now `python-home-<uid>` (+1 assertion). Also: recreating the `php` container leaves nginx pointing at the old IP (502) - `docker compose restart nginx`.
+
+**Not done / notes:** screenshots are static (re-shoot after big UI changes); the stock/compare pages still show prices in thousands of VND by convention.
+
+---
+
 ## VNAI_AGENTS_MD_INJECTION - September 20, 2026
 
 User asked why `AGENTS.md` kept showing as modified and was never pushed. Cause: the `vnai` package (dependency of vnstock) appends an 86-line `vnai-bootstrap` "skill router" prompt to `AGENTS.md` every time a Python script runs in the repo. No secrets in it, but it is untrusted third-party instructions in a file AI assistants obey (load skills, hit an external license URL with an API key, "never write files to disk"). Fixed at the source: `PythonRunner::noAgentSetupEnv()` + compose env `VNSTOCK_DISABLE_AGENT_SETUP=1`; `AGENTS.md` restored to the committed version; +1 test (`pythonRunner`). Verified: Python ran again after the change and `git diff AGENTS.md` stayed empty.

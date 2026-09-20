@@ -116,7 +116,11 @@ class PythonRunner
             return '';
         }
 
-        $fallback = sys_get_temp_dir() . '/python-home';
+        // One directory PER USER: a shared /tmp/python-home was created (mode 0700) by whichever process ran first — usually
+        // root (artisan / queue worker) — and then www-data could not write vnstock's ~/.vnstock/api_key.json into it, so every
+        // web-triggered Python call (fund detail, ...) failed with "[Errno 13] Permission denied".
+        $uid = function_exists('posix_geteuid') ? posix_geteuid() : getmyuid();
+        $fallback = sys_get_temp_dir() . '/python-home-' . $uid;
         if (! is_dir($fallback)) {
             @mkdir($fallback, 0700, true);
         }
