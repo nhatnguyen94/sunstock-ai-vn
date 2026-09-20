@@ -51,11 +51,11 @@ class PortfolioServiceTest extends TestCase
 
         // The fix under test: PortfolioService must ask StockRepositoryInterface
         // for the latest synced price — it must NOT invent a random number.
-        $stockRepo->shouldReceive('getLatestPrices')->once()->with(['ACB'])->andReturn(['ACB' => 25.5]);
+        $stockRepo->shouldReceive('getLatestQuotes')->once()->with(['ACB'])->andReturn(['ACB' => ['close' => 25.5, 'prev_close' => null, 'date' => '2026-09-11']]);
 
         $portfolioRepo->shouldReceive('updateItemsPrices')
             ->once()
-            ->with($portfolio, ['ACB' => 25.5])
+            ->with($portfolio, ['ACB' => ['price' => 25500.0, 'prev' => null, 'date' => '2026-09-11']])
             ->andReturn(true);
 
         $service = new PortfolioService($portfolioRepo, $stockRepo);
@@ -72,7 +72,7 @@ class PortfolioServiceTest extends TestCase
         $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->with(999, 1)->andReturn(null);
-        $stockRepo->shouldNotReceive('getLatestPrices');
+        $stockRepo->shouldNotReceive('getLatestQuotes');
 
         $service = new PortfolioService($portfolioRepo, $stockRepo);
 
@@ -93,8 +93,8 @@ class PortfolioServiceTest extends TestCase
 
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->andReturn($portfolio);
         // NEWIPO has no synced StockPrice row yet, so the repository omits it from the map.
-        $stockRepo->shouldReceive('getLatestPrices')->once()->with(['ACB', 'NEWIPO'])->andReturn(['ACB' => 25.5]);
-        $portfolioRepo->shouldReceive('updateItemsPrices')->once()->with($portfolio, ['ACB' => 25.5])->andReturn(true);
+        $stockRepo->shouldReceive('getLatestQuotes')->once()->with(['ACB', 'NEWIPO'])->andReturn(['ACB' => ['close' => 25.5, 'prev_close' => null, 'date' => '2026-09-11']]);
+        $portfolioRepo->shouldReceive('updateItemsPrices')->once()->with($portfolio, ['ACB' => ['price' => 25500.0, 'prev' => null, 'date' => '2026-09-11']])->andReturn(true);
 
         $service = new PortfolioService($portfolioRepo, $stockRepo);
 

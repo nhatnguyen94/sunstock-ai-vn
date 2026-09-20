@@ -109,11 +109,10 @@ resources/
 | `funds/index.blade.php` | `css/funds/funds.css` | `js/funds/index.js` |
 | `funds/show.blade.php` | `css/funds/funds.css` + `css/shared/charts.css` | `js/funds/show.js` |
 | `funds/compare.blade.php` | `css/funds/funds.css` + `css/shared/charts.css` | `js/funds/compare.js` |
-| `portfolio/index.blade.php` | `css/portfolio/index.css` | *(none)* |
-| `portfolio/create.blade.php` | `css/portfolio/create.css` | *(none)* |
-| `portfolio/edit.blade.php` | `css/portfolio/edit.css` | *(none)* |
-| `portfolio/show.blade.php` | `css/portfolio/show.css` | `js/portfolio/show.js` |
-| `portfolio/add-stock.blade.php` | `css/portfolio/add-stock.css` | `js/portfolio/add-stock.js` |
+| `portfolio/index.blade.php` | `css/portfolio/portfolio.css` | `js/portfolio/index.js` |
+| `portfolio/create.blade.php`, `portfolio/edit.blade.php`, `portfolio/choose.blade.php` | `css/portfolio/portfolio.css` | *(none)* |
+| `portfolio/show.blade.php` | `css/portfolio/portfolio.css` + `css/shared/charts.css` | `js/portfolio/show.js` |
+| `portfolio/add-stock.blade.php` | `css/portfolio/portfolio.css` | `js/portfolio/add-stock.js` |
 | `profile/show.blade.php` | `css/profile/show.css` | *(none)* |
 | `profile/edit.blade.php` | *(none — uses global `layouts/app.css` only)* | *(none)* |
 
@@ -244,3 +243,9 @@ npm run build
 
 - Tabler's `.nav` is a **horizontal** flex row: a collapsible sidebar group must use `.nav-sub` (defined in `layouts/admin.blade.php`), not a bare `nav collapse`.
 - Tabler makes `.navbar-nav .nav-link .badge` **`position:absolute`** (notification dot). A text badge inside a nav link needs `position: static !important` (see `.account-meta .badge`).
+
+## Portfolio UI conventions
+
+- One stylesheet, `css/portfolio/portfolio.css` (`pf-*`): buttons are `pf-btn` + one variant (`pf-btn-primary` for THE main action of a page, `-soft` secondary, `-ghost` neutral, `-danger` / `-danger-solid`), `pf-btn-icon` for row actions; a loading button gets `.is-loading` (spinner replaces its icon). Do not add inline `style=` colours or Bootstrap `btn-*` classes to these pages.
+- Destructive actions use Bootstrap **modals** (never `confirm()`), and every handler is attached with `addEventListener` in the page's module — an ES module's functions are not global, so inline `onclick="fn()"` silently does nothing (this is why the old "Cập nhật giá" / edit buttons were dead).
+- Money is **whole VND** everywhere in the UI and DB; the price feed is thousands of VND — convert only through `App\Support\PriceUnit`.

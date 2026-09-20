@@ -77,6 +77,9 @@
 | PUT | `/portfolio/item/{itemId}` | `portfolio.update-item` | `PortfolioController` | `updateItem` |
 | DELETE | `/portfolio/item/{itemId}` | `portfolio.remove-stock` | `PortfolioController` | `removeStock` |
 | POST | `/portfolio/{id}/update-prices` | `portfolio.update-prices` | `PortfolioController` | `updatePrices` |
+| GET | `/portfolio/add?symbol=` | `portfolio.quick-add` | `PortfolioController` | `quickAdd` (entry from stock/company pages: 0 portfolios → create, 1 → add form, several → chooser) |
+| GET | `/portfolio/quote/{symbol}` | `portfolio.quote` | `PortfolioController` | `quote` (name + latest price in VND, JSON) |
+| GET | `/portfolio/{id}/export` | `portfolio.export` | `PortfolioController` | `export` (CSV, UTF-8 BOM) |
 | GET | `/portfolio/{id}/rebalance-suggestions` | `portfolio.rebalance-suggestions` | `PortfolioController` | `getRebalanceSuggestions` |
 
 ## Backend / Admin Routes (prefix: `/admin`, middleware: `auth:web` + `admin`)

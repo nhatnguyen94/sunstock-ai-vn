@@ -211,4 +211,69 @@ public function updateStockPriceFromPython(string $symbol): void
 
         return $prices;
     }
+
+    public function getLatestQuotes(array $symbols): array
+    {
+        if (empty($symbols)) {
+            return [];
+        }
+
+        $quotes = [];
+
+        foreach (Stock::whereIn('symbol', $symbols)->get(['id', 'symbol']) as $stock) {
+            $rows = StockPrice::where('stock_id', $stock->id)
+                ->whereNotNull('close')
+                ->orderByDesc('date')
+                ->limit(2)
+                ->get(['date', 'close']);
+
+            if ($rows->isEmpty()) {
+                continue;
+            }
+
+            $quotes[$stock->symbol] = [
+                'close' => (float) $rows[0]->close,
+                'prev_close' => isset($rows[1]) ? (float) $rows[1]->close : null,
+                'date' => Carbon::parse($rows[0]->date)->toDateString(),
+            ];
+        }
+
+        return $quotes;
+    }
+
+    public function getCloseHistory(array $symbols, string $from): array
+    {
+        if (empty($symbols)) {
+            return [];
+        }
+
+        $history = [];
+
+        StockPrice::join('stocks', 'stocks.id', '=', 'stock_prices.stock_id')
+            ->whereIn('stocks.symbol', $symbols)
+            ->where('stock_prices.date', '>=', $from)
+            ->whereNotNull('stock_prices.close')
+            ->orderBy('stock_prices.date')
+            ->get(['stocks.symbol', 'stock_prices.date', 'stock_prices.close'])
+            ->each(function ($row) use (&$history) {
+                $history[$row->symbol][Carbon::parse($row->date)->toDateString()] = (float) $row->close;
+            });
+
+        return $history;
+    }
+
+    public function ensureTracked(array $symbols): array
+    {
+        $missing = [];
+
+        foreach (array_unique($symbols) as $symbol) {
+            $stock = Stock::firstOrCreate(['symbol' => $symbol]);
+
+            if (! StockPrice::where('stock_id', $stock->id)->exists()) {
+                $missing[] = $symbol;
+            }
+        }
+
+        return $missing;
+    }
 }

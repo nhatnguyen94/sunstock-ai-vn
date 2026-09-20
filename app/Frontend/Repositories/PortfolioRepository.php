@@ -183,13 +183,27 @@ class PortfolioRepository implements PortfolioRepositoryInterface
         return $portfolio->items()->atStopLoss()->get();
     }
 
+    /**
+     * @param array<string, array{price: float, prev?: ?float, date?: ?string}> $priceData quotes in VND, by symbol
+     */
     public function updateItemsPrices(Portfolio $portfolio, array $priceData): bool
     {
         try {
             foreach ($portfolio->items as $item) {
-                if (isset($priceData[$item->stock_symbol])) {
-                    $item->updateCurrentPrice($priceData[$item->stock_symbol]);
+                $quote = $priceData[$item->stock_symbol] ?? null;
+                if ($quote !== null) {
+                    $item->applyQuote((float) $quote['price'], $quote['prev'] ?? null, $quote['date'] ?? null);
                 }
+            }
+
+            // Recompute from the DB once, then mirror the totals onto the caller's instance so it does
+            // not have to reload (and lose its already-loaded, already-updated `items`).
+            $fresh = Portfolio::find($portfolio->id);
+            if ($fresh) {
+                $fresh->recalculateTotals();
+                $portfolio->total_invested = $fresh->total_invested;
+                $portfolio->current_value = $fresh->current_value;
+                $portfolio->syncOriginal();
             }
 
             return true;

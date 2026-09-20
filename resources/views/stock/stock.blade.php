@@ -55,6 +55,10 @@
                         <i class="bi bi-house"></i>
                         Trang chủ
                     </a>
+                    <a href="{{ route('portfolio.quick-add', ['symbol' => $symbol]) }}" class="back-button" title="Thêm {{ $symbol }} vào danh mục đầu tư của bạn">
+                        <i class="bi bi-briefcase"></i>
+                        Thêm vào danh mục
+                    </a>
                     <a href="{{ route('company.show', $symbol) }}" class="back-button">
                         <i class="bi bi-building"></i>
                         Hồ sơ công ty

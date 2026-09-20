@@ -208,6 +208,43 @@ class CompanyProfileService
         ];
     }
 
+    /**
+     * Upcoming dividends / shareholder meetings for a set of symbols (a portfolio's holdings), soonest first.
+     * Symbols whose profile is not cached yet get one background load queued, so the next visit has them.
+     *
+     * @param  string[] $symbols
+     * @return array<int, array<string, mixed>> events + `symbol` + `key_date`
+     */
+    public function upcomingEventsFor(array $symbols, int $limit = 8): array
+    {
+        $profiles = $this->repo->findMany($symbols)->keyBy('symbol');
+        $today = now()->toDateString();
+        $out = [];
+
+        foreach (array_unique($symbols) as $symbol) {
+            $profile = $profiles->get($symbol);
+            if (! $profile) {
+                $this->queueRefresh($symbol);
+
+                continue;
+            }
+
+            foreach ($profile->data['events'] ?? [] as $e) {
+                if (! in_array($e['category'] ?? '', ['DIVIDEND', 'SHAREHOLDER_MEETING'], true)) {
+                    continue;
+                }
+                $date = $this->eventKeyDate($e);
+                if ($date >= $today) {
+                    $out[] = ['symbol' => $symbol, 'key_date' => $date] + $e;
+                }
+            }
+        }
+
+        usort($out, fn ($a, $b) => strcmp($a['key_date'], $b['key_date']));
+
+        return array_slice($out, 0, $limit);
+    }
+
     /** The date an event "matters" on: ex-rights, else record, else issue, else announcement. */
     private function eventKeyDate(array $e): string
     {

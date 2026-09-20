@@ -12,6 +12,11 @@ class CompanyProfileRepository implements CompanyProfileRepositoryInterface
         return CompanyProfile::where('symbol', $symbol)->first();
     }
 
+    public function findMany(array $symbols): \Illuminate\Database\Eloquent\Collection
+    {
+        return CompanyProfile::whereIn('symbol', $symbols)->get();
+    }
+
     public function upsert(string $symbol, array $data): CompanyProfile
     {
         return CompanyProfile::updateOrCreate(

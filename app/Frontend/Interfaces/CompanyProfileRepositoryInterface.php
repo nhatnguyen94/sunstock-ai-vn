@@ -8,6 +8,12 @@ interface CompanyProfileRepositoryInterface
 {
     public function find(string $symbol): ?CompanyProfile;
 
+    /**
+     * @param  string[] $symbols
+     * @return \Illuminate\Database\Eloquent\Collection<int, CompanyProfile>
+     */
+    public function findMany(array $symbols): \Illuminate\Database\Eloquent\Collection;
+
     /** Insert or update the cached profile for a symbol and stamp synced_at. */
     public function upsert(string $symbol, array $data): CompanyProfile;
 

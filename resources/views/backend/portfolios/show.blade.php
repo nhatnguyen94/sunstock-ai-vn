@@ -2,7 +2,7 @@
 
 @section('title', 'Chi tiết Portfolio')
 @section('page_pretitle', 'Portfolio')
-@section('page_title', 'Chi tiết Portfolio #{{ $portfolio->id ?? 'N/A' }}')
+@section('page_title', 'Chi tiết Portfolio #' . $portfolio->id)
 
 @section('breadcrumbs')
     <li class="breadcrumb-item">
@@ -114,7 +114,7 @@
                     <div class="d-flex align-items-center">
                         <div class="subheader">Tổng giá trị</div>
                     </div>
-                    <div class="h1 mb-3 text-primary">{{ number_format($portfolio->total_value ?? 0, 0, ',', '.') }} VND</div>
+                    <div class="h1 mb-3 text-primary">{{ number_format($portfolio->current_value, 0, ',', '.') }} ₫</div>
                     <div class="text-muted">Giá trị hiện tại</div>
                 </div>
             </div>
@@ -126,7 +126,7 @@
                     <div class="d-flex align-items-center">
                         <div class="subheader">Vốn đầu tư</div>
                     </div>
-                    <div class="h1 mb-3">{{ number_format($portfolio->total_investment ?? 0, 0, ',', '.') }} VND</div>
+                    <div class="h1 mb-3">{{ number_format($portfolio->total_invested, 0, ',', '.') }} ₫</div>
                     <div class="text-muted">Tổng số tiền đã đầu tư</div>
                 </div>
             </div>
@@ -139,11 +139,11 @@
                         <div class="subheader">Lãi/Lỗ</div>
                     </div>
                     @php
-                        $profitLoss = $portfolio->profit_loss ?? 0;
-                        $profitPercent = $portfolio->profit_percent ?? 0;
+                        $profitLoss = $portfolio->total_profit_loss;
+                        $profitPercent = $portfolio->total_profit_loss_percent;
                     @endphp
                     <div class="h1 mb-3 {{ $profitLoss >= 0 ? 'text-success' : 'text-danger' }}">
-                        {{ $profitLoss >= 0 ? '+' : '' }}{{ number_format($profitLoss, 0, ',', '.') }} VND
+                        {{ $profitLoss >= 0 ? '+' : '' }}{{ number_format($profitLoss, 0, ',', '.') }} ₫
                     </div>
                     <div class="text-muted {{ $profitPercent >= 0 ? 'text-success' : 'text-danger' }}">
                         {{ $profitPercent >= 0 ? '+' : '' }}{{ number_format($profitPercent, 2) }}%
@@ -158,7 +158,7 @@
                     <div class="d-flex align-items-center">
                         <div class="subheader">Số mã cổ phiếu</div>
                     </div>
-                    <div class="h1 mb-3 text-info">{{ $portfolio->items_count ?? 0 }}</div>
+                    <div class="h1 mb-3 text-info">{{ $portfolio->items->count() }}</div>
                     <div class="text-muted">Mã cổ phiếu đang sở hữu</div>
                 </div>
             </div>
@@ -202,29 +202,29 @@
                                     <span class="badge bg-blue-lt fs-6">{{ number_format($item->quantity ?? 0, 0, ',', '.') }}</span>
                                 </td>
                                 <td>
-                                    <div class="text-end">{{ number_format($item->buy_price ?? 0, 0, ',', '.') }} VND</div>
+                                    <div class="text-end">{{ number_format($item->buy_price ?? 0, 0, ',', '.') }} ₫</div>
                                 </td>
                                 <td>
-                                    <div class="text-end">{{ number_format($item->current_price ?? 0, 0, ',', '.') }} VND</div>
+                                    <div class="text-end">{{ number_format($item->current_price ?? 0, 0, ',', '.') }} ₫</div>
                                 </td>
                                 <td>
-                                    <div class="text-end font-weight-bold">{{ number_format($item->total_value ?? 0, 0, ',', '.') }} VND</div>
+                                    <div class="text-end font-weight-bold">{{ number_format($item->current_value, 0, ',', '.') }} ₫</div>
                                 </td>
                                 <td>
                                     @php
-                                        $itemProfitLoss = $item->profit_loss ?? 0;
-                                        $itemProfitPercent = $item->profit_percent ?? 0;
+                                        $itemProfitLoss = $item->profit_loss;
+                                        $itemProfitPercent = $item->profit_loss_percent;
                                     @endphp
                                     <div class="text-end {{ $itemProfitLoss >= 0 ? 'text-success' : 'text-danger' }}">
-                                        {{ $itemProfitLoss >= 0 ? '+' : '' }}{{ number_format($itemProfitLoss, 0, ',', '.') }} VND
+                                        {{ $itemProfitLoss >= 0 ? '+' : '' }}{{ number_format($itemProfitLoss, 0, ',', '.') }} ₫
                                         <div class="small">({{ $itemProfitPercent >= 0 ? '+' : '' }}{{ number_format($itemProfitPercent, 2) }}%)</div>
                                     </div>
                                 </td>
                                 <td>
                                     <div class="text-end">
-                                        {{ number_format($item->allocation_percent ?? 0, 2) }}%
+                                        {{ number_format($item->percent_of_portfolio, 2) }}%
                                         <div class="progress progress-xs mt-1">
-                                            <div class="progress-bar" style="width: {{ $item->allocation_percent ?? 0 }}%"></div>
+                                            <div class="progress-bar" style="width: {{ $item->percent_of_portfolio }}%"></div>
                                         </div>
                                     </div>
                                 </td>

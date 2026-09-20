@@ -13,10 +13,11 @@ import {
     HistogramSeries,
     LineSeries,
     LineStyle,
+    LineType,
     createChart,
 } from 'lightweight-charts';
 
-export { AreaSeries, BaselineSeries, CandlestickSeries, HistogramSeries, LineSeries, LineStyle };
+export { AreaSeries, BaselineSeries, CandlestickSeries, HistogramSeries, LineSeries, LineStyle, LineType };
 
 export const COLORS = {
     up: '#10b981',

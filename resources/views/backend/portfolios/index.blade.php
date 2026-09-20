@@ -25,86 +25,36 @@
 @endsection
 
 @section('content')
-    <!-- Portfolio Statistics -->
+    <!-- Portfolio Statistics (real numbers, from the controller) -->
+    @php $sUp = $summary['profit_percent'] >= 0; @endphp
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="subheader">Tổng Portfolio</div>
-                    </div>
-                    <div class="h1 mb-3">{{ $totalPortfolios ?? 0 }}</div>
-                    <div class="d-flex mb-2">
-                        <div class="flex-1">
-                            <div class="progress progress-sm">
-                                <div class="progress-bar bg-primary" style="width: 75%" role="progressbar"></div>
-                            </div>
-                        </div>
-                        <div class="text-muted ms-2">75%</div>
-                    </div>
-                    <div class="text-muted">Portfolio hoạt động</div>
-                </div>
-            </div>
+            <div class="card"><div class="card-body">
+                <div class="subheader">Tổng Portfolio</div>
+                <div class="h1 mb-1">{{ $summary['total'] }}</div>
+                <div class="text-muted">{{ $summary['active'] }} đang hoạt động · {{ $summary['total'] - $summary['active'] }} tạm dừng</div>
+            </div></div>
         </div>
-        
         <div class="col-lg-3 col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="subheader">Tổng giá trị</div>
-                    </div>
-                    <div class="h1 mb-3 text-success">{{ number_format($totalValue ?? 0, 0, ',', '.') }} VND</div>
-                    <div class="d-flex mb-2">
-                        <div class="flex-1">
-                            <div class="progress progress-sm">
-                                <div class="progress-bar bg-success" style="width: 60%" role="progressbar"></div>
-                            </div>
-                        </div>
-                        <div class="text-muted ms-2">+12%</div>
-                    </div>
-                    <div class="text-muted">Tăng trong tháng</div>
-                </div>
-            </div>
+            <div class="card"><div class="card-body">
+                <div class="subheader">Tổng giá trị</div>
+                <div class="h1 mb-1 text-success">{{ number_format($summary['value'], 0, ',', '.') }} ₫</div>
+                <div class="text-muted">Vốn đầu tư {{ number_format($summary['invested'], 0, ',', '.') }} ₫</div>
+            </div></div>
         </div>
-
         <div class="col-lg-3 col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="subheader">Người dùng hoạt động</div>
-                    </div>
-                    <div class="h1 mb-3">{{ $activeUsers ?? 0 }}</div>
-                    <div class="d-flex mb-2">
-                        <div class="flex-1">
-                            <div class="progress progress-sm">
-                                <div class="progress-bar bg-yellow" style="width: 85%" role="progressbar"></div>
-                            </div>
-                        </div>
-                        <div class="text-muted ms-2">85%</div>
-                    </div>
-                    <div class="text-muted">Có portfolio</div>
-                </div>
-            </div>
+            <div class="card"><div class="card-body">
+                <div class="subheader">Người dùng có portfolio</div>
+                <div class="h1 mb-1">{{ $summary['owners'] }}</div>
+                <div class="text-muted">Chủ sở hữu khác nhau</div>
+            </div></div>
         </div>
-
         <div class="col-lg-3 col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="subheader">Lợi nhuận TB</div>
-                    </div>
-                    <div class="h1 mb-3 text-green">+8.5%</div>
-                    <div class="d-flex mb-2">
-                        <div class="flex-1">
-                            <div class="progress progress-sm">
-                                <div class="progress-bar bg-green" style="width: 40%" role="progressbar"></div>
-                            </div>
-                        </div>
-                        <div class="text-muted ms-2">+2.1%</div>
-                    </div>
-                    <div class="text-muted">So với tháng trước</div>
-                </div>
-            </div>
+            <div class="card"><div class="card-body">
+                <div class="subheader">Lãi/Lỗ toàn hệ thống</div>
+                <div class="h1 mb-1 {{ $sUp ? 'text-success' : 'text-danger' }}">{{ $sUp ? '+' : '' }}{{ number_format($summary['profit_percent'], 2, ',', '.') }}%</div>
+                <div class="text-muted">Giá trị so với vốn</div>
+            </div></div>
         </div>
     </div>
 
@@ -114,17 +64,16 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Danh sách Portfolio</h3>
-                    <div class="card-actions">
-                        <div class="input-group">
-                            <input type="text" class="form-control" placeholder="Tìm kiếm portfolio...">
-                            <button class="btn btn-outline-primary" type="button">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="10" cy="10" r="7"/>
-                                    <path d="m21 21-6-6"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+                    <form method="GET" action="{{ route('admin.portfolios.index') }}" class="card-actions d-flex gap-2">
+                        <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Tìm theo tên portfolio, tên hoặc email chủ sở hữu…">
+                        <select name="status" class="form-select w-auto" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="active" @selected(request('status') === 'active')>Hoạt động</option>
+                            <option value="inactive" @selected(request('status') === 'inactive')>Tạm dừng</option>
+                        </select>
+                        <button class="btn btn-primary" type="submit">Tìm</button>
+                        @if(request()->hasAny(['search', 'status']))<a href="{{ route('admin.portfolios.index') }}" class="btn btn-ghost-secondary">Xóa lọc</a>@endif
+                    </form>
                 </div>
 
                 <div class="table-responsive">
@@ -170,20 +119,20 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-blue-lt">{{ $portfolio->items_count ?? 0 }} mã</span>
+                                    <span class="badge bg-blue-lt">{{ $portfolio->items_count }} mã</span>
                                 </td>
                                 <td>
                                     <div class="text-success font-weight-bold">
-                                        {{ number_format($portfolio->total_value ?? 0, 0, ',', '.') }} VND
+                                        {{ number_format($portfolio->current_value, 0, ',', '.') }} ₫
                                     </div>
                                 </td>
                                 <td>
                                     @php
-                                        $profitLoss = $portfolio->profit_loss ?? 0;
-                                        $profitPercent = $portfolio->profit_percent ?? 0;
+                                        $profitLoss = $portfolio->total_profit_loss;
+                                        $profitPercent = $portfolio->total_profit_loss_percent;
                                     @endphp
                                     <div class="{{ $profitLoss >= 0 ? 'text-success' : 'text-danger' }}">
-                                        {{ $profitLoss >= 0 ? '+' : '' }}{{ number_format($profitLoss, 0, ',', '.') }} VND
+                                        {{ $profitLoss >= 0 ? '+' : '' }}{{ number_format($profitLoss, 0, ',', '.') }} ₫
                                         <small>({{ $profitPercent >= 0 ? '+' : '' }}{{ number_format($profitPercent, 2) }}%)</small>
                                     </div>
                                 </td>
@@ -266,22 +215,8 @@
                         </tbody>
                     </table>
                 </div>
+                @if($portfolios->hasPages())<div class="card-footer d-flex align-items-center">{{ $portfolios->links() }}</div>@endif
             </div>
         </div>
     </div>
 @endsection
-
-@push('scripts')
-<script>
-    // Live search functionality
-    document.querySelector('input[placeholder*="Tìm kiếm"]').addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        const rows = document.querySelectorAll('tbody tr:not(.empty)');
-        
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(searchTerm) ? '' : 'none';
-        });
-    });
-</script>
-@endpush

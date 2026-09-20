@@ -59,6 +59,11 @@ interface PortfolioRepositoryInterface
 
     public function getItemsAtStopLoss(Portfolio $portfolio): Collection;
 
+    /**
+     * Apply quotes (VND) to the portfolio's holdings and recompute its totals.
+     *
+     * @param array<string, array{price: float, prev?: ?float, date?: ?string}> $priceData
+     */
     public function updateItemsPrices(Portfolio $portfolio, array $priceData): bool;
 
     /**

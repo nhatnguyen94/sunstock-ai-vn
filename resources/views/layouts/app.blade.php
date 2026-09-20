@@ -74,13 +74,11 @@
                             <i class="bi bi-pie-chart"></i> Quỹ mở
                         </a>
                     </li>
-                    @auth
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->is('portfolio*') ? 'active' : '' }}" href="{{ route('portfolio.index') }}">
-                                <i class="bi bi-briefcase"></i> Danh mục
-                            </a>
-                        </li>
-                    @endauth
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->is('portfolio*') ? 'active' : '' }}" href="{{ route('portfolio.index') }}">
+                            <i class="bi bi-briefcase"></i> Danh mục
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link {{ request()->is('exchange-rate*') ? 'active' : '' }}" href="{{ url('/exchange-rate') }}">
                             <i class="bi bi-currency-exchange"></i> Tỷ giá

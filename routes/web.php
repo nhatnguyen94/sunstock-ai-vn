@@ -102,7 +102,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
     Route::get('/portfolio/create', [PortfolioController::class, 'create'])->name('portfolio.create');
     Route::post('/portfolio', [PortfolioController::class, 'store'])->name('portfolio.store');
+    // Fixed paths must be declared before /portfolio/{id}
+    Route::get('/portfolio/add', [PortfolioController::class, 'quickAdd'])->name('portfolio.quick-add');
+    Route::get('/portfolio/quote/{symbol}', [PortfolioController::class, 'quote'])
+        ->where('symbol', '[A-Za-z0-9]{2,10}')->name('portfolio.quote');
     Route::get('/portfolio/{id}', [PortfolioController::class, 'show'])->name('portfolio.show');
+    Route::get('/portfolio/{id}/export', [PortfolioController::class, 'export'])->name('portfolio.export');
     Route::get('/portfolio/{id}/edit', [PortfolioController::class, 'edit'])->name('portfolio.edit');
     Route::put('/portfolio/{id}', [PortfolioController::class, 'update'])->name('portfolio.update');
     Route::delete('/portfolio/{id}', [PortfolioController::class, 'destroy'])->name('portfolio.destroy');

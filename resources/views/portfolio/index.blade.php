@@ -1,181 +1,116 @@
 @extends('layouts.app')
 
+@section('title', 'Danh mục đầu tư | Sun Stock AI')
+
+@section('head')
+@vite('resources/frontend/css/portfolio/portfolio.css')
+@endsection
+
+@use('App\Support\VnFormat', 'F')
+
 @section('content')
-<div class="container py-5">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="pf-page">
+<div class="container">
+
+    <div class="pf-head">
         <div>
-            <h2 style="color:var(--text-primary); font-weight:600;">
-                <i class="bi bi-briefcase" style="color:var(--primary-blue); margin-right:12px;"></i>
-                Danh mục đầu tư
-            </h2>
-            <p style="color:var(--text-secondary); margin:0;">Quản lý và theo dõi các danh mục đầu tư của bạn</p>
+            <h1 class="pf-title"><i class="bi bi-briefcase"></i> Danh mục đầu tư</h1>
+            <p class="pf-sub">Theo dõi lãi/lỗ, tỷ trọng và cảnh báo giá cho các cổ phiếu bạn đang nắm giữ.</p>
         </div>
-        <a href="{{ route('portfolio.create') }}" class="btn btn-primary-custom">
-            <i class="bi bi-plus-circle"></i>
-            Tạo danh mục mới
-        </a>
-    </div>
-
-    <!-- Total Stats Cards -->
-    <div class="row mb-5" data-aos="fade-up" data-aos-delay="100">
-        <div class="col-md-3">
-            <div class="custom-card text-center" style="padding:2rem;">
-                <div class="stat-icon" style="background:linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); color:white; width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">
-                    <i class="bi bi-briefcase" style="font-size:1.5rem;"></i>
-                </div>
-                <h3 style="color:var(--text-primary); margin-bottom:0.5rem;">{{ $totalStats['total_portfolios'] }}</h3>
-                <p style="color:var(--text-secondary); margin:0;">Danh mục</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="custom-card text-center" style="padding:2rem;">
-                <div class="stat-icon" style="background:linear-gradient(135deg, var(--success-green), #16a34a); color:white; width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">
-                    <i class="bi bi-cash-coin" style="font-size:1.5rem;"></i>
-                </div>
-                <h3 style="color:var(--text-primary); margin-bottom:0.5rem;">{{ number_format($totalStats['total_invested'], 0, ',', '.') }}₫</h3>
-                <p style="color:var(--text-secondary); margin:0;">Tổng vốn</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="custom-card text-center" style="padding:2rem;">
-                <div class="stat-icon" style="background:linear-gradient(135deg, var(--warning-orange), #f97316); color:white; width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">
-                    <i class="bi bi-graph-up" style="font-size:1.5rem;"></i>
-                </div>
-                <h3 style="color:var(--text-primary); margin-bottom:0.5rem;">{{ number_format($totalStats['current_value'], 0, ',', '.') }}₫</h3>
-                <p style="color:var(--text-secondary); margin:0;">Giá trị hiện tại</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="custom-card text-center" style="padding:2rem;">
-                <div class="stat-icon" style="background:linear-gradient(135deg, {{ $totalStats['is_positive'] ? 'var(--success-green), #16a34a' : 'var(--danger-red), #dc2626' }}); color:white; width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">
-                    <i class="bi bi-{{ $totalStats['is_positive'] ? 'arrow-up' : 'arrow-down' }}" style="font-size:1.5rem;"></i>
-                </div>
-                <h3 style="color:{{ $totalStats['is_positive'] ? 'var(--success-green)' : 'var(--danger-red)' }}; margin-bottom:0.5rem;">
-                    {{ $totalStats['is_positive'] ? '+' : '' }}{{ number_format($totalStats['profit_loss'], 0, ',', '.') }}₫
-                </h3>
-                <p style="color:var(--text-secondary); margin:0;">
-                    Lãi/Lỗ ({{ number_format($totalStats['profit_loss_percent'], 2) }}%)
-                </p>
-            </div>
+        <div class="pf-actions">
+            <a href="{{ route('portfolio.create') }}" class="pf-btn pf-btn-primary"><i class="bi bi-plus-lg"></i> Tạo danh mục mới</a>
         </div>
     </div>
 
-    <!-- Portfolio List -->
+    @if(session('success'))<div class="pf-alert good"><i class="bi bi-check-circle"></i><div>{{ session('success') }}</div></div>@endif
+    @if(session('info'))<div class="pf-alert info"><i class="bi bi-info-circle"></i><div>{{ session('info') }}</div></div>@endif
+    @if($errors->any())<div class="pf-alert bad"><i class="bi bi-exclamation-triangle"></i><div>{{ $errors->first() }}</div></div>@endif
+
     @if($portfolios->count() > 0)
-        <div class="row">
-            @foreach($portfolios as $portfolio)
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="custom-card" style="height:100%;">
-                        <div class="card-header-custom" style="padding:1.5rem 1.5rem 1rem;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h5 style="color:var(--text-primary); font-weight:600; margin:0;">
-                                    {{ $portfolio->name }}
-                                </h5>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm" style="color:var(--text-secondary);" data-toggle="dropdown">
-                                        <i class="bi bi-three-dots"></i>
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-right">
-                                        <a class="dropdown-item" href="{{ route('portfolio.show', $portfolio->id) }}">
-                                            <i class="bi bi-eye"></i> Xem chi tiết
-                                        </a>
-                                        <a class="dropdown-item" href="{{ route('portfolio.edit', $portfolio->id) }}">
-                                            <i class="bi bi-pencil"></i> Chỉnh sửa
-                                        </a>
-                                        <div class="dropdown-divider"></div>
-                                        <form method="POST" action="{{ route('portfolio.destroy', $portfolio->id) }}" 
-                                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa danh mục này?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="dropdown-item text-danger" type="submit">
-                                                <i class="bi bi-trash"></i> Xóa
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                            @if($portfolio->description)
-                                <p style="color:var(--text-secondary); margin:0.5rem 0 0; font-size:0.9rem;">
-                                    {{ Str::limit($portfolio->description, 60) }}
-                                </p>
-                            @endif
-                        </div>
+        @php $tUp = $totalStats['is_positive']; @endphp
+        <div class="pf-kpis">
+            <div class="pf-kpi"><div class="pf-kpi-label">Tổng giá trị</div><div class="pf-kpi-value">{{ F::number($totalStats['current_value']) }}₫</div><div class="pf-kpi-sub">{{ $totalStats['total_portfolios'] }} danh mục</div></div>
+            <div class="pf-kpi"><div class="pf-kpi-label">Tổng vốn</div><div class="pf-kpi-value">{{ F::number($totalStats['total_invested']) }}₫</div></div>
+            <div class="pf-kpi {{ $tUp ? 'up' : 'down' }}"><div class="pf-kpi-label">Lãi / Lỗ</div>
+                <div class="pf-kpi-value {{ $tUp ? 'up' : 'down' }}">{{ $tUp ? '+' : '' }}{{ F::number($totalStats['profit_loss']) }}₫</div>
+                <div class="pf-kpi-sub"><span class="{{ $tUp ? 'up' : 'down' }}"><strong>{{ F::percent($totalStats['profit_loss_percent'], 2, true) }}</strong></span></div></div>
+        </div>
 
-                        <div class="card-body-custom" style="padding:1rem 1.5rem 1.5rem;">
-                            <!-- Portfolio Stats -->
-                            <div class="portfolio-stats mb-3">
-                                <div class="row">
-                                    <div class="col-6">
-                                        <div class="text-center">
-                                            <p style="color:var(--text-secondary); font-size:0.85rem; margin:0;">Tổng vốn</p>
-                                            <h6 style="color:var(--text-primary); margin:0;">{{ number_format($portfolio->total_invested, 0, ',', '.') }}₫</h6>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="text-center">
-                                            <p style="color:var(--text-secondary); font-size:0.85rem; margin:0;">Giá trị hiện tại</p>
-                                            <h6 style="color:var(--text-primary); margin:0;">{{ number_format($portfolio->current_value, 0, ',', '.') }}₫</h6>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Profit/Loss -->
-                            @php
-                                $profitLoss = $portfolio->current_value - $portfolio->total_invested;
-                                $profitLossPercent = $portfolio->total_invested > 0 ? ($profitLoss / $portfolio->total_invested) * 100 : 0;
-                                $isPositive = $profitLoss >= 0;
-                            @endphp
-                            
-                            <div class="profit-loss text-center mb-3" style="padding:1rem; background:{{ $isPositive ? 'linear-gradient(135deg, #f0fdf4, #dcfce7)' : 'linear-gradient(135deg, #fef2f2, #fee2e2)' }}; border-radius:12px;">
-                                <p style="color:var(--text-secondary); font-size:0.85rem; margin:0 0 0.25rem;">Lãi/Lỗ</p>
-                                <h5 style="color:{{ $isPositive ? 'var(--success-green)' : 'var(--danger-red)' }}; margin:0;">
-                                    {{ $isPositive ? '+' : '' }}{{ number_format($profitLoss, 0, ',', '.') }}₫
-                                    <span style="font-size:0.8rem;">({{ number_format($profitLossPercent, 2) }}%)</span>
-                                </h5>
-                            </div>
-
-                            <!-- Action Buttons -->
-                            <div class="d-flex gap-2">
-                                <a href="{{ route('portfolio.show', $portfolio->id) }}" class="btn btn-outline-primary flex-fill" style="font-size:0.9rem;">
-                                    <i class="bi bi-eye"></i>
-                                    Chi tiết
-                                </a>
-                                <a href="{{ route('portfolio.add-stock', $portfolio->id) }}" class="btn btn-primary-custom flex-fill" style="font-size:0.9rem;">
-                                    <i class="bi bi-plus"></i>
-                                    Thêm CP
-                                </a>
-                            </div>
-
-                            <!-- Portfolio Items Count -->
-                            <div class="text-center mt-2">
-                                <small style="color:var(--text-secondary);">
-                                    <i class="bi bi-list-ul"></i>
-                                    {{ $portfolio->items->count() }} cổ phiếu
-                                </small>
-                            </div>
+        <div class="pf-cards">
+        @foreach($portfolios as $portfolio)
+            @php
+                $pl = $portfolio->current_value - $portfolio->total_invested;
+                $plPct = $portfolio->total_invested > 0 ? ($pl / $portfolio->total_invested) * 100 : 0;
+                $isUp = $pl >= 0;
+                $top = $portfolio->items->sortByDesc(fn ($i) => $i->current_value)->take(5);
+            @endphp
+            <div class="pf-card pf-pcard">
+                <div class="pf-card-head">
+                    <h5><a href="{{ route('portfolio.show', $portfolio->id) }}">{{ $portfolio->name }}</a></h5>
+                    <div class="pf-menu">
+                        <button type="button" class="pf-btn pf-btn-ghost pf-btn-icon pf-btn-sm pf-menu-btn" aria-label="Tùy chọn"><i class="bi bi-three-dots"></i></button>
+                        <div class="pf-menu-list">
+                            <a href="{{ route('portfolio.show', $portfolio->id) }}"><i class="bi bi-eye"></i> Xem chi tiết</a>
+                            <a href="{{ route('portfolio.edit', $portfolio->id) }}"><i class="bi bi-pencil"></i> Chỉnh sửa</a>
+                            <a href="{{ route('portfolio.export', $portfolio->id) }}"><i class="bi bi-filetype-csv"></i> Xuất CSV</a>
+                            <hr>
+                            <button type="button" class="danger pf-del-portfolio" data-action="{{ route('portfolio.destroy', $portfolio->id) }}" data-name="{{ $portfolio->name }}"><i class="bi bi-trash"></i> Xóa</button>
                         </div>
                     </div>
                 </div>
-            @endforeach
+                <div class="pf-card-body">
+                    @if($portfolio->description)<p class="pf-hint" style="margin:0 0 .75rem">{{ \Illuminate\Support\Str::limit($portfolio->description, 80) }}</p>@endif
+                    <div class="pf-mini"><span>Vốn</span><b>{{ F::number($portfolio->total_invested) }}₫</b></div>
+                    <div class="pf-mini"><span>Giá trị hiện tại</span><b>{{ F::number($portfolio->current_value) }}₫</b></div>
+                    <div class="pf-pl-box {{ $isUp ? 'up' : 'down' }}">
+                        <span style="font-weight:700">Lãi / Lỗ</span>
+                        <span class="{{ $isUp ? 'up' : 'down' }}"><strong>{{ $isUp ? '+' : '' }}{{ F::number($pl) }}₫</strong> <span class="pf-pill {{ $isUp ? 'up' : 'down' }}">{{ F::percent($plPct, 2, true) }}</span></span>
+                    </div>
+                    <div class="pf-syms">
+                        @forelse($top as $i)<span class="pf-chip">{{ $i->stock_symbol }}</span>@empty<span class="pf-hint" style="margin:0">Chưa có cổ phiếu nào</span>@endforelse
+                        @if($portfolio->items->count() > 5)<span class="pf-chip">+{{ $portfolio->items->count() - 5 }}</span>@endif
+                    </div>
+                </div>
+                <div class="pf-card-foot">
+                    <a href="{{ route('portfolio.show', $portfolio->id) }}" class="pf-btn pf-btn-soft"><i class="bi bi-eye"></i> Chi tiết</a>
+                    <a href="{{ route('portfolio.add-stock', $portfolio->id) }}" class="pf-btn pf-btn-ghost"><i class="bi bi-plus-lg"></i> Thêm cổ phiếu</a>
+                </div>
+            </div>
+        @endforeach
         </div>
     @else
-        <!-- Empty State -->
-        <div class="text-center py-5">
-            <div class="empty-state" style="max-width:400px; margin:0 auto;">
-                <i class="bi bi-briefcase" style="font-size:4rem; color:var(--text-secondary); margin-bottom:1.5rem;"></i>
-                <h4 style="color:var(--text-primary); margin-bottom:1rem;">Chưa có danh mục đầu tư</h4>
-                <p style="color:var(--text-secondary); margin-bottom:2rem;">
-                    Tạo danh mục đầu tư đầu tiên để bắt đầu theo dõi và quản lý các cổ phiếu của bạn.
-                </p>
-                <a href="{{ route('portfolio.create') }}" class="btn btn-primary-custom">
-                    <i class="bi bi-plus-circle"></i>
-                    Tạo danh mục đầu tiên
-                </a>
+        <div class="pf-card">
+            <div class="pf-empty">
+                <i class="bi bi-briefcase big"></i>
+                <h4>Bắt đầu theo dõi danh mục của bạn</h4>
+                <p>Ghi lại các cổ phiếu bạn đang giữ và xem ngay lãi/lỗ, tỷ trọng, biểu đồ hiệu suất cùng lịch cổ tức — không cần bảng tính.</p>
+                <div class="pf-steps">
+                    <div class="pf-step"><b>1</b><h6>Tạo danh mục</h6><p>Đặt tên, ví dụ “Dài hạn” hoặc “Ngân hàng”.</p></div>
+                    <div class="pf-step"><b>2</b><h6>Thêm cổ phiếu</h6><p>Chọn mã, số lượng, giá mua — giá thị trường được điền sẵn.</p></div>
+                    <div class="pf-step"><b>3</b><h6>Theo dõi</h6><p>Lãi/lỗ theo ngày, cảnh báo qua email khi chạm mục tiêu hoặc cắt lỗ.</p></div>
+                </div>
+                <a href="{{ route('portfolio.create') }}" class="pf-btn pf-btn-primary"><i class="bi bi-plus-lg"></i> Tạo danh mục đầu tiên</a>
             </div>
         </div>
     @endif
 </div>
-@vite('resources/frontend/css/portfolio/index.css')
+</div>
+
+<div class="modal fade pf-modal" id="pfDeletePortfolio" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+        <form class="modal-content" method="POST" id="pfDeletePortfolioForm" action="#">
+            @csrf @method('DELETE')
+            <div class="modal-body text-center">
+                <i class="bi bi-exclamation-triangle down" style="font-size:2rem"></i>
+                <h5 class="mt-2" style="font-weight:800">Xóa danh mục “<span id="pfDelName"></span>”?</h5>
+                <p class="pf-hint">Toàn bộ cổ phiếu trong danh mục sẽ bị xóa và không thể khôi phục.</p>
+                <div class="d-flex justify-content-center" style="gap:.5rem"><button type="button" class="pf-btn pf-btn-ghost" data-dismiss="modal">Hủy</button><button type="submit" class="pf-btn pf-btn-danger-solid">Xóa danh mục</button></div>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
+@vite('resources/frontend/js/portfolio/index.js')
 @endsection

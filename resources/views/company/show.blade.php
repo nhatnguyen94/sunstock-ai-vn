@@ -46,6 +46,7 @@
             <div class="col-lg-4 text-lg-right cp-header-actions">
                 <a href="{{ url('/stock?symbol=' . $symbol) }}" class="cp-btn"><i class="bi bi-graph-up-arrow"></i> Giá &amp; biểu đồ</a>
                 <a href="{{ url('/stock/compare?symbols=' . $symbol) }}" class="cp-btn"><i class="bi bi-bar-chart-steps"></i> So sánh</a>
+                <a href="{{ route('portfolio.quick-add', ['symbol' => $symbol]) }}" class="cp-btn"><i class="bi bi-briefcase"></i> Thêm vào danh mục</a>
             </div>
         </div>
     </div>

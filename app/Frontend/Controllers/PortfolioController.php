@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PortfolioController extends Controller
 {
@@ -22,6 +23,9 @@ class PortfolioController extends Controller
     public function index(): View
     {
         $user = Auth::user();
+
+        // Numbers on the dashboard are always today's, without pressing anything
+        $this->portfolioService->updateAllUserPortfolioPrices($user->id);
         $portfolios = $this->portfolioService->getUserPortfolios($user->id, true);
 
         // Calculate total stats across all portfolios
@@ -58,9 +62,9 @@ class PortfolioController extends Controller
     /**
      * Show create portfolio form
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('portfolio.create');
+        return view('portfolio.create', ['symbol' => strtoupper((string) $request->query('symbol'))]);
     }
 
     /**
@@ -81,6 +85,12 @@ class PortfolioController extends Controller
             $portfolio = $this->portfolioService->createPortfolio(Auth::id(), $validated);
 
             ActivityLogger::log('portfolio_created', "Tạo portfolio: {$portfolio->name}", ['portfolio_id' => $portfolio->id]);
+
+            // Came here from "add SYMBOL to portfolio": continue straight to the add form
+            if ($request->filled('symbol')) {
+                return redirect()->route('portfolio.add-stock', ['id' => $portfolio->id, 'symbol' => strtoupper($request->input('symbol'))])
+                    ->with('success', 'Đã tạo danh mục. Nhập thông tin mua để hoàn tất.');
+            }
 
             return redirect()
                 ->route('portfolio.show', $portfolio->id)
@@ -123,6 +133,8 @@ class PortfolioController extends Controller
         ]);
 
         try {
+            // (the edit form posts a hidden 0 before the checkbox so "unchecked" is actually sent)
+            $validated['is_active'] = $request->boolean('is_active');
             $portfolio = $this->portfolioService->updatePortfolio($id, Auth::id(), $validated);
 
             if (! $portfolio) {
@@ -162,7 +174,7 @@ class PortfolioController extends Controller
     /**
      * Show add stock to portfolio form
      */
-    public function addStock(int $id): View
+    public function addStock(Request $request, int $id): View
     {
         $user = Auth::user();
         $portfolio = $this->portfolioService->getPortfolioById($id, $user->id);
@@ -171,7 +183,9 @@ class PortfolioController extends Controller
             abort(404, 'Portfolio không tồn tại hoặc bạn không có quyền truy cập.');
         }
 
-        return view('portfolio.add-stock', compact('portfolio'));
+        $symbol = strtoupper((string) $request->query('symbol'));
+
+        return view('portfolio.add-stock', compact('portfolio', 'symbol'));
     }
 
     /**
@@ -179,22 +193,27 @@ class PortfolioController extends Controller
      */
     public function storeStock(Request $request, int $id): RedirectResponse
     {
+        $request->merge(['stock_symbol' => strtoupper(trim((string) $request->input('stock_symbol')))]);
+
         $validated = $request->validate([
-            'stock_symbol' => 'required|string|max:10',
-            'stock_name' => 'required|string|max:255',
-            'quantity' => 'required|integer|min:1',
-            'buy_price' => 'required|numeric|min:0.01',
+            'stock_symbol' => 'required|string|max:10|exists:stock_symbols,symbol',
+            'stock_name' => 'nullable|string|max:255',
+            'quantity' => 'required|integer|min:1|max:1000000000',
+            // whole VND (85000, not 85): the smallest real VN share price is well above 100
+            'buy_price' => 'required|numeric|min:100|max:100000000',
             'buy_date' => 'required|date|before_or_equal:today',
-            'target_price' => 'nullable|numeric|min:0.01',
-            'stop_loss_price' => 'nullable|numeric|min:0.01',
+            'target_price' => 'nullable|numeric|min:100|max:100000000',
+            'stop_loss_price' => 'nullable|numeric|min:100|max:100000000',
             'notes' => 'nullable|string|max:1000',
         ], [
             'stock_symbol.required' => 'Mã cổ phiếu là bắt buộc.',
-            'stock_name.required' => 'Tên cổ phiếu là bắt buộc.',
+            'stock_symbol.exists' => 'Không tìm thấy mã cổ phiếu này. Hãy chọn mã từ danh sách gợi ý.',
             'quantity.required' => 'Số lượng là bắt buộc.',
             'quantity.min' => 'Số lượng phải lớn hơn 0.',
             'buy_price.required' => 'Giá mua là bắt buộc.',
-            'buy_price.min' => 'Giá mua phải lớn hơn 0.',
+            'buy_price.min' => 'Giá mua tính theo VNĐ, tối thiểu 100 (ví dụ 85000 chứ không phải 85).',
+            'target_price.min' => 'Giá mục tiêu tính theo VNĐ (ví dụ 95000).',
+            'stop_loss_price.min' => 'Giá cắt lỗ tính theo VNĐ (ví dụ 78000).',
             'buy_date.required' => 'Ngày mua là bắt buộc.',
             'buy_date.before_or_equal' => 'Ngày mua không được vượt quá hôm nay.',
         ]);
@@ -222,11 +241,15 @@ class PortfolioController extends Controller
     public function updateItem(Request $request, int $itemId): RedirectResponse
     {
         $validated = $request->validate([
-            'quantity' => 'required|integer|min:1',
-            'buy_price' => 'required|numeric|min:0.01',
-            'target_price' => 'nullable|numeric|min:0.01',
-            'stop_loss_price' => 'nullable|numeric|min:0.01',
+            'quantity' => 'required|integer|min:1|max:1000000000',
+            'buy_price' => 'required|numeric|min:100|max:100000000',
+            'target_price' => 'nullable|numeric|min:100|max:100000000',
+            'stop_loss_price' => 'nullable|numeric|min:100|max:100000000',
             'notes' => 'nullable|string|max:1000',
+        ], [
+            'buy_price.min' => 'Giá mua tính theo VNĐ, tối thiểu 100 (ví dụ 85000).',
+            'target_price.min' => 'Giá mục tiêu tính theo VNĐ (ví dụ 95000).',
+            'stop_loss_price.min' => 'Giá cắt lỗ tính theo VNĐ (ví dụ 78000).',
         ]);
 
         try {
@@ -250,9 +273,10 @@ class PortfolioController extends Controller
     public function removeStock(int $itemId): RedirectResponse
     {
         try {
-            // Get item first to get portfolio ID for redirect
-            $item = $this->portfolioService->getPortfolioById($itemId, Auth::id());
-            $portfolioId = $item ? $item->portfolio_id : null;
+            // Look the holding up (as its owner) BEFORE deleting it, to know which portfolio to go back to.
+            // This used to call getPortfolioById() with the item id, i.e. looked up the wrong table row.
+            $item = $this->portfolioService->findItemForUser($itemId, Auth::id());
+            $portfolioId = $item?->portfolio_id;
 
             $deleted = $this->portfolioService->removeStockFromPortfolio($itemId, Auth::id());
 
@@ -275,23 +299,40 @@ class PortfolioController extends Controller
     }
 
     /**
-     * Update portfolio prices (AJAX)
+     * Refresh prices (AJAX). Says what really happened — how many holdings got a fresh price and which
+     * ones have no price data yet (those are queued for a background fetch).
      */
     public function updatePrices(int $id): JsonResponse
     {
         try {
-            $success = $this->portfolioService->updatePortfolioPrices($id, Auth::id());
+            $result = $this->portfolioService->refreshPrices($id, Auth::id(), queueMissing: true);
 
-            if (! $success) {
+            if ($result === null) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Không thể cập nhật giá cổ phiếu. Portfolio không tồn tại hoặc bạn không có quyền truy cập.',
-                ], 403);
+                    'message' => 'Danh mục không tồn tại hoặc bạn không có quyền truy cập.',
+                ], 404);
+            }
+
+            if (! $result['ok']) {
+                return response()->json(['success' => false, 'message' => 'Không cập nhật được giá, vui lòng thử lại.'], 500);
+            }
+
+            $message = $result['updated'] > 0
+                ? "Đã cập nhật giá {$result['updated']} mã" . ($result['as_of'] ? ' (dữ liệu phiên ' . date('d/m/Y', strtotime($result['as_of'])) . ')' : '') . '.'
+                : 'Chưa có dữ liệu giá cho các mã trong danh mục.';
+
+            if ($result['missing']) {
+                $message .= ' Chưa có giá cho: ' . implode(', ', $result['missing'])
+                    . ($result['queued'] ? ' — đang tải dữ liệu, thử lại sau ít phút.' : ' (đang được tải).');
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cập nhật giá cổ phiếu thành công!',
+                'message' => $message,
+                'updated' => $result['updated'],
+                'missing' => $result['missing'],
+                'as_of' => $result['as_of'],
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -299,6 +340,66 @@ class PortfolioController extends Controller
                 'message' => 'Có lỗi xảy ra khi cập nhật giá cổ phiếu.',
             ], 500);
         }
+    }
+
+    /** Quote for the add-stock form: company name + latest price (VND), so the user does not type them. */
+    public function quote(string $symbol): JsonResponse
+    {
+        $quote = $this->portfolioService->getQuote($symbol);
+
+        return $quote
+            ? response()->json(['success' => true] + $quote)
+            : response()->json(['success' => false, 'message' => 'Không tìm thấy mã cổ phiếu.'], 404);
+    }
+
+    /**
+     * "Add to portfolio" entry point from other pages (stock page, company page):
+     * no portfolio yet -> create one first; exactly one -> straight to its add form; several -> pick.
+     */
+    public function quickAdd(Request $request)
+    {
+        $symbol = strtoupper(trim((string) $request->query('symbol')));
+        $symbol = preg_match('/^[A-Z0-9]{2,10}$/', $symbol) ? $symbol : '';
+
+        $portfolios = $this->portfolioService->getUserPortfolios(Auth::id(), true);
+
+        if ($portfolios->isEmpty()) {
+            return redirect()->route('portfolio.create', ['symbol' => $symbol])
+                ->with('info', 'Tạo danh mục đầu tiên để thêm ' . ($symbol ?: 'cổ phiếu') . ' vào theo dõi.');
+        }
+
+        if ($portfolios->count() === 1) {
+            return redirect()->route('portfolio.add-stock', ['id' => $portfolios->first()->id, 'symbol' => $symbol]);
+        }
+
+        return view('portfolio.choose', compact('portfolios', 'symbol'));
+    }
+
+    /** CSV of the holdings (UTF-8 with BOM so Excel shows Vietnamese correctly). */
+    public function export(int $id): StreamedResponse
+    {
+        $analytics = $this->portfolioService->getPortfolioAnalytics($id, Auth::id());
+
+        if (! $analytics) {
+            abort(404);
+        }
+
+        $name = \Illuminate\Support\Str::slug($analytics['portfolio']->name) ?: 'portfolio';
+
+        return response()->streamDownload(function () use ($analytics) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Mã', 'Tên', 'Số lượng', 'Giá mua', 'Giá hiện tại', 'Giá trị', 'Lãi/Lỗ (₫)', 'Lãi/Lỗ (%)', 'Tỷ trọng (%)', 'Mục tiêu', 'Cắt lỗ', 'Ngày mua']);
+            foreach ($analytics['holdings'] as $h) {
+                fputcsv($out, [
+                    $h['symbol'], $h['name'], $h['quantity'], round($h['buy_price']), round($h['current_price']),
+                    round($h['value']), round($h['pnl']), round($h['pnl_percent'], 2), round($h['weight'], 1),
+                    $h['target_price'] !== null ? round($h['target_price']) : '', $h['stop_loss_price'] !== null ? round($h['stop_loss_price']) : '',
+                    $h['buy_date'],
+                ]);
+            }
+            fclose($out);
+        }, "portfolio-{$name}-" . now()->format('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**

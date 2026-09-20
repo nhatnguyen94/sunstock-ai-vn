@@ -2,6 +2,35 @@
 
 ---
 
+## PORTFOLIO_REWORK - September 20, 2026
+
+### Summary:
+User reported the portfolio (frontend + admin) had ugly buttons, buttons that "sometimes work", and little value to users (low usage in production). Audit found real bugs, not just looks.
+
+### Root causes found:
+1. **Wrong money unit (my own earlier bug).** `sync:portfolio-prices` copied the feed's price (thousands of VND, ACB = `22.05`) into VND columns, so an 85,000 ₫ buy showed as `22 ₫` / `-99.97%`, and target/stop-loss alerts (compared against that number) fired falsely. Fixed at the source with `App\Support\PriceUnit`; the price refresh now goes through it.
+2. **Dead buttons.** `show.js` is an ES module but the view used inline `onclick="updatePrices()"` / `editItem()` → never ran. "Edit" also used `prompt()` and posted to a URL that does not exist (`/item/{id}/update`; the route is `PUT /item/{id}`). "Refresh" silently did nothing when a symbol had no price rows and still said "success".
+3. **Delete redirect bug**: `removeStock()` looked the item up with `getPortfolioById($itemId)` (an item id used as a portfolio id).
+4. **Cannot deactivate a portfolio**: unchecked checkbox is not submitted, so `is_active` never became false.
+5. Portfolio total recomputed per item from a stale cached `items` collection during a price update.
+6. Add-stock "auto name" was a hard-coded 8-company array; name and symbol were free text (typos → holdings that can never be priced).
+7. **Admin**: the list/detail read attributes that do not exist (`total_value`, `profit_loss`, `items_count`…) so everything showed 0; header cards were hard-coded ("75%", "+12%", "+8.5%"); search `OR` swallowed the status filter; the detail page has always 500'd (nested quotes in `@section('page_title', '… {{ … 'N/A' }}')`) and the stats page had no view.
+
+### Changed / added:
+- **Prices**: `StockRepository::getLatestQuotes()` (latest + previous close), `getCloseHistory()`, `ensureTracked()`; `PortfolioService::refreshPrices()` returns a report; the show/index pages refresh from synced quotes on every visit (no button needed); symbols with no data get a deduplicated background sync; new `portfolio_items.previous_price` / `price_date` → today's move + "as of" date per holding; adding a holding values it at the market price immediately; a repeat buy keeps the market price and averages the cost.
+- **UI**: new design system `css/portfolio/portfolio.css` (one primary action per page, soft/ghost/danger variants, loading state, modals instead of `confirm()`/`prompt()`), rewritten index/show/create/edit/add-stock pages + chooser.
+- **Features to make it worth using**: performance chart (value vs. capital, rebuilt from buy dates + daily closes — available on day one), allocation donut, today's P&L + best/worst, upcoming dividends / shareholder meetings for held symbols (from cached company profiles), target/stop-loss levels with distance in %, inline concentration advice, CSV export, add-stock with autocomplete + auto-filled name/price + live totals + one-click target/stop presets, "Thêm vào danh mục" on the stock and company pages (`/portfolio/add?symbol=`), portfolio link visible to guests, real onboarding state.
+- **Validation**: buy/target/stop prices are whole VND with min 100 (a "85" typed for 85,000 is rejected with an explanation); symbol must exist in `stock_symbols`.
+- **Admin**: real header numbers, real columns, server-side search/status filter with pagination, working detail page, new stats page (top held symbols).
+
+### Tests:
++34 (`portfolioPage` 17, `portfolioAdmin` 4, `portfolioPrices` +8). `php artisan test` 271/271, `npm test` 10/10.
+
+### Verified:
+Against the dev DB: the real portfolio now reads ACB 22,050 ₫ / VCB 58,200 ₫ (was 22 ₫ / 500 ₫), today's move and a 74-point performance series computed. Real browser (inline static copies of the rendered pages): KPI cards, performance chart, donut, table without horizontal scroll, overflow menu, edit/delete modals prefilled with the right action URL, add-stock live totals + presets. Not verified in the browser: the quote fetch on the add form and the refresh button's round trip (the browser sandbox blocks fetch) — both endpoints are covered by feature tests.
+
+---
+
 ## ADMIN_SIDEBAR_AND_ACCOUNT_UI_FIXES - September 19, 2026
 
 ### Fixed (two UI bugs the user found in the admin layout, `layouts/admin.blade.php`):

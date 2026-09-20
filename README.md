@@ -182,6 +182,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-20 | **Portfolio rework** — fixed a money-unit bug (85,000 ₫ buy showed as -99.97%), dead buttons and a broken admin portfolio section; new UI, performance chart, today's P&L, allocation donut, upcoming dividends, CSV export, autocomplete add form with auto price, "add to portfolio" from stock/company pages |
 | 2026-09-19 | **Search autocomplete redesign** — single highlight (hover and keyboard selection no longer look like two selected rows), ranked results (exact ticker first), ticker chips, clear button and spinner; repaired 182 garbled company names |
 | 2026-09-19 | **Company Profile page** (`/company/{symbol}`) and **Open-ended Fund catalog** (`/funds`, detail, compare) from free vnstock `Company`/`Fund` APIs; **charts moved from ApexCharts (CDN) to TradingView Lightweight Charts (bundled locally)** with volume, MA/Bollinger overlays and RSI/MACD as real chart panes; fixed a real bug where every Python call made from a web request failed (`Permission denied: /var/www/.vnstock`) |
 | 2026-09-17 | **News Category management** + **self-service admin password change** — `/admin/news-categories` (CRUD, with a guard against deleting a category still used by the RSS sync sources) and `/admin/account` (any backend account, no extra permission needed) |
@@ -340,6 +341,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-20 | **Làm lại Portfolio** — sửa lỗi đơn vị tiền (mua 85.000₫ hiện -99,97%), nút không hoạt động và phần portfolio trong admin bị lỗi; giao diện mới, biểu đồ hiệu suất, lãi/lỗ hôm nay, tỷ trọng, cổ tức sắp tới, xuất CSV, form thêm cổ phiếu có gợi ý + tự điền giá, nút "Thêm vào danh mục" từ trang cổ phiếu/công ty |
 | 2026-09-19 | **Làm lại ô tìm kiếm mã** — chỉ còn 1 dòng highlight (hover và chọn bằng phím không còn trông như 2 dòng cùng được chọn), kết quả xếp hạng (mã khớp chính xác lên đầu), chip mã, nút xoá, spinner; sửa 182 tên công ty bị lỗi mã hóa |
 | 2026-09-19 | **Trang hồ sơ công ty** (`/company/{symbol}`) và **danh mục quỹ mở** (`/funds`, chi tiết, so sánh) từ vnstock `Company`/`Fund` miễn phí; **đổi biểu đồ từ ApexCharts (CDN) sang TradingView Lightweight Charts (bundle local)** có volume, MA/Bollinger và RSI/MACD dạng pane thật; sửa lỗi thật: mọi lệnh Python gọi từ web request đều thất bại (`Permission denied: /var/www/.vnstock`) |
 | 2026-09-17 | **Quản lý Danh mục Tin tức** + **tự đổi mật khẩu admin** — `/admin/news-categories` (CRUD, chặn xoá danh mục đang được nguồn RSS sync dùng) và `/admin/account` (bất kỳ tài khoản backend nào, không cần thêm quyền) |

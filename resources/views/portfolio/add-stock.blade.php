@@ -1,312 +1,138 @@
 @extends('layouts.app')
 
+@section('title', 'Thêm cổ phiếu vào ' . $portfolio->name . ' | Sun Stock AI')
+
+@section('head')
+@vite('resources/frontend/css/portfolio/portfolio.css')
+@endsection
+
+@php
+    $pageData = [
+        'quoteUrl'   => '/portfolio/quote',
+        'portfolioValue' => (float) $portfolio->current_value,
+        'symbol'     => old('stock_symbol', $symbol ?? ''),
+    ];
+@endphp
+
 @section('content')
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <!-- Page Header -->
-            <div class="mb-4">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb" style="background:none; padding:0;">
-                        <li class="breadcrumb-item">
-                            <a href="{{ route('portfolio.index') }}" style="color:var(--primary-blue);">Danh mục đầu tư</a>
-                        </li>
-                        <li class="breadcrumb-item">
-                            <a href="{{ route('portfolio.show', $portfolio->id) }}" style="color:var(--primary-blue);">{{ $portfolio->name }}</a>
-                        </li>
-                        <li class="breadcrumb-item active" style="color:var(--text-secondary);">Thêm cổ phiếu</li>
-                    </ol>
-                </nav>
-                <h2 style="color:var(--text-primary); font-weight:600; margin:0;">
-                    <i class="bi bi-plus-circle" style="color:var(--primary-blue); margin-right:12px;"></i>
-                    Thêm cổ phiếu vào danh mục
-                </h2>
-                <p style="color:var(--text-secondary); margin:0.5rem 0 0;">Danh mục: <strong>{{ $portfolio->name }}</strong></p>
-            </div>
+<div class="pf-page">
+<div class="container">
+<div class="pf-form-wrap">
 
-            <!-- Add Stock Form -->
-            <div class="custom-card">
-                <div class="card-header-custom">
-                    <h4 style="color:var(--text-primary); margin:0;">
-                        <i class="bi bi-graph-up" style="color:var(--primary-blue); margin-right:8px;"></i>
-                        Thông tin cổ phiếu
-                    </h4>
+    <div class="pf-head">
+        <div>
+            <div class="pf-crumbs">
+                <a href="{{ route('portfolio.index') }}">Danh mục đầu tư</a><span aria-hidden="true">/</span>
+                <a href="{{ route('portfolio.show', $portfolio->id) }}">{{ $portfolio->name }}</a><span aria-hidden="true">/</span><span>Thêm cổ phiếu</span>
+            </div>
+            <h1 class="pf-title"><i class="bi bi-plus-circle"></i> Thêm cổ phiếu</h1>
+            <p class="pf-sub">Danh mục: <strong>{{ $portfolio->name }}</strong> — mua thêm mã đã có sẽ tự tính lại giá vốn bình quân.</p>
+        </div>
+    </div>
+
+    @if(session('success'))<div class="pf-alert good"><i class="bi bi-check-circle"></i><div>{{ session('success') }}</div></div>@endif
+
+    <div class="pf-card">
+        <div class="pf-card-body">
+            @if($errors->any())
+                <div class="pf-check-err"><i class="bi bi-exclamation-triangle"></i> Vui lòng kiểm tra lại thông tin:
+                    <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+            @endif
+
+            <form method="POST" action="{{ route('portfolio.store-stock', $portfolio->id) }}" id="pfAddForm" autocomplete="off">
+                @csrf
+                <input type="hidden" name="stock_name" id="stock_name" value="{{ old('stock_name') }}">
+
+                <div class="pf-field">
+                    <label for="stock_symbol">Mã cổ phiếu <span class="req">*</span></label>
+                    <div class="pf-input-group">
+                        <input type="text" id="stock_symbol" name="stock_symbol" class="pf-input search-input @error('stock_symbol') is-invalid @enderror"
+                               value="{{ old('stock_symbol', $symbol ?? '') }}" required maxlength="10" style="text-transform:uppercase"
+                               placeholder="Gõ mã hoặc tên công ty: FPT, VCB, Hòa Phát…" autofocus>
+                    </div>
+                    @error('stock_symbol')<div class="pf-error">{{ $message }}</div>@enderror
                 </div>
 
-                <div class="card-body-custom" style="padding:2rem;">
-                    <form method="POST" action="{{ route('portfolio.store-stock', $portfolio->id) }}">
-                        @csrf
-
-                        <!-- Stock Symbol & Name -->
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group mb-4">
-                                    <label for="stock_symbol" style="font-weight:500; color:var(--text-primary); margin-bottom:0.75rem;">
-                                        <i class="bi bi-tag" style="color:var(--primary-blue); margin-right:8px;"></i>
-                                        Mã cổ phiếu
-                                        <span style="color:var(--danger-red);">*</span>
-                                    </label>
-                                    <input type="text" 
-                                           name="stock_symbol" 
-                                           id="stock_symbol"
-                                           class="form-control search-input @error('stock_symbol') is-invalid @enderror" 
-                                           value="{{ old('stock_symbol') }}" 
-                                           required
-                                           placeholder="VD: VCB, FPT, VNM"
-                                           style="background:white; color:var(--text-primary); padding:1rem; border-radius:12px; border:2px solid var(--border-color); text-transform:uppercase;">
-                                    @error('stock_symbol')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-8">
-                                <div class="form-group mb-4">
-                                    <label for="stock_name" style="font-weight:500; color:var(--text-primary); margin-bottom:0.75rem;">
-                                        <i class="bi bi-building" style="color:var(--primary-blue); margin-right:8px;"></i>
-                                        Tên công ty
-                                        <span style="color:var(--danger-red);">*</span>
-                                    </label>
-                                    <input type="text" 
-                                           name="stock_name" 
-                                           id="stock_name"
-                                           class="form-control search-input @error('stock_name') is-invalid @enderror" 
-                                           value="{{ old('stock_name') }}" 
-                                           required
-                                           placeholder="VD: Ngân hàng TMCP Ngoại thương Việt Nam"
-                                           style="background:white; color:var(--text-primary); padding:1rem; border-radius:12px; border:2px solid var(--border-color);">
-                                    @error('stock_name')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Quantity & Buy Price -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group mb-4">
-                                    <label for="quantity" style="font-weight:500; color:var(--text-primary); margin-bottom:0.75rem;">
-                                        <i class="bi bi-hash" style="color:var(--primary-blue); margin-right:8px;"></i>
-                                        Số lượng
-                                        <span style="color:var(--danger-red);">*</span>
-                                    </label>
-                                    <input type="number" 
-                                           name="quantity" 
-                                           id="quantity"
-                                           class="form-control search-input @error('quantity') is-invalid @enderror" 
-                                           value="{{ old('quantity') }}" 
-                                           required
-                                           min="1"
-                                           placeholder="VD: 100"
-                                           style="background:white; color:var(--text-primary); padding:1rem; border-radius:12px; border:2px solid var(--border-color);">
-                                    @error('quantity')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group mb-4">
-                                    <label for="buy_price" style="font-weight:500; color:var(--text-primary); margin-bottom:0.75rem;">
-                                        <i class="bi bi-cash-coin" style="color:var(--primary-blue); margin-right:8px;"></i>
-                                        Giá mua (₫)
-                                        <span style="color:var(--danger-red);">*</span>
-                                    </label>
-                                    <input type="number" 
-                                           name="buy_price" 
-                                           id="buy_price"
-                                           class="form-control search-input @error('buy_price') is-invalid @enderror" 
-                                           value="{{ old('buy_price') }}" 
-                                           required
-                                           step="0.01"
-                                           min="0.01"
-                                           placeholder="VD: 85000"
-                                           style="background:white; color:var(--text-primary); padding:1rem; border-radius:12px; border:2px solid var(--border-color);">
-                                    @error('buy_price')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Buy Date -->
-                        <div class="form-group mb-4">
-                            <label for="buy_date" style="font-weight:500; color:var(--text-primary); margin-bottom:0.75rem;">
-                                <i class="bi bi-calendar-event" style="color:var(--primary-blue); margin-right:8px;"></i>
-                                Ngày mua
-                                <span style="color:var(--danger-red);">*</span>
-                            </label>
-                            <input type="date" 
-                                   name="buy_date" 
-                                   id="buy_date"
-                                   class="form-control search-input @error('buy_date') is-invalid @enderror" 
-                                   value="{{ old('buy_date', date('Y-m-d')) }}" 
-                                   required
-                                   max="{{ date('Y-m-d') }}"
-                                   style="background:white; color:var(--text-primary); padding:1rem; border-radius:12px; border:2px solid var(--border-color);">
-                            @error('buy_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <!-- Investment Value Display -->
-                        <div class="investment-summary mb-4" style="background:linear-gradient(135deg, var(--light-blue), #f0f9ff); padding:1.5rem; border-radius:12px; border-left:4px solid var(--primary-blue);">
-                            <h6 style="color:var(--primary-blue); margin-bottom:1rem;">
-                                <i class="bi bi-calculator" style="margin-right:8px;"></i>
-                                Tổng giá trị đầu tư
-                            </h6>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p style="color:var(--text-secondary); font-size:0.9rem; margin:0;">Số lượng × Giá mua</p>
-                                    <h4 id="totalInvestment" style="color:var(--text-primary); margin:0;">0₫</h4>
-                                </div>
-                                <div class="col-md-6">
-                                    <p style="color:var(--text-secondary); font-size:0.9rem; margin:0;">Tỷ trọng trong danh mục</p>
-                                    <h5 id="portfolioPercent" style="color:var(--success-green); margin:0;">0%</h5>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Target & Stop Loss (Optional) -->
-                        <h6 style="color:var(--text-primary); margin-bottom:1rem; border-bottom:2px solid var(--border-color); padding-bottom:0.5rem;">
-                            <i class="bi bi-bullseye" style="color:var(--warning-orange); margin-right:8px;"></i>
-                            Mục tiêu và cảnh báo (tùy chọn)
-                        </h6>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group mb-4">
-                                    <label for="target_price" style="font-weight:500; color:var(--text-primary); margin-bottom:0.75rem;">
-                                        <i class="bi bi-bullseye" style="color:var(--success-green); margin-right:8px;"></i>
-                                        Target Price (₫)
-                                    </label>
-                                    <input type="number" 
-                                           name="target_price" 
-                                           id="target_price"
-                                           class="form-control search-input @error('target_price') is-invalid @enderror" 
-                                           value="{{ old('target_price') }}" 
-                                           step="0.01"
-                                           min="0.01"
-                                           placeholder="VD: 95000"
-                                           style="background:white; color:var(--text-primary); padding:1rem; border-radius:12px; border:2px solid var(--border-color);">
-                                    @error('target_price')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <small style="color:var(--text-secondary);">Giá mục tiêu để chốt lời</small>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group mb-4">
-                                    <label for="stop_loss_price" style="font-weight:500; color:var(--text-primary); margin-bottom:0.75rem;">
-                                        <i class="bi bi-shield-x" style="color:var(--danger-red); margin-right:8px;"></i>
-                                        Stop Loss (₫)
-                                    </label>
-                                    <input type="number" 
-                                           name="stop_loss_price" 
-                                           id="stop_loss_price"
-                                           class="form-control search-input @error('stop_loss_price') is-invalid @enderror" 
-                                           value="{{ old('stop_loss_price') }}" 
-                                           step="0.01"
-                                           min="0.01"
-                                           placeholder="VD: 75000"
-                                           style="background:white; color:var(--text-primary); padding:1rem; border-radius:12px; border:2px solid var(--border-color);">
-                                    @error('stop_loss_price')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <small style="color:var(--text-secondary);">Giá cắt lỗ để bảo vệ vốn</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Notes -->
-                        <div class="form-group mb-4">
-                            <label for="notes" style="font-weight:500; color:var(--text-primary); margin-bottom:0.75rem;">
-                                <i class="bi bi-journal-text" style="color:var(--primary-blue); margin-right:8px;"></i>
-                                Ghi chú (tùy chọn)
-                            </label>
-                            <textarea name="notes" 
-                                      id="notes"
-                                      rows="3"
-                                      class="form-control search-input @error('notes') is-invalid @enderror" 
-                                      placeholder="Lý do mua, phân tích, hoặc ghi chú khác..."
-                                      style="background:white; color:var(--text-primary); padding:1rem; border-radius:12px; border:2px solid var(--border-color); resize:vertical;">{{ old('notes') }}</textarea>
-                            @error('notes')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <!-- Form Actions -->
-                        <div class="d-flex gap-3">
-                            <button type="submit" class="btn btn-primary-custom" style="padding:1rem 2rem;">
-                                <i class="bi bi-check-circle"></i>
-                                Thêm vào danh mục
-                            </button>
-                            
-                            <a href="{{ route('portfolio.show', $portfolio->id) }}" class="btn btn-outline-secondary" style="padding:1rem 2rem;">
-                                <i class="bi bi-x-circle"></i>
-                                Hủy bỏ
-                            </a>
-                        </div>
-
-                        @if($errors->any())
-                            <div class="alert mt-4" style="background:linear-gradient(135deg, #fee2e2, #fecaca); color:var(--danger-red); 
-                                        padding:1rem 1.5rem; border-radius:12px; font-weight:500; 
-                                        border:1px solid rgba(239, 68, 68, 0.3);">
-                                <i class="bi bi-exclamation-triangle" style="margin-right:8px;"></i>
-                                Vui lòng kiểm tra lại thông tin:
-                                <ul style="margin:0.5rem 0 0 1rem;">
-                                    @foreach($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-                    </form>
+                <div class="pf-quote" id="pfQuote" role="status" aria-live="polite">
+                    <span id="pfQuoteText"></span>
+                    <button type="button" class="pf-btn pf-btn-soft pf-btn-sm" id="pfUseQuote"><i class="bi bi-magic"></i> Dùng giá này</button>
                 </div>
-            </div>
 
-            <!-- Tips Section -->
-            <div class="tips-section mt-5">
-                <h5 style="color:var(--text-primary); margin-bottom:1.5rem;">
-                    <i class="bi bi-lightbulb" style="color:var(--warning-orange); margin-right:8px;"></i>
-                    Lời khuyên đầu tư
-                </h5>
-                
                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="tip-card" style="background:linear-gradient(135deg, #f0fdf4, #dcfce7); border:1px solid #16a34a; border-radius:12px; padding:1.5rem;">
-                            <h6 style="color:var(--success-green); margin-bottom:1rem;">
-                                <i class="bi bi-check-circle" style="margin-right:8px;"></i>
-                                Target Price
-                            </h6>
-                            <ul style="color:var(--text-primary); margin:0; padding-left:1rem; font-size:0.9rem;">
-                                <li>Đặt target 10-20% cao hơn giá mua</li>
-                                <li>Có thể chốt lời từng phần khi đạt target</li>
-                                <li>Review target định kỳ theo thị trường</li>
-                            </ul>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label for="quantity">Số lượng <span class="req">*</span> <small>(cổ phiếu)</small></label>
+                            <input type="number" id="quantity" name="quantity" class="pf-input @error('quantity') is-invalid @enderror" value="{{ old('quantity') }}" required min="1" step="1" placeholder="VD: 100">
+                            @error('quantity')<div class="pf-error">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="tip-card" style="background:linear-gradient(135deg, #fef2f2, #fee2e2); border:1px solid #dc2626; border-radius:12px; padding:1.5rem;">
-                            <h6 style="color:var(--danger-red); margin-bottom:1rem;">
-                                <i class="bi bi-shield-x" style="margin-right:8px;"></i>
-                                Stop Loss
-                            </h6>
-                            <ul style="color:var(--text-primary); margin:0; padding-left:1rem; font-size:0.9rem;">
-                                <li>Đặt stop loss 5-10% thấp hơn giá mua</li>
-                                <li>Tuân thủ nghiêm túc để bảo vệ vốn</li>
-                                <li>Có thể điều chỉnh khi giá tăng</li>
-                            </ul>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label for="buy_price">Giá mua <span class="req">*</span> <small>(₫ / cổ phiếu)</small></label>
+                            <div class="pf-input-group">
+                                <input type="number" id="buy_price" name="buy_price" class="pf-input @error('buy_price') is-invalid @enderror" value="{{ old('buy_price') }}" required min="100" step="any" placeholder="VD: 85000">
+                                <span class="suffix">₫</span>
+                            </div>
+                            <div class="pf-help">Nhập theo đồng: 85.000₫ gõ là <b>85000</b>.</div>
+                            @error('buy_price')<div class="pf-error">{{ $message }}</div>@enderror
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <div class="pf-field">
+                    <label for="buy_date">Ngày mua <span class="req">*</span></label>
+                    <input type="date" id="buy_date" name="buy_date" class="pf-input @error('buy_date') is-invalid @enderror" value="{{ old('buy_date', now()->toDateString()) }}" max="{{ now()->toDateString() }}" required>
+                    @error('buy_date')<div class="pf-error">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="pf-summary">
+                    <div><small>Tổng vốn mua</small><strong id="totalInvestment">0₫</strong></div>
+                    <div><small>Tỷ trọng trong danh mục sau khi thêm</small><strong id="portfolioPercent">—</strong></div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label for="target_price">Giá mục tiêu <small>(₫, tùy chọn — báo khi đạt)</small></label>
+                            <input type="number" id="target_price" name="target_price" class="pf-input @error('target_price') is-invalid @enderror" value="{{ old('target_price') }}" min="100" step="any" placeholder="VD: 95000">
+                            @error('target_price')<div class="pf-error">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="pf-field">
+                            <label for="stop_loss_price">Giá cắt lỗ <small>(₫, tùy chọn — báo khi chạm)</small></label>
+                            <input type="number" id="stop_loss_price" name="stop_loss_price" class="pf-input @error('stop_loss_price') is-invalid @enderror" value="{{ old('stop_loss_price') }}" min="100" step="any" placeholder="VD: 78000">
+                            @error('stop_loss_price')<div class="pf-error">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+                </div>
+                <div class="pf-help" style="margin:-.5rem 0 1.25rem">
+                    Gợi ý nhanh:
+                    <button type="button" class="pf-btn pf-btn-soft pf-btn-sm" data-preset="target" data-pct="10">Mục tiêu +10%</button>
+                    <button type="button" class="pf-btn pf-btn-soft pf-btn-sm" data-preset="target" data-pct="20">+20%</button>
+                    <button type="button" class="pf-btn pf-btn-danger pf-btn-sm" data-preset="stop" data-pct="-7">Cắt lỗ −7%</button>
+                    <button type="button" class="pf-btn pf-btn-danger pf-btn-sm" data-preset="stop" data-pct="-10">−10%</button>
+                    <span> — tính từ giá mua. Email cảnh báo được gửi một lần mỗi lần chạm.</span>
+                </div>
+
+                <div class="pf-field">
+                    <label for="notes">Ghi chú <small>(tùy chọn)</small></label>
+                    <textarea id="notes" name="notes" rows="2" maxlength="1000" class="pf-input" placeholder="Lý do mua, kế hoạch…">{{ old('notes') }}</textarea>
+                </div>
+
+                <div class="pf-form-actions">
+                    <button type="submit" class="pf-btn pf-btn-primary"><i class="bi bi-check2-circle"></i> Thêm vào danh mục</button>
+                    <a href="{{ route('portfolio.show', $portfolio->id) }}" class="pf-btn pf-btn-ghost">Hủy</a>
+                </div>
+            </form>
         </div>
     </div>
 </div>
-@vite('resources/frontend/css/portfolio/add-stock.css')
+</div>
+</div>
+@endsection
 
-<script>
-const portfolioCurrentValue = {{ $portfolio->current_value ?: 1 }};
-</script>
+@section('scripts')
+<script>window.__PF__ = @json($pageData);</script>
 @vite('resources/frontend/js/portfolio/add-stock.js')
 @endsection

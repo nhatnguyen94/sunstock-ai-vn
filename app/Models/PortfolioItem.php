@@ -17,6 +17,8 @@ class PortfolioItem extends Model
         'quantity',
         'buy_price',
         'current_price',
+        'previous_price',
+        'price_date',
         'buy_date',
         'target_price',
         'stop_loss_price',
@@ -29,6 +31,8 @@ class PortfolioItem extends Model
         'quantity' => 'integer',
         'buy_price' => 'decimal:2',
         'current_price' => 'decimal:2',
+        'previous_price' => 'decimal:2',
+        'price_date' => 'date',
         'target_price' => 'decimal:2',
         'stop_loss_price' => 'decimal:2',
         'target_alerted_at' => 'datetime',
@@ -119,13 +123,37 @@ class PortfolioItem extends Model
             ->whereRaw('current_price <= stop_loss_price');
     }
 
+    /** Today's move for this holding in VND (0 when there is no previous close to compare with). */
+    public function getDayChangeValueAttribute(): float
+    {
+        if ($this->previous_price === null) {
+            return 0.0;
+        }
+
+        return $this->quantity * ($this->current_price - $this->previous_price);
+    }
+
+    public function getDayChangePercentAttribute(): ?float
+    {
+        if ($this->previous_price === null || (float) $this->previous_price <= 0) {
+            return null;
+        }
+
+        return (($this->current_price / $this->previous_price) - 1) * 100;
+    }
+
     // Methods
-    public function updateCurrentPrice(float $price): void
+
+    /**
+     * Apply a market quote (VND) to this holding. Persists only the holding — the caller recalculates the
+     * portfolio totals ONCE after all holdings are updated (recomputing per holding used a stale
+     * `items` collection and left the portfolio total wrong).
+     */
+    public function applyQuote(float $price, ?float $previous = null, ?string $date = null): void
     {
         $this->current_price = $price;
+        $this->previous_price = $previous;
+        $this->price_date = $date;
         $this->save();
-
-        // Update portfolio current value
-        $this->portfolio->updateCurrentValue();
     }
 }
