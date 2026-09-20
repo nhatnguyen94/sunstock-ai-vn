@@ -26,7 +26,7 @@
 | Permissions / roles / Gates | **[docs/RBAC.md](docs/RBAC.md)** |
 | Frontend JS/CSS/Blade assets | **[docs/FRONTEND_VIEWS.md](docs/FRONTEND_VIEWS.md)** |
 | Docker / infrastructure / env | **[docs/DOCKER.md](docs/DOCKER.md)** |
-| Database migrations | **[docs/HISTORY.md](docs/HISTORY.md)** (check existing migrations) |
+| Database migrations | **[docs/HISTORY.md](docs/HISTORY.md)** + **[docs/history/](docs/history/)** archive (check existing migrations) |
 | Writing/running tests (every task — see mandatory rule below) | **[docs/TESTING.md](docs/TESTING.md)** — folder structure, `#[Group(...)]` convention, when to mock vs. use `RefreshDatabase` |
 | Anything unclear | **[docs/QUICKSTART.md](docs/QUICKSTART.md)** |
 
@@ -119,7 +119,7 @@ After reading, you MUST output this block verbatim with your own answers filled 
 
 ### 🟢 Reference Only (update as FINAL step)
 
-11. **[docs/HISTORY.md](docs/HISTORY.md)** — Feature log. **Read to understand what exists. UPDATE LAST.**
+11. **[docs/HISTORY.md](docs/HISTORY.md)** — Feature log (latest two days in full, older days in one-line digests; verbatim older entries in `docs/history/`). **Read to understand what exists. UPDATE LAST.**
 
 ---
 

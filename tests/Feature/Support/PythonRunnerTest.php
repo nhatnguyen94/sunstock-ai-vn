@@ -12,7 +12,7 @@ use Tests\TestCase;
  * PythonRunner is that it wraps a real OS-level `exec()` call with the Unix
  * `timeout` utility so a hung subprocess can never block the caller past the
  * configured ceiling. A test that mocks exec() would prove nothing about
- * whether that actually works. See docs/HISTORY.md, QUEUE_MONITOR_REALTIME_ACTIVITY
+ * whether that actually works. See docs/history/2026-09.md, QUEUE_MONITOR_REALTIME_ACTIVITY
  * for the real bug this fixes — a job was still "processing" 9+ minutes after
  * its own declared timeout because plain exec() cannot be interrupted by
  * Laravel's pcntl-signal-based job timeout while blocked in a subprocess call.

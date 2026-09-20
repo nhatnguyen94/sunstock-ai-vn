@@ -85,6 +85,8 @@ When adding ANY new feature (or changing an existing one):
 - Add a new "Feature Update" block at the TOP of the file.
 - Use the standard template: **[FEATURE_NAME] - [DATE]**.
 - List all Added, Fixed, Modified components and Technical implementation details.
+- Keep the file short: when it passes ~400 lines, move entries older than two days verbatim to `docs/history/<YYYY-MM>.md` and leave a one-line digest under "Earlier work" (procedure at the top of `docs/HISTORY.md`).
+- Also keep the README changelog to **one row per day** (append to the day's row instead of adding another).
 
 ### 2. Update `docs/STRUCTURE.md`
 - If you added new Controllers, Services, Repositories, or Models.

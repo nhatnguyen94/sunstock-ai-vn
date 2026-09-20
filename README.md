@@ -216,38 +216,23 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
-| 2026-09-20 | **New screenshots + website tour** — the README gallery was outdated (and half of its images were missing); it now shows the current site (market overview, chart with indicators, company profile, compare, screener, AI chat and prediction, funds, gold, FX, portfolio with ledger, watchlist, mobile), and [docs/WEBSITE_TOUR.md](docs/WEBSITE_TOUR.md) walks through every page. Nothing sensitive is pictured (no login/admin/security screens). Found while shooting and fixed: SJC gold price truncated in its card, compare page without Vietnamese diacritics, and fund detail failing for web requests (shared `/tmp/python-home` owned by root) |
-| 2026-09-20 | **AI prediction + AI chat fixed** — Groq had retired every model the app hard-coded, so every call failed (and the error text was cached for 2 h as if it were the prediction). Models now come from `GROQ_MODELS` / `AiService::DEFAULT_MODELS` (`openai/gpt-oss-120b` first), failures are never cached and return a proper 503; the prediction is fed the real market snapshot (VN-Index, breadth, liquidity, movers) and the model is told not to invent figures; the chat popup's buttons were all dead (inline `onclick` cannot reach functions of an ES module) — rewritten with event listeners, IME-safe Enter, Markdown/table rendering, typing indicator |
-| 2026-09-20 | **Weekly database backup outside Docker** — `php artisan db:backup` writes `database_backup/<year>/<month>/<day>/stock_app_db.zip` (a folder next to the project, wherever it lives; the zip holds `stock_app_db.sql`), checked every time Docker starts and hourly, skipped while a valid backup from the last 7 days exists; consistent `mysqldump`, truncation check, never deletes old ones. See `docs/DOCKER.md` §6b |
-| 2026-09-20 | **Admin redesign** — Tabler 1.5 (2026) bundled locally with Inter + Tabler Icons: light sidebar driven by permissions (failed-jobs badge, collapse to icons), sticky top bar, **Ctrl+K command palette**, light/dark/auto theme, toasts + a real confirm dialog instead of `window.confirm()`, split-layout login, new dashboard (KPIs + data-source health + system health), day-grouped timeline; every admin page restyled |
-| 2026-09-20 | **Stock page no longer waits ~10 s on the first click** — history is fetched from KBS directly (~1 s including Python start-up; VCI was failing/timing out), stale symbols render instantly from the DB with one background incremental refresh, the newest candle is painted from the market snapshot; fixed the web path storing nothing (it read a `date` field the script never produced) |
-| 2026-09-20 | **Market overview + watchlist + trade ledger** — home page market section (indices, breadth, liquidity, movers, real ticker) from ONE KBS call (~4 s, whole market); `/watchlist` with ★ buttons; portfolio **buy/sell ledger** with weighted-average cost, realised P&L, win rate, undo and CSV; fixed the portfolio's upcoming-events list that was always empty (container never injected its optional service) |
-| 2026-09-20 | **Gold price page** (`/gold`) — SJC + Bảo Tín Minh Châu gold/silver, world gold in VND/lượng and the domestic premium, own 15-minute price history for the chart; navbar now has one **Thị trường** menu (Exchange rate + Gold) |
-| 2026-09-20 | **Portfolio rework** — fixed a money-unit bug (85,000 ₫ buy showed as -99.97%), dead buttons and a broken admin portfolio section; new UI, performance chart, today's P&L, allocation donut, upcoming dividends, CSV export, autocomplete add form with auto price, "add to portfolio" from stock/company pages |
-| 2026-09-19 | **Search autocomplete redesign** — single highlight (hover and keyboard selection no longer look like two selected rows), ranked results (exact ticker first), ticker chips, clear button and spinner; repaired 182 garbled company names |
-| 2026-09-19 | **Company Profile page** (`/company/{symbol}`) and **Open-ended Fund catalog** (`/funds`, detail, compare) from free vnstock `Company`/`Fund` APIs; **charts moved from ApexCharts (CDN) to TradingView Lightweight Charts (bundled locally)** with volume, MA/Bollinger overlays and RSI/MACD as real chart panes; fixed a real bug where every Python call made from a web request failed (`Permission denied: /var/www/.vnstock`) |
-| 2026-09-17 | **News Category management** + **self-service admin password change** — `/admin/news-categories` (CRUD, with a guard against deleting a category still used by the RSS sync sources) and `/admin/account` (any backend account, no extra permission needed) |
-| 2026-09-16 | **Real-time queue activity** — `/admin/queue` now shows exactly which job is processing right now (with a live-updating elapsed timer), recently-finished jobs with duration, and a "processed today" counter, powered by a new `queue_job_logs` table |
-| 2026-09-15 | **Queue monitoring dashboard** — custom-built (Laravel Horizon was tried, then dropped for being harder to read than this app needs) at `/admin/queue` (gate `manage-queue`): per-queue live counts, failed-job retry/delete; fixed a real `retry_after` < `timeout` misconfiguration that was silently duplicating and failing long-running sync jobs |
-| 2026-09-15 | **Scalable permissions system** — DB-driven `permissions`/`permission_role` tables replace hardcoded per-ability Gates; new **Admin > Vai trò / Quyền hạn** UI lets admins create roles and overlapping permissions without touching code |
-| 2026-09-15 | Forgot/reset password flow; extended profile fields (avatar upload, birthday, gender, address, bio); auth/authorization audit + test coverage; Portfolio totals hardening |
-| 2026-09-14 | **Stock Screener** redesign, Exchange Rate page fixes (date picker, search, live rates), portfolio real-price sync + target/stop-loss email alerts; mandatory test-per-feature workflow adopted |
-| 2026-06-27 | Backend admin upgrade: activity timeline, sync status dashboard, company financials DB cache, backend user management layer |
-| 2026-05-31 | **Multi-source News** — 5 RSS feeds (VnExpress ×2, CafeF ×2, Dân Trí ×1) → DB with `news_categories` FK; dedicated `/news` page with category nav, search, pagination; scheduler syncs every 30 min |
-| 2026-05-30 | **Docker migration** — Nginx + PHP-FPM + MySQL + Redis + HTTPS (`sunstock-local.dev`) |
-| 2026-05-30 | **Switched AI to Groq** — 14,400 req/day free, ~0.4s response, stable 100% |
-| 2026-05-30 | **Security**: XSS fix (escapeHtml), prompt injection hardening, input sanitization |
-| 2026-05-30 | **Idempotency**: sync commands skip already-synced data; `--force` flag to override |
-| 2026-05-29 | **Technical Indicators** (MA/BB/RSI/MACD) + **Company Financials** on stock page |
-| 2026-05-29 | Historical data backfill via 6-worker parallel queue; MySQL RANGE partitioning |
-| 2026-05-29 | Fixed vnstock 4.x API breakage & Laravel 12 scheduler; pagination bug fix |
-| 2026-05-28 | Full documentation audit & expansion |
-| 2026-05-16 | Improved search, added ETF support, backend pipeline fixes |
+| 2026-09-20 | **Nine changes in one day** — **Gold price page** (`/gold`) under a new *Thị trường* menu · **Portfolio rework** (money-unit bug fixed, performance chart, allocation, dividends, CSV) · **Market overview, real ticker, watchlist and buy/sell ledger** on the home page · **Stock page first click ~10 s → ~1–3 s** · **Admin redesign** (Tabler 1.5, Ctrl+K palette, dark mode) · **Weekly database backup** outside Docker (`db:backup`) · **AI chat + AI prediction fixed** (retired Groq models, dead popup buttons, answers grounded in real market data) · **vnai stopped editing `AGENTS.md`** · **New screenshots + [website tour](docs/WEBSITE_TOUR.md)** · **changelog/history condensed** |
+| 2026-09-19 | **Company Profile** (`/company/{symbol}`) and **open-end Fund catalog** (`/funds`, detail, compare); charts moved from ApexCharts (CDN) to bundled **TradingView Lightweight Charts** (MA/Bollinger overlays, RSI/MACD panes) · **Search autocomplete redesign** (single highlight, ranked results, repaired 182 garbled company names) · queue monitor "delete all failed jobs" · admin sidebar fixes |
+| 2026-09-17 | **News category management** and **self-service admin password change** (`/admin/news-categories`, `/admin/account`) |
+| 2026-09-16 | **Real-time queue activity** (which job runs now, elapsed timer, recent jobs, `queue_job_logs`) · custom queue monitor replaces Horizon · every Python call wrapped by `PythonRunner` (hard timeout) · sync speed-up (6 Redis workers) |
+| 2026-09-15 | **Queue monitoring dashboard** · **scalable DB-driven permissions** (Admin > Vai trò / Quyền hạn) · forgot/reset password · extended profile fields (avatar, birthday, gender, address, bio) · auth/authorization + profile/portfolio audits, docs consistency audit |
+| 2026-09-14 | **Stock Screener** redesign · Exchange Rate page fixes · portfolio real-price sync + target/stop-loss email alerts · auth/RBAC audit · mandatory test-per-feature workflow adopted |
+| 2026-06-27 | Backend admin upgrade: activity timeline, sync status dashboard, company financials DB cache, backend user layer; news scheduler fix |
+| 2026-05-31 | **Multi-source News** — 5 RSS feeds (VnExpress ×2, CafeF ×2, Dân Trí ×1) → DB with `news_categories`; `/news` page with category nav, search, pagination; synced every 30 min |
+| 2026-05-30 | **Docker migration** (Nginx + PHP-FPM + MySQL + Redis + HTTPS) · **AI switched to Groq** (14,400 req/day free, ~0.4 s) · **Security**: XSS fix, prompt-injection hardening, input sanitisation · **Idempotent sync** (skip already-synced data, `--force` to override) |
+| 2026-05-29 | **Technical indicators** (MA/BB/RSI/MACD) + **Company financials** on the stock page · 6-worker parallel historical backfill + MySQL RANGE partitioning · vnstock 4.x API breakage and Laravel 12 scheduler fixed |
+| 2026-05-28 | Background auto-sync scheduler; full documentation audit and expansion |
+| 2026-05-16 | Improved search, ETF support, backend pipeline fixes |
 | 2026-05-02 | RBAC system, separate admin login, role management |
 | 2025-08-25 | Email verification, AI market prediction |
 | 2025-08-23 | AI Chat feature, portfolio management |
 
-> Full history: [docs/HISTORY.md](docs/HISTORY.md)
+> One row per day. Full detail: [docs/HISTORY.md](docs/HISTORY.md) (latest days) and [docs/history/](docs/history/) (older work, verbatim).
 
 ## 👤 Author
 
@@ -386,38 +371,23 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
-| 2026-09-20 | **Ảnh chụp mới + tour website** — bộ ảnh trong README đã cũ (một nửa file ảnh còn không tồn tại); giờ là ảnh của giao diện hiện tại (tổng quan thị trường, biểu đồ + chỉ báo, hồ sơ công ty, so sánh, bộ lọc, AI chat + dự đoán, quỹ mở, vàng, tỷ giá, danh mục có sổ giao dịch, watchlist, mobile) và [docs/WEBSITE_TOUR.md](docs/WEBSITE_TOUR.md) mô tả từng trang. Không có ảnh nhạy cảm (không có login/admin/bảo mật). Sửa luôn trong lúc chụp: giá vàng SJC bị cắt cụt, trang so sánh mất dấu tiếng Việt, trang chi tiết quỹ lỗi khi gọi từ web (thư mục `/tmp/python-home` dùng chung do root sở hữu) |
-| 2026-09-20 | **Sửa AI dự đoán thị trường + AI chat** — Groq đã gỡ toàn bộ model mà app hard-code nên mọi lời gọi đều lỗi (và câu báo lỗi còn bị cache 2 giờ như thể là kết quả dự đoán). Model giờ lấy từ `GROQ_MODELS` / `AiService::DEFAULT_MODELS` (`openai/gpt-oss-120b` đầu tiên), lỗi không bao giờ bị cache và trả 503 đúng nghĩa; dự đoán được cấp số liệu thị trường thật (VN-Index, độ rộng, thanh khoản, top tăng/giảm) và bị cấm bịa số; mọi nút trong popup chat đều chết (`onclick` inline không gọi được hàm của ES module) — viết lại bằng event listener, Enter an toàn với bộ gõ tiếng Việt, hiển thị Markdown/bảng, hiệu ứng đang trả lời |
-| 2026-09-20 | **Tự động backup database mỗi tuần, lưu ngoài Docker** — `php artisan db:backup` ghi `database_backup/<năm>/<tháng>/<ngày>/stock_app_db.zip` (thư mục ngang hàng với project, project nằm đâu thì nằm đó; zip chứa `stock_app_db.sql`), kiểm tra mỗi lần mở Docker và mỗi giờ, bỏ qua nếu đã có bản hợp lệ trong 7 ngày; dump nhất quán, kiểm tra file cụt, không bao giờ xóa bản cũ. Xem `docs/DOCKER.md` §6b |
-| 2026-09-20 | **Thiết kế lại trang quản trị (admin)** — Tabler 1.5 (2026) bundle cục bộ cùng font Inter + Tabler Icons: sidebar sáng theo quyền (badge job lỗi, thu gọn thành icon), thanh trên dính, **palette Ctrl+K**, giao diện sáng/tối/tự động, toast + hộp xác nhận thật thay `window.confirm()`, trang đăng nhập chia đôi, dashboard mới (KPI + sức khỏe nguồn dữ liệu + hệ thống), timeline gom theo ngày; mọi trang admin được làm lại giao diện |
-| 2026-09-20 | **Trang cổ phiếu không còn chờ ~10 giây ở lần click đầu** — lấy lịch sử giá trực tiếp từ KBS (~1 giây kể cả khởi động Python; VCI đang lỗi/timeout), mã có dữ liệu cũ hiển thị ngay từ DB kèm một job nền nạp bổ sung, nến mới nhất lấy từ snapshot thị trường; sửa lỗi đường web không lưu gì (đọc trường `date` mà script chưa từng trả) |
-| 2026-09-20 | **Tổng quan thị trường + danh sách theo dõi + sổ giao dịch** — phần thị trường ở trang chủ (chỉ số, độ rộng, thanh khoản, top tăng/giảm, ticker thật) từ MỘT lần gọi KBS (~4 giây, toàn thị trường); `/watchlist` với nút ★; **sổ giao dịch mua/bán** trong danh mục (giá vốn bình quân, lãi/lỗ đã chốt, tỷ lệ thắng, hoàn tác, CSV); sửa lỗi lịch sự kiện của danh mục luôn rỗng (container không inject service tùy chọn) |
-| 2026-09-20 | **Trang giá vàng** (`/gold`) — vàng/bạc SJC + Bảo Tín Minh Châu, giá vàng thế giới quy ra VND/lượng và chênh lệch trong nước, tự lưu lịch sử giá mỗi 15 phút cho biểu đồ; navbar gom Tỷ giá + Giá vàng vào một menu **Thị trường** |
-| 2026-09-20 | **Làm lại Portfolio** — sửa lỗi đơn vị tiền (mua 85.000₫ hiện -99,97%), nút không hoạt động và phần portfolio trong admin bị lỗi; giao diện mới, biểu đồ hiệu suất, lãi/lỗ hôm nay, tỷ trọng, cổ tức sắp tới, xuất CSV, form thêm cổ phiếu có gợi ý + tự điền giá, nút "Thêm vào danh mục" từ trang cổ phiếu/công ty |
-| 2026-09-19 | **Làm lại ô tìm kiếm mã** — chỉ còn 1 dòng highlight (hover và chọn bằng phím không còn trông như 2 dòng cùng được chọn), kết quả xếp hạng (mã khớp chính xác lên đầu), chip mã, nút xoá, spinner; sửa 182 tên công ty bị lỗi mã hóa |
-| 2026-09-19 | **Trang hồ sơ công ty** (`/company/{symbol}`) và **danh mục quỹ mở** (`/funds`, chi tiết, so sánh) từ vnstock `Company`/`Fund` miễn phí; **đổi biểu đồ từ ApexCharts (CDN) sang TradingView Lightweight Charts (bundle local)** có volume, MA/Bollinger và RSI/MACD dạng pane thật; sửa lỗi thật: mọi lệnh Python gọi từ web request đều thất bại (`Permission denied: /var/www/.vnstock`) |
-| 2026-09-17 | **Quản lý Danh mục Tin tức** + **tự đổi mật khẩu admin** — `/admin/news-categories` (CRUD, chặn xoá danh mục đang được nguồn RSS sync dùng) và `/admin/account` (bất kỳ tài khoản backend nào, không cần thêm quyền) |
-| 2026-09-16 | **Real-time queue activity** — `/admin/queue` giờ hiện đúng job nào đang chạy (kèm đồng hồ đếm thời gian chạy live), job vừa xử lý xong kèm thời lượng, và số job đã xử lý trong ngày — dùng bảng `queue_job_logs` mới |
-| 2026-09-15 | **Dashboard giám sát Queue** — tự viết (Laravel Horizon từng thử rồi bỏ vì khó theo dõi hơn mức app này cần) tại `/admin/queue` (gate `manage-queue`): số liệu live theo từng queue, retry/xoá job fail; fix lỗi cấu hình thật `retry_after` < `timeout` khiến job sync chạy lâu bị nhân đôi và fail oan |
-| 2026-09-15 | **Hệ thống phân quyền có thể scale** — bảng `permissions`/`permission_role` lưu DB thay cho Gate hardcode từng ability; giao diện **Admin > Vai trò / Quyền hạn** mới cho phép tạo role, gán quyền chồng chéo mà không cần sửa code |
-| 2026-09-15 | Chức năng quên/đặt lại mật khẩu; mở rộng field hồ sơ (upload avatar, ngày sinh, giới tính, địa chỉ, tiểu sử); audit auth/phân quyền + viết test; củng cố tính toán tổng Portfolio |
-| 2026-09-14 | Redesign **Stock Screener**, sửa trang Tỷ giá (date picker, tìm kiếm, tỷ giá mới nhất); đồng bộ giá thật cho Portfolio + cảnh báo email target/cắt lỗ; áp dụng quy trình bắt buộc viết test cho từng tính năng |
-| 2026-06-27 | Nâng cấp trang quản trị: nhật ký hoạt động, dashboard trạng thái sync, cache DB tài chính doanh nghiệp, lớp quản lý user cho backend |
-| 2026-05-31 | **Tin tức đa nguồn** — 5 RSS feed (VnExpress ×2, CafeF ×2, Dân Trí ×1) lưu DB với bảng `news_categories`; trang `/news` riêng có dropdown danh mục trong navbar, tìm kiếm, phân trang; scheduler sync mỗi 30 phút |
-| 2026-05-30 | **Docker migration** — Nginx + PHP-FPM + MySQL + Redis + HTTPS (`sunstock-local.dev`) |
-| 2026-05-30 | **Chuyển AI sang Groq** — 14.400 req/ngày miễn phí, ~0.4s, ổn định 100% |
-| 2026-05-30 | **Bảo mật**: Sửa XSS, chống prompt injection, sanitize input |
-| 2026-05-30 | **Idempotency**: Lệnh sync bỏ qua dữ liệu đã đồng bộ; flag `--force` để buộc sync lại |
-| 2026-05-29 | **Chỉ báo kỹ thuật** (MA/BB/RSI/MACD) + **Tài chính doanh nghiệp** trên trang cổ phiếu |
-| 2026-05-29 | Backfill lịch sử giá song song 6 workers; phân vùng MySQL RANGE theo năm |
-| 2026-05-29 | Sửa lỗi vnstock 4.x API & scheduler Laravel 12; sửa phân trang |
-| 2026-05-28 | Rà soát và mở rộng toàn bộ tài liệu |
-| 2026-05-16 | Cải tiến tìm kiếm, bổ sung ETF, sửa lỗi UI/UX |
+| 2026-09-20 | **Chín thay đổi trong một ngày** — **Trang giá vàng** (`/gold`) trong menu *Thị trường* mới · **Làm lại Portfolio** (sửa lỗi đơn vị tiền, biểu đồ hiệu suất, tỷ trọng, cổ tức, CSV) · **Tổng quan thị trường, ticker thật, watchlist và sổ giao dịch mua/bán** ở trang chủ · **Trang cổ phiếu lần click đầu ~10 giây → ~1–3 giây** · **Thiết kế lại admin** (Tabler 1.5, palette Ctrl+K, dark mode) · **Backup database hàng tuần** lưu ngoài Docker (`db:backup`) · **Sửa AI chat + AI dự đoán** (model Groq bị gỡ, nút popup chết, câu trả lời dựa trên số liệu thị trường thật) · **vnai không còn sửa `AGENTS.md`** · **Ảnh chụp mới + [tour website](docs/WEBSITE_TOUR.md)** · **gọn lại changelog/history** |
+| 2026-09-19 | **Trang hồ sơ công ty** (`/company/{symbol}`) và **danh mục quỹ mở** (`/funds`, chi tiết, so sánh); đổi biểu đồ từ ApexCharts (CDN) sang **TradingView Lightweight Charts** bundle cục bộ (MA/Bollinger, pane RSI/MACD) · **Làm lại ô tìm kiếm mã** (1 dòng highlight, kết quả xếp hạng, sửa 182 tên công ty lỗi font) · nút "Xoá tất cả" job thất bại · sửa sidebar admin |
+| 2026-09-17 | **Quản lý danh mục tin tức** và **tự đổi mật khẩu admin** (`/admin/news-categories`, `/admin/account`) |
+| 2026-09-16 | **Real-time queue activity** (job đang chạy, đồng hồ, job vừa xong, `queue_job_logs`) · monitor queue tự viết thay Horizon · mọi lệnh Python chạy qua `PythonRunner` (timeout cứng) · tăng tốc sync (6 worker Redis) |
+| 2026-09-15 | **Dashboard giám sát Queue** · **phân quyền lưu DB, mở rộng được** (Admin > Vai trò / Quyền hạn) · quên/đặt lại mật khẩu · mở rộng hồ sơ (avatar, ngày sinh, giới tính, địa chỉ, tiểu sử) · audit auth/phân quyền, profile/portfolio, audit tài liệu |
+| 2026-09-14 | Redesign **Stock Screener** · sửa trang Tỷ giá · đồng bộ giá thật cho Portfolio + cảnh báo email target/cắt lỗ · audit auth/RBAC · áp dụng quy trình bắt buộc viết test cho từng tính năng |
+| 2026-06-27 | Nâng cấp trang quản trị: nhật ký hoạt động, dashboard trạng thái sync, cache DB tài chính doanh nghiệp, lớp user cho backend; sửa scheduler tin tức |
+| 2026-05-31 | **Tin tức đa nguồn** — 5 RSS feed (VnExpress ×2, CafeF ×2, Dân Trí ×1) lưu DB với `news_categories`; trang `/news` có danh mục, tìm kiếm, phân trang; sync mỗi 30 phút |
+| 2026-05-30 | **Docker migration** (Nginx + PHP-FPM + MySQL + Redis + HTTPS) · **Chuyển AI sang Groq** (14.400 req/ngày miễn phí, ~0.4s) · **Bảo mật**: sửa XSS, chống prompt injection, sanitize input · **Sync idempotent** (bỏ qua dữ liệu đã có, `--force` để buộc) |
+| 2026-05-29 | **Chỉ báo kỹ thuật** (MA/BB/RSI/MACD) + **Tài chính doanh nghiệp** trên trang cổ phiếu · backfill lịch sử song song 6 worker + phân vùng MySQL RANGE theo năm · sửa lỗi vnstock 4.x và scheduler Laravel 12 |
+| 2026-05-28 | Scheduler tự động đồng bộ nền; rà soát và mở rộng toàn bộ tài liệu |
+| 2026-05-16 | Cải tiến tìm kiếm, bổ sung ETF, sửa lỗi pipeline backend |
 | 2026-05-02 | Hệ thống RBAC, đăng nhập admin riêng, quản lý vai trò |
 | 2025-08-25 | Xác thực email, AI dự đoán thị trường |
 | 2025-08-23 | Tính năng AI Chat, quản lý danh mục |
 
-> Xem đầy đủ: [docs/HISTORY.md](docs/HISTORY.md)
+> Mỗi ngày một dòng. Chi tiết: [docs/HISTORY.md](docs/HISTORY.md) (những ngày gần nhất) và [docs/history/](docs/history/) (các mốc cũ, nguyên văn).
 
 ## 👤 Tác giả
 

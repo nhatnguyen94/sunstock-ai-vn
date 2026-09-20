@@ -27,7 +27,7 @@ use Tests\TestCase;
  * was in update() (Call to a member function update() on null), fixed by
  * switching to updateOrCreateForUser() + Rule::unique()->ignore(null) —
  * that fix could only be verified manually against the real DB (see
- * docs/HISTORY.md) since $request->validate()'s unique rule queries the
+ * docs/history/2026-09.md) since $request->validate()'s unique rule queries the
  * database directly, which the sqlite test DB can't support here.
  *
  * The storeAvatar() tests use Storage::fake('public') — pure in-memory
