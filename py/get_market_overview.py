@@ -19,7 +19,7 @@ Output: one JSON line
   "indices":   [{"code","name","close","change","percent","volume","series":[[date, close, volume], ...]}],
   "exchanges": {"HOSE": {"count","advancers","decliners","unchanged","ceiling","floor","value","volume"}, ...},
   "movers":    {"ALL": {"gainers":[row], "losers":[row], "value":[row]}, "HOSE": {...}, ...},
-  "quotes":    {"FPT": [price, reference, percent, volume, value, ceiling, floor], ...},   # whole VND
+  "quotes":    {"FPT": [price, reference, percent, volume, value, ceiling, floor, open, high, low], ...},   # whole VND
   "errors": {...}, "warnings": [...]
 }
 row = {"symbol","exchange","price","change","percent","volume","value"}.
@@ -123,8 +123,11 @@ def analyse(df, exch):
         vol = int(num(r.get('volume_accumulated'), 0) or 0)
         value = float(num(r.get('total_value'), 0.0) or 0.0)
         ceil, floor = num(r.get('ceiling_price')), num(r.get('floor_price'))
+        o, h, l = num(r.get('open_price')), num(r.get('high_price')), num(r.get('low_price'))
+        # open/high/low let a stock page draw today's live candle without any per-symbol request
         quotes[sym] = [int(round(price)), int(round(ref)), round(pct, 2), vol, int(value),
-                       int(ceil) if ceil else None, int(floor) if floor else None]
+                       int(ceil) if ceil else None, int(floor) if floor else None,
+                       int(round(o)) if traded and o else None, int(round(h)) if traded and h else None, int(round(l)) if traded and l else None]
 
         if ex in stats and STOCK_RE.match(sym):
             s = stats[ex]

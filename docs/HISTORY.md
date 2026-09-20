@@ -2,7 +2,42 @@
 
 ---
 
-## MARKET_OVERVIEW_WATCHLIST_LEDGER - September 21, 2026
+## STOCK_PAGE_FIRST_LOAD_SPEED - September 20, 2026
+
+### Summary:
+Task 2 of three. User: the first click on any symbol (search or link) takes ~10 s, later ones are fast because of the cache — bring it to ~3–4 s.
+
+### Root causes (three, not one):
+1. **The web path fetched data and threw it away.** `StockRepository::updateStockPriceFromPython()` read `$item['date']`, but `get_stock.py` only produced the epoch-ms `time`; the queue job converted it, the web path did not. So the ~10 s fetch stored **nothing**, and the only reason later clicks were faster was the 1-hour cache *flag*, not data.
+2. **It ran for every symbol, every hour**: `latest bar < today` is true for any symbol until the evening sync (and all weekend), so the whole-year fetch ran inside the request again after each expiry.
+3. **The source was slow/unreliable**: VCI only. From the container it failed with `ConnectionError` after ~99 s of retries; when merely slow ~10 s. On top of that, `import vnstock` costs a fixed ~1.7 s at every script start.
+
+### Changed:
+- `py/get_stock.py`: **KBS-direct** first (stdlib HTTPS GET of KBS's public history endpoint; no vnstock import), then vnstock KBS, then VCI; explicit `date` field; optional start date for incremental runs; no per-symbol sleep for a single-symbol call; an empty KBS-direct answer is authoritative (no fallback). Measured in the container: **VIC one year 0.94 s** (vs 4.2 s via vnstock-KBS, vs 99 s failing VCI); five symbols in one run 1.8 s.
+- `StockPriceFreshness` + `TradingCalendar` + `RefreshStockPricesJob` (details in docs/PYTHON_INTEGRATION.md): never-synced → one short fetch (25 s ceiling, failure remembered 5 min); stale → served at once, ONE deduplicated incremental job; unknown/malformed codes → no Python and no junk `stocks` rows (they used to be created by any URL); newest session painted from the market snapshot (the script now also stores open/high/low per symbol) with a small badge.
+- One routine stores bars (`StockService::storePriceData`), shared by the job path, the web path and the refresh job; the compare endpoint follows the same policy and fetches history-less symbols in one run.
+- The bulk sync and the backfill use the same script, so they also get the faster source (dev data had gone stale because VCI kept failing).
+
+### Measured (dev, Sunday, after the change):
+| Case | Before | After |
+|---|---|---|
+| first-ever view of a symbol, via nginx + FPM | ≥ 10 s (~99 s + no data while VCI fails) | **1.15 s** (Python + KBS + page) |
+| same page again | ~0.5 s once the 1 h flag was set, otherwise the full fetch again | 0.47 s |
+| stale symbol (E1VFVN30, newest bar 6 sessions old) | full fetch, stored nothing | **70 ms** in-process; the queue worker filled it up to 2026-09-18 within seconds |
+| first-ever view of an index (VNINDEX) | VCI | 0.43 s in-process |
+
+### Also fixed on the way:
+`getStockPrice()` no longer creates a `stocks` row for whatever code it is asked about; `validateSymbol()` used `$` (accepts a trailing newline) — now `\z`.
+
+### Tests:
+PHP 367 → 401 (`stockFreshness`), including the real `get_stock.py` against a fake KBS server. `php artisan test` 401/401, `npm test` 20/20.
+
+### Not done / caveats:
+The nightly per-symbol sync could be replaced by storing each session's bars from the market board (one request for ~1,500 symbols) — not done here, mentioned as a follow-up. Public holidays are unknown to `TradingCalendar` (one extra deduplicated background refresh on such a day). KBS is a single provider now in front of the slow ones; if it changes its endpoint the script falls back to vnstock KBS/VCI automatically (slower, still correct).
+
+---
+
+## MARKET_OVERVIEW_WATCHLIST_LEDGER - September 20, 2026
 
 ### Summary:
 Task 1 of three: make users come back every day (market overview + watchlist) and make the portfolio worth using (a buy/sell ledger with realised P&L).

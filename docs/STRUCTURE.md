@@ -25,6 +25,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 
 - **Services**: `app/Frontend/Services/` - Business logic for Frontend
   - `StockService.php` - Call Python scripts to fetch/sync stock data, hot industries
+  - *(also)* `StockService::refreshPrices(symbols, from, timeout)` — fetch + store in one script run (stock page first load / background refresh); `storePriceData()` — the ONE routine that upserts `get_stock.py` bars (date, or epoch-ms `time` for old output); `fetchStockDataFromPython($symbols, $timeout, $start, $end)` — optional incremental range and a caller-chosen ceiling
   - `ExchangeRateService.php` - Handle exchange rate data; DB-first cache with fallback to `py/get_exchange_rate.py`. `parsePythonOutput()` is split out from `fetchRatesFromPython()` for unit testing (scans exec() stdout backward for the JSON line — vnstock prints promo banners before it)
   - `AiService.php` - AI chat/prediction via Groq API (llama-3.3-70b-versatile, fallback chain, Redis cache 2h for predict, XSS-safe)
   - `NewsService.php` - Reads news from DB via NewsRepositoryInterface. getLatestNews(6) for homepage, getPaginatedNews for /news page.
@@ -34,6 +35,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `FundService.php` - Fund catalog (vnstock `Fund`/Fmarket): `catalog()` (first-ever visit loads the listing live, then DB-only), `normalizeFilters()` (whitelists type/sort/dir — nothing user-supplied reaches `ORDER BY`), `syncAll()` (one Fmarket call updates every fund), `detail()` (NAV history + holdings, cached 6h in `Cache` + `SingleFlight`, adds `FundMetrics` stats), `parseCodes()`/`compareFunds()`/`pickerList()`. Python boundary: protected `runListScript()`/`runDetailScript()`
   - `GoldPriceService.php` - Gold/silver prices (vnstock `sjc_gold_price` + `btmc_goldprice` via `py/get_gold_price.py`): DB-first, first-ever visit loads live once (`SingleFlight`), a page older than 20 min queues one deduplicated `SyncGoldPricesJob`; `page()` builds headline SJC/BTMC quotes with day change, SJC uniform-branch detection, world price in VND/lượng (USD × 37.5/31.1035 × VCB USD sell) and the domestic premium; `history()` for the chart; `sync()`, `refresh()` (120s cooldown), protected `runScript()`
   - `MarketOverviewService.php` - Market overview (KBS via `py/get_market_overview.py`): DB-first with stale-while-revalidate (5 min in session / 6 h outside; first-ever visit loads live once via `SingleFlight`); `overview()` (indices + sparklines, breadth, liquidity vs previous session only once the session is complete, movers), `quotes(symbols)`, `ticker()` (60 s cache, never throws), `sync()` (refuses half-empty payloads), `refresh()`, `queueRefresh()`, `isMarketOpen()`, protected `runScript()`
+  - `StockPriceFreshness.php` - Stock page/compare data policy: `ensure()`/`ensureMany()` (never-synced → one short fetch with failure memory, stale → one deduplicated `RefreshStockPricesJob`, unknown → no Python and no `stocks` row), `withLiveBar()`/`liveBar()` (newest session painted from the market snapshot in feed units), `isValidSymbol()` (`\z`, so `"FPT\n"` is rejected)
   - `WatchlistService.php` - Follow list: `add` (validates ticker shape + listed symbol, idempotent, max 50), `remove`, `rows()` priced from the market snapshot with a last-close fallback (`source` live/eod), 20-session sparkline
   - `PortfolioLedgerService.php` - Buy/sell ledger: `trade()` (buy = weighted-average cost incl. fee; sell = freeze cost basis + realised P&L, reject over-selling; all in one DB transaction), `undo()` (only the newest transaction of a symbol), `logBuy()` (add-stock form), `overview()`/`summary()` (realised P&L, win rate, fees, best/worst, per-symbol)
 
@@ -143,6 +145,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Support/ActivityLogger.php` - Static helper `ActivityLogger::log(eventType, description, properties, user)`. Swallows all Throwable — never crashes calling code. Used in controllers for audit trail.
 - `app/Support/PythonRunner.php` - **Mandatory** wrapper for every `py/*.py` call (`run()`/`runAndDecodeJson()`) — wraps `exec()` with the Unix `timeout` utility so a hung Python subprocess can't block a worker/request past a configured ceiling, which plain `exec()` + Laravel's own job `--timeout` cannot guarantee (pcntl signal delivery doesn't interrupt a blocked syscall). See `docs/PYTHON_INTEGRATION.md` for the full per-call-site timeout table and the real bug this fixes.
 - `app/Support/SingleFlight.php` - `run(key, cached, produce)`: when N requests miss the same cache at once only ONE runs the expensive producer (a ~4s Python subprocess); the rest wait on a `Cache::lock` and re-read the result. Used by `CompanyProfileService` and `FundService`
+- `app/Support/TradingCalendar.php` - `lastCompletedSession()` (weekday ≥ 15:15 VN → that day, otherwise the previous weekday; Sat/Sun/Monday morning → Friday) and `isSessionOpen()`; holidays unknown by design
 - `app/Support/FundMetrics.php` - Pure NAV-series maths (no I/O): `windowStats()` → return %, max drawdown, annualised volatility for 1M/3M/6M/1Y/3Y/ALL (volatility is null for ALL: history is thinned to weekly before the daily window)
 - `app/Support/VnFormat.php` - Null-safe Vietnamese formatting for Blade (`number`, `percent`, `bigMoney`, `date`, `trendClass`); used via `@use('App\Support\VnFormat', 'F')`
 - `app/Support/Mojibake.php` - `repairCp437()`: inverse of "UTF-8 bytes shown as Windows console CP437" (`C├┤ng ty` → `Công ty`); returns null unless the result is valid UTF-8 and differs. Used by migration `2026_09_19_000003_repair_mojibake_in_stock_symbol_names` (182 `stock_symbols.name` rows)
@@ -179,6 +182,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Jobs/SyncCompanyProfileJob.php` - Queued refresh of one company profile (`$timeout=90`, `tries=2`); throws on a transient failure so the queue retries, swallows "no such company". `queueSummary()`: the symbol
 - `app/Jobs/SyncGoldPricesJob.php` - Queued gold refresh dispatched by `GoldPriceService::queueRefresh()` (`$timeout=90`, `tries=2`); throws on a source error so the queue retries
 - `app/Jobs/SyncMarketOverviewJob.php` - Queued market refresh dispatched by `MarketOverviewService::queueRefresh()` (`$timeout=90`, `tries=2`); throws on a source error so the queue retries
+- `app/Jobs/RefreshStockPricesJob.php` - Incremental price refresh of a few symbols (`$timeout=90`, `tries=2`), queued by `StockPriceFreshness`; a window with no new session is not a failure, a hard script error is retried
 - All four implement a `queueSummary(): string` method (no formal interface — checked via `method_exists()`) purely for the Queue Monitor's real-time display; unrelated to `handle()`/queue processing itself
 
 ### Queue Monitoring
@@ -204,7 +208,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - **Shared**: `layouts/`, `partials/`
 
 ### Python Scripts (`py/`)
-- `get_stock.py` - Fetch historical price data for one or more symbols (via vnstock, VCI source, 1 year)
+- `get_stock.py` - Daily OHLCV history for one or more symbols: KBS-direct (stdlib HTTPS, ~0.25 s, no vnstock import) → vnstock KBS → vnstock VCI; optional start/end for incremental refreshes
 - `get_exchange_rate.py` - Fetch VCB exchange rates by date or last N days
 - `get_gold_price.py` - Fetch SJC + BTMC gold/silver prices and the world gold price (vnstock), cross-checking SJC against BTMC
 - `get_market_overview.py` - Whole-market snapshot from KBS: indices, breadth, liquidity, movers, a quote per symbol (one board request)

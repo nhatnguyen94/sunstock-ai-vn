@@ -66,12 +66,14 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 ## Python Scripts Reference
 
 ### `py/get_stock.py`
-- **Purpose**: Fetch historical daily price data for one or more stock symbols
-- **Args**: Comma-separated symbol string (e.g., `VCB` or `VCB,ACB,FPT`)
-- **Output**: `{ "data": { "VCB": [...], "ACB": [...] }, "errors": { ... } }`
-- **Data source**: vnstock VCI, last 365 days
-- **Concurrency**: fetches up to `MAX_CONCURRENT=4` symbols in parallel (`concurrent.futures.ThreadPoolExecutor` — these are blocking `requests` calls, not async-native, so threads are the right tool). Was a plain sequential for-loop until 2026-09-16 — see "Sync speed" below.
-- **Rate limit**: 0.3s delay per symbol (each thread paces its own requests; sleeping in one thread doesn't block the others)
+- **Purpose**: Daily OHLCV history for one or more symbols — the stock page's first load, its background refresh, the nightly bulk sync and the backfill all use it
+- **Args**: `SYM[,SYM...] [start YYYY-MM-DD] [end YYYY-MM-DD]` (start defaults to one year ago, end to today)
+- **Output**: `{"data": {"FPT": [{"time": <epoch ms>, "date": "2026-09-18", "open", "high", "low", "close", "volume"}, ...]}, "errors": {...}, "sources": {"FPT": "KBS-direct"}}`, oldest bar first, **prices in thousands of VND** (the feed unit the database stores; indices in points)
+- **Sources, tried per symbol until one answers**: (1) **KBS-direct** — a plain HTTPS GET of KBS's public history endpoint with the standard library, ~0.25 s, and it does **not import vnstock** (that import alone is a fixed ~1.7 s on every script start); (2) vnstock `KBS`; (3) vnstock `VCI`. (2) and (3) are imported lazily, under a lock (importing vnstock from several threads deadlocks), and only when (1) *failed*: an empty answer from KBS-direct is authoritative, otherwise a quiet incremental window would pay for the slow sources. `STOCK_SOURCES` (comma list) changes the order; `STOCK_DIRECT_TIMEOUT` (default 12 s) bounds one direct request; `KBS_BASE_URL` points the script at a fake in tests.
+- **Why**: VCI — the only source before — failed from the container (`ConnectionError` after ~99 s of retries; ~10 s when merely slow). KBS-direct answers a whole year for one symbol in ~1 s including Python start-up (measured 0.94 s in the container vs 4.2 s through vnstock's KBS source vs 99 s failing VCI). KBS and VCI prices are identical on the same day; only very old bars differ by a dividend-adjustment factor (VNM 2025-09-22: 56.79 vs 56.88).
+- **Incremental**: pass `start` to fetch only the missing sessions (`StockPriceFreshness` asks for `latest stored − 5 days`).
+- **Concurrency**: up to `MAX_CONCURRENT=4` symbols in parallel (`concurrent.futures.ThreadPoolExecutor` — blocking HTTP calls, so threads are the right tool).
+- **Rate limit**: 0.3 s pause per symbol in a *bulk* run; a single-symbol call (a web request) does not sleep.
 
 ### `py/get_exchange_rate.py`
 - **Purpose**: Fetch VCB exchange rates by date or last N days
@@ -142,6 +144,7 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 | Caller | Script | Context | Ceiling |
 |---|---|---|---|
 | `StockService::fetchStockDataFromPython()` | `get_stock.py` | `ProcessStockPriceSync` job (`$timeout=300`) | 280s |
+| `StockService::refreshPrices()` → `fetchStockDataFromPython($symbols, $timeout, $from)` | `get_stock.py` | **Web request**: stock page first-ever view of a symbol / compare page (`StockPriceFreshness`, ceiling `StockPriceFreshness::SYNC_TIMEOUT` = 25 s, normally ~1 s) + `RefreshStockPricesJob` (`$timeout=90`, incremental, 60 s) | 25s / 60s |
 | `StockService::fetchStockListFromPython()` | `get_stock_list.py` | `sync:stock-data` command | 120s |
 | `StockService::fetchHotIndustriesFromPython()` | `get_hot_industries.py` | `sync:hot-industries` command | 60s |
 | `CompanyFinancialService::fetchFromPython()` | `get_company_finance.py` | `SyncCompanyFinancialJob` (`$timeout=180`), up to 8 calls/run | 35s |
@@ -196,3 +199,16 @@ User feedback (2026-09-16): syncing felt slow, whether triggered manually or via
 ## vnstock API key and rate limits
 
 vnstock's anonymous **Guest** tier allows only **20 requests per minute** (the library prints a banner and waits when it is hit); a registered key raises that. `vnai` reads the key from the **environment variable** `VNSTOCK_API_KEY`, not from `.env`. Artisan, queue workers and the scheduler already inherit it (Laravel exports `.env` into the process environment), and `PythonRunner` now also passes `config('services.vnstock.api_key')` explicitly (validated `[A-Za-z0-9_.-]{8,200}`, shell-escaped) so PHP-FPM pools with `clear_env` behave the same. When you run a script by hand inside the container, pass it yourself: `docker compose exec -e VNSTOCK_API_KEY=... php /opt/venv/bin/python3 py/<script>.py`. Budget requests accordingly: the market script costs 6 per run (listing + 4 indices + 1 board), which is why the board is fetched in a single request.
+
+## The stock page never waits for a provider (`StockPriceFreshness`)
+
+`GET /stock?symbol=X` used to run a one-year `get_stock.py` (VCI) inside the request whenever the newest stored bar was older than *today* — every symbol, every hour, ~10 s (~100 s while VCI failed) — and then **stored nothing**: `StockRepository::updateStockPriceFromPython()` read `$item['date']`, a field the script never produced (the queue job path converted `time` → `date`, the web path did not). Now:
+
+| Situation | What the request does |
+|---|---|
+| never synced, known symbol (or index) | ONE synchronous fetch (KBS-direct, ~1 s, 25 s hard ceiling); a failure is remembered for 5 min so the next visitors are not made to wait for it again |
+| history behind the last completed session (`TradingCalendar`) | renders immediately from the DB, queues ONE deduplicated `RefreshStockPricesJob` (10 min lock per symbol) that fetches only `latest − 5 days …` |
+| up to date | nothing |
+| unknown / malformed code | no Python, no `stocks` row (the page says "Không tìm thấy mã"; a malformed code is a 404) |
+
+The newest session — possibly still running — never needs Python: `get_market_overview.py` puts each symbol's open/high/low/close/volume in the market snapshot, and `StockPriceFreshness::withLiveBar()` appends that candle when the stored history stops before the snapshot's session (a small badge on the page says "đang giao dịch" / "từ bảng giá"). The compare endpoint follows the same policy, fetching all history-less symbols in ONE run. Holidays are not known to `TradingCalendar`: on one the answer is a session too late, which costs one harmless deduplicated refresh.

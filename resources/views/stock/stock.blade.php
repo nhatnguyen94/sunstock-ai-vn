@@ -41,6 +41,12 @@
                         @if(isset($latestDateStr))
                         <div style="font-size:0.78rem;opacity:0.6;">
                             <i class="bi bi-calendar3"></i> {{ $latestDateStr }}
+                            @if(! empty($liveBar))
+                                <span title="Nến này lấy từ bảng giá thị trường{{ $liveBar['running'] ? ' và đang cập nhật theo phiên giao dịch' : '' }}"
+                                      style="margin-left:6px;background:rgba(251,191,36,0.25);border-radius:10px;padding:1px 8px;opacity:1;color:#fde68a;font-weight:700;">
+                                    {{ $liveBar['running'] ? 'đang giao dịch' : 'từ bảng giá' }}
+                                </span>
+                            @endif
                         </div>
                         @endif
                     </div>

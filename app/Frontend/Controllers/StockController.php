@@ -14,6 +14,7 @@ use App\Frontend\Services\AiService;
 use App\Frontend\Services\CompanyFinancialService;
 use App\Frontend\Services\ExchangeRateService;
 use App\Frontend\Services\MarketOverviewService;
+use App\Frontend\Services\StockPriceFreshness;
 use App\Frontend\Services\WatchlistService;
 use App\Frontend\Services\StockService;
 use App\Models\HotIndustry;
@@ -33,17 +34,20 @@ class StockController extends Controller
     protected $stockService;
     protected $exchangeService;
     protected $financialService;
+    protected $freshness;
 
     public function __construct(
         StockRepositoryInterface $stockRepo,
         StockService $stockService,
         ExchangeRateService $exchangeService,
-        CompanyFinancialService $financialService
+        CompanyFinancialService $financialService,
+        StockPriceFreshness $freshness
     ) {
         $this->stockRepo        = $stockRepo;
         $this->stockService     = $stockService;
         $this->exchangeService  = $exchangeService;
         $this->financialService = $financialService;
+        $this->freshness        = $freshness;
     }
 
     /**
@@ -152,23 +156,26 @@ class StockController extends Controller
      */
     public function index(Request $request)
     {
-        $symbol = strtoupper($request->input('symbol', 'E1VFVN30'));
-        $stock = Stock::firstOrCreate(['symbol' => $symbol]);
+        $symbol = strtoupper(trim((string) $request->input('symbol', 'E1VFVN30')));
+        abort_unless(StockPriceFreshness::isValidSymbol($symbol), 404);
 
-        // Only call Python if not recently updated (cache flag for 1 hour)
-        $cacheKey = "stock_updated_{$symbol}";
-        if (! Cache::has($cacheKey)) {
-            $latestDate = StockPrice::where('stock_id', $stock->id)->max('date');
-            if (! $latestDate || Carbon::parse($latestDate)->lt(Carbon::today())) {
-                $this->stockRepo->updateStockPriceFromPython($symbol);
-            }
-            Cache::put($cacheKey, true, 3600);
-        }
+        // Never wait on a data provider for a symbol that already has history: serve it, queue the missing sessions
+        // in the background and paint the newest session from the market snapshot. Only a symbol with NO history
+        // triggers one short (~1 s) fetch. See StockPriceFreshness.
+        $freshness = $this->freshness->ensure($symbol);
 
-        $data = $this->stockRepo->getStockPrice($symbol);
+        $prices = $this->freshness->withLiveBar($this->stockRepo->getStockPrice($symbol), $symbol);
+        $data = $prices['rows'];
+        $liveBar = $prices['live'];
         $overview = $this->stockRepo->getOverview($symbol);
 
-        return view('stock.stock', compact('symbol', 'data', 'overview'));
+        $error = match ($freshness['status']) {
+            'failed' => $freshness['error'] ?? null,
+            'unknown' => "Không tìm thấy mã {$symbol}. Hãy chọn mã từ danh sách gợi ý.",
+            default => null,
+        };
+
+        return view('stock.stock', compact('symbol', 'data', 'overview', 'liveBar', 'error'));
     }
 
     /**
@@ -206,23 +213,13 @@ class StockController extends Controller
         $symbols = array_unique(array_filter(array_map('strtoupper', explode(',', $request->input('symbols')))));
         $symbols = array_slice($symbols, 0, 4); // Max 4 stocks
 
+        $symbols = array_values(array_filter($symbols, fn ($s) => StockPriceFreshness::isValidSymbol($s)));
+        $this->freshness->ensureMany($symbols);
+
         $result = [];
         foreach ($symbols as $symbol) {
-            if (!preg_match('/^[A-Za-z0-9]{1,20}$/', $symbol)) continue;
-
-            $stock = Stock::firstOrCreate(['symbol' => $symbol]);
-
-            // Ensure data exists
-            $cacheKey = "stock_updated_{$symbol}";
-            if (!Cache::has($cacheKey)) {
-                $latestDate = StockPrice::where('stock_id', $stock->id)->max('date');
-                if (!$latestDate || Carbon::parse($latestDate)->lt(Carbon::today())) {
-                    $this->stockRepo->updateStockPriceFromPython($symbol);
-                }
-                Cache::put($cacheKey, true, 3600);
-            }
-
-            $prices = $this->stockRepo->getStockPrice($symbol);
+            // Same policy as the stock page (history-less symbols are fetched together in ONE script run below)
+            $prices = $this->freshness->withLiveBar($this->stockRepo->getStockPrice($symbol), $symbol)['rows'];
             if (empty($prices)) continue;
 
             // Normalize to percentage change from first price

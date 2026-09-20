@@ -31,7 +31,7 @@
 | `App\Backend\Interfaces\PermissionRepositoryInterface` | `App\Backend\Repositories\PermissionRepository` | Injected into `App\Backend\Services\PermissionService` (Admin) |
 | `App\Backend\Interfaces\PermissionServiceInterface` | `App\Backend\Services\PermissionService` | Injected into `App\Backend\Controllers\PermissionController` (Admin) |
 
-> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService`, `CompanyProfileService`, `FundService`, `GoldPriceService`, `MarketOverviewService`, `WatchlistService`, `PortfolioLedgerService` are **not** bound via interfaces — they are injected directly as concrete classes.
+> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService`, `CompanyProfileService`, `FundService`, `GoldPriceService`, `MarketOverviewService`, `WatchlistService`, `PortfolioLedgerService`, `StockPriceFreshness` are **not** bound via interfaces — they are injected directly as concrete classes.
 
 ## Adding a New Binding
 

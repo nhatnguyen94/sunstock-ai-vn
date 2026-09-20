@@ -123,7 +123,7 @@ class MarketOverviewService
      * Quotes for the given symbols from the newest snapshot (whole VND).
      *
      * @param  string[] $symbols
-     * @return array<string, array{price: int, reference: int, change: int, percent: float, volume: int, value: int, ceiling: ?int, floor: ?int}>
+     * @return array<string, array{price: int, reference: int, change: int, percent: float, volume: int, value: int, ceiling: ?int, floor: ?int, open: ?int, high: ?int, low: ?int}>
      */
     public function quotes(array $symbols): array
     {
@@ -139,11 +139,12 @@ class MarketOverviewService
             if (! isset($map[$symbol])) {
                 continue;
             }
-            [$price, $ref, $pct, $vol, $value, $ceil, $floor] = $map[$symbol] + [null, null, null, null, null, null, null];
+            [$price, $ref, $pct, $vol, $value, $ceil, $floor, $open, $high, $low] = $map[$symbol] + [null, null, null, null, null, null, null, null, null, null];
             $out[$symbol] = [
                 'price' => (int) $price, 'reference' => (int) $ref, 'change' => (int) $price - (int) $ref,
                 'percent' => (float) $pct, 'volume' => (int) $vol, 'value' => (int) $value,
                 'ceiling' => $ceil !== null ? (int) $ceil : null, 'floor' => $floor !== null ? (int) $floor : null,
+                'open' => $open !== null ? (int) $open : null, 'high' => $high !== null ? (int) $high : null, 'low' => $low !== null ? (int) $low : null,
             ];
         }
 

@@ -6,7 +6,7 @@ use App\Models\MarketSnapshot;
 
 /**
  * A realistic output of py/get_market_overview.py, so tests never spawn Python (or touch the network) to get a
- * market snapshot. Prices are whole VND; `quotes` is {symbol: [price, reference, %, volume, value, ceiling, floor]}.
+ * market snapshot. Prices are whole VND; `quotes` is {symbol: [price, reference, %, volume, value, ceiling, floor, open, high, low]}.
  */
 trait BuildsMarketPayload
 {
@@ -47,10 +47,11 @@ trait BuildsMarketPayload
                 'UPCOM' => $board([], [], []),
             ],
             'quotes' => [
-                'VIC' => [190500, 190500, 0.0, 16_800_000, 3_197_000_000_000, 203800, 177200],
-                'FPT' => [71700, 74300, -3.5, 15_500_700, 1_129_620_000_000, 79500, 69100],
-                'NVB' => [12800, 11700, 9.4, 2_200_000, 27_000_000_000, 12900, 10500],
-                'HPG' => [28500, 26650, 6.94, 30_000_000, 850_000_000_000, 28500, 24800],   // ceiling
+                'VIC' => [190500, 190500, 0.0, 16_800_000, 3_197_000_000_000, 203800, 177200, 190500, 190500, 190500],
+                'FPT' => [71700, 74300, -3.5, 15_500_700, 1_129_620_000_000, 79500, 69100, 74500, 74800, 71700],
+                'NVB' => [12800, 11700, 9.4, 2_200_000, 27_000_000_000, 12900, 10500, 11800, 12900, 11700],
+                'HPG' => [28500, 26650, 6.94, 30_000_000, 850_000_000_000, 28500, 24800, 26700, 28500, 26600],   // ceiling
+                'ETF' => [10000, 10000, 0.0, 0, 0, 10700, 9300, null, null, null],                                // did not trade
             ],
             'errors' => [],
             'warnings' => [],

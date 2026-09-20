@@ -60,7 +60,13 @@ class StockRepository implements StockRepositoryInterface
      */
     public function getStockPrice(string $symbol): ?array
     {
-        $stock = Stock::firstOrCreate(['symbol' => $symbol]);
+        // Read-only: a lookup of a code nobody tracks must not create a Stock row (that is StockPriceFreshness' job,
+        // and only for codes it knows)
+        $stock = Stock::where('symbol', $symbol)->first();
+        if (! $stock) {
+            return [];
+        }
+
         $prices = StockPrice::where('stock_id', $stock->id)
             ->orderBy('date')
             ->get()
@@ -101,30 +107,14 @@ class StockRepository implements StockRepositoryInterface
     //         }
     //     }
     // }
-public function updateStockPriceFromPython(string $symbol): void
-{
-    $stock = Stock::firstOrCreate(['symbol' => $symbol]);
-    $data = $this->stockService->fetchStockDataFromPython($symbol);
+    public function updateStockPriceFromPython(string $symbol): void
+    {
+        Stock::firstOrCreate(['symbol' => $symbol]);
 
-    // Script mới trả về dạng ["data" => [symbol => [...]], "errors" => ...]
-    $prices = $data['data'][$symbol] ?? [];
-    if (!empty($prices)) {
-        foreach ($prices as $item) {
-            $date = $item['date'] ?? null;
-            if (!$date) continue;
-            StockPrice::updateOrCreate(
-                ['stock_id' => $stock->id, 'date' => $date],
-                [
-                    'open' => $item['open'],
-                    'high' => $item['high'],
-                    'low' => $item['low'],
-                    'close' => $item['close'],
-                    'volume' => $item['volume'],
-                ]
-            );
-        }
+        // One code path for storing bars (this method used to read a `date` field the script never produced, so a
+        // ~10 s fetch stored nothing). 25 s ceiling: it may run inside a web request.
+        $this->stockService->refreshPrices([$symbol], null, 25);
     }
-}
 
     /**
      * Get overview information for a stock symbol.

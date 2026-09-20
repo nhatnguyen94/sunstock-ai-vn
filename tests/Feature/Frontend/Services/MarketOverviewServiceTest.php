@@ -74,7 +74,7 @@ class MarketOverviewServiceTest extends TestCase
         $result = $this->service($this->marketPayload(), true)->sync();
 
         $this->assertSame('2026-09-18', $result['trade_date']);
-        $this->assertSame(4, $result['symbols']);
+        $this->assertSame(5, $result['symbols']);
         $snap = MarketSnapshot::first();
         $this->assertSame(1815.66, $snap->data['indices'][0]['close']);
         $this->assertArrayNotHasKey('quotes', $snap->data);          // quotes live in their own column
@@ -225,6 +225,12 @@ class MarketOverviewServiceTest extends TestCase
         $this->assertSame(-3.5, $q['FPT']['percent']);
         $this->assertSame(79500, $q['FPT']['ceiling']);
         $this->assertSame([], $this->service()->quotes([]));
+
+        // the intraday bar for the stock page's live candle
+        $this->assertSame(74500, $q['FPT']['open']);
+        $this->assertSame(74800, $q['FPT']['high']);
+        $this->assertSame(71700, $q['FPT']['low']);
+        $this->assertNull($this->service()->quotes(['ETF'])['ETF']['open']);   // no trade, no bar
     }
 
     #[Group('marketOverview')]
