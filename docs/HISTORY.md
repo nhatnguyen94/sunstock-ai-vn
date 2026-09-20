@@ -2,6 +2,37 @@
 
 ---
 
+## MARKET_OVERVIEW_WATCHLIST_LEDGER - September 21, 2026
+
+### Summary:
+Task 1 of three: make users come back every day (market overview + watchlist) and make the portfolio worth using (a buy/sell ledger with realised P&L).
+
+### Data source finding (drives the whole design):
+`Trading.price_board()` on **KBS** answers all ~1,500 stocks in one request (~1 s) with price, reference, % change, volume and traded value, and KBS index history takes ~0.3–2 s — while the VCI source that the app used for everything else timed out at 30 s from the container. So one script (`py/get_market_overview.py`, ~4 s) feeds the home page, the ticker tape and the watchlist. Two traps found on the way: bonds/covered warrants make the board endpoint reject the request (filtered by listing `type`), and importing vnstock lazily from several threads deadlocks (imports moved before the pool).
+
+### Added:
+- **Market overview** on the home page: index cards with sparklines (VN-Index, VN30, HNX, UPCoM), VN-Index area+volume chart, breadth (advancers/decliners/unchanged/ceiling/floor — idle stocks are not "unchanged"), liquidity per exchange (compared with the previous session only once the session is complete), top gainers / losers / most traded with exchange filters, live status pill, 60 s poll while the market is open (verified end to end with a simulated session).
+- **Real ticker tape** in the layout (the old one was hard-coded: fixed arrows and a static text).
+- `market_snapshots` (one row per session; quote map on the newest row only), `MarketOverviewService` (stale-while-revalidate: 5 min in session / 6 h outside, first visit loads live once), `sync:market-overview` (every 5 min Mon–Fri 09:00–15:10 VN + 18:00), `SyncMarketOverviewJob`, admin Sync Status entry.
+- **Watchlist**: `watchlist_items`, ★ buttons (home movers, stock page, company page), `/watchlist` page (live prices from the snapshot, last-close fallback, sparkline, sort, add with autocomplete, ceiling/floor flags, auto refresh), max 50, auth-only (no verified-email wall, unlike the portfolio).
+- **Portfolio trade ledger**: `portfolio_transactions` (migration backfills an opening buy per existing holding), `PortfolioLedgerService` — buy = weighted-average cost including the fee, sell = frozen cost basis + realised P&L (fee includes the 0.1 % sell tax), over-sell rejected, undo of the newest transaction per symbol, everything in one DB transaction; UI: trade modal with live preview and auto fee estimate, buy/sell buttons per holding, realised/total P&L, win rate, fees, best/worst trade, per-symbol chips, ledger table, ledger CSV; the add-stock form now writes the ledger too.
+- `PythonRunner` passes `VNSTOCK_API_KEY` explicitly (see docs/PYTHON_INTEGRATION.md — the Guest tier is 20 requests/min).
+
+### Bugs found and fixed:
+1. **Portfolio upcoming events were always empty in production** (since the portfolio rework): Laravel does not resolve `?CompanyProfileService $x = null` constructor parameters, so the service was `null`. `PortfolioService` is now bound with an explicit closure (regression test added).
+2. `index.blade.php` declared `function parseRate()` inside the view → "Cannot redeclare" on a second render in one process; guarded with `function_exists`.
+3. `ExampleTest` (GET `/`) would have run the real Python script on an empty snapshot table — tests must never reach the network; added the `BuildsMarketPayload` fixture trait and seeded it there.
+4. `MarketSnapshot.trade_date` needed `date:Y-m-d` so the same-session upsert matches on SQLite as well as MySQL.
+5. My first CSV export wrote `ï»¿` instead of the UTF-8 BOM (escape sequence mangled while generating the file) — caught by its test.
+
+### Tests:
+PHP 298 → 367 (`marketOverview`, `watchlist`, `portfolioLedger`, +2 `pythonRunner`), Node 10 → 20. `php artisan test` 367/367, `npm test` 20/20.
+
+### Verified / not verified:
+Live script against KBS (1,547 quotes, HOSE 22 nghìn tỷ, 4 indices, ~4 s), first `sync:market-overview` through PythonRunner, home/watchlist/portfolio pages rendered in the container and in the browser pane via inline static copies (dev data temporarily added and removed again), live poll with a stubbed endpoint, trade-modal maths against the service maths. Not verified: the real bootstrap modal (the pane blocks the CDN jQuery/Bootstrap), and a genuine in-session poll (the market was closed while building this — Sunday).
+
+---
+
 ## GOLD_PRICE_PAGE - September 20, 2026
 
 ### Summary:

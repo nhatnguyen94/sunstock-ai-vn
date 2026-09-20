@@ -4,6 +4,7 @@ namespace Tests\Feature\Backend\Controllers;
 
 use App\Frontend\Services\FundService;
 use App\Frontend\Services\GoldPriceService;
+use App\Frontend\Services\MarketOverviewService;
 use App\Models\Fund;
 use App\Models\Permission;
 use App\Models\Role;
@@ -73,6 +74,20 @@ class SyncStatusControllerTest extends TestCase
         $this->app->instance(GoldPriceService::class, $mock);
 
         $this->postJson('/admin/sync-status/trigger/sync:gold-prices')->assertOk()->assertJsonPath('success', true);
+    }
+
+    #[Group('marketOverview')]
+    public function test_page_lists_the_market_source_and_the_trigger_runs_the_market_sync(): void
+    {
+        $this->actingAsUserWithPermissions(['manage-features']);
+
+        $this->get('/admin/sync-status')->assertOk()->assertSee('Tổng quan thị trường')->assertSee('sync:market-overview');
+
+        $mock = Mockery::mock(MarketOverviewService::class);
+        $mock->shouldReceive('sync')->once()->andReturn(['trade_date' => '2026-09-18', 'symbols' => 1547, 'warnings' => []]);
+        $this->app->instance(MarketOverviewService::class, $mock);
+
+        $this->postJson('/admin/sync-status/trigger/sync:market-overview')->assertOk()->assertJsonPath('success', true);
     }
 
     #[Group('fundCatalog')]

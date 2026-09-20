@@ -465,6 +465,11 @@
         .ticker-item .dn  { color: #f87171; }
         .ticker-item .neu { color: #94a3b8; }
         .ticker-sep { color: rgba(255,255,255,0.2); margin: 0 1.5rem; }
+        a.ticker-item { text-decoration: none; cursor: pointer; }
+        a.ticker-item:hover { color: #fff; text-decoration: none; }
+        .ticker-item .tk-val { color: #fff; font-variant-numeric: tabular-nums; }
+        .ticker-content.ticker-static { animation: none; }
+        @media (prefers-reduced-motion: reduce) { .ticker-content { animation: none; } }
 
         /* ── Back-to-top ────────────────────────────────── */
         #backToTop {

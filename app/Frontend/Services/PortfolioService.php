@@ -20,7 +20,8 @@ class PortfolioService
     public function __construct(
         private PortfolioRepositoryInterface $portfolioRepository,
         private StockRepositoryInterface $stockRepository,
-        private ?CompanyProfileService $companyProfiles = null
+        private ?CompanyProfileService $companyProfiles = null,
+        private ?PortfolioLedgerService $ledger = null
     ) {}
 
     /**
@@ -117,7 +118,10 @@ class PortfolioService
 
         if ($existingItem) {
             // If exists, update quantity and average price
-            return $this->updateExistingPosition($existingItem, $stockData);
+            $item = $this->updateExistingPosition($existingItem, $stockData);
+            $this->logBuy($portfolioId, $symbol, $stockData);
+
+            return $item;
         }
 
         // Create new item
@@ -139,7 +143,10 @@ class PortfolioService
         // A symbol nobody has price data for yet would sit at its buy price forever: queue its history
         $this->requestPriceSync($quote ? [] : [$symbol]);
 
-        return $this->portfolioRepository->createItem($itemData);
+        $item = $this->portfolioRepository->createItem($itemData);
+        $this->logBuy($portfolioId, $symbol, $stockData);
+
+        return $item;
     }
 
     public function updatePortfolioItem(int $itemId, int $userId, array $data): ?PortfolioItem
@@ -218,6 +225,7 @@ class PortfolioService
             'events' => $this->companyProfiles?->upcomingEventsFor($portfolio->items->pluck('stock_symbol')->all()) ?? [],
             'suggestions' => $this->concentrationSuggestions($allocation),
             'price_info' => $refresh,
+            'ledger' => $this->ledger?->overview($portfolio->id),
         ];
     }
 
@@ -525,6 +533,15 @@ class PortfolioService
     /**
      * Private Helper Methods
      */
+    /** The add-stock form is a purchase: keep the ledger in step with the holding it just changed. */
+    private function logBuy(int $portfolioId, string $symbol, array $stockData): void
+    {
+        $this->ledger?->logBuy(
+            $portfolioId, $symbol, $stockData['stock_name'] ?? null, (int) $stockData['quantity'], (float) $stockData['buy_price'],
+            isset($stockData['buy_date']) ? (string) $stockData['buy_date'] : null, $stockData['notes'] ?? null
+        );
+    }
+
     private function updateExistingPosition(PortfolioItem $existingItem, array $newData): PortfolioItem
     {
         // Calculate new average price and quantity

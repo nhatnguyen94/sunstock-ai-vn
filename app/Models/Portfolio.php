@@ -32,6 +32,11 @@ class Portfolio extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(PortfolioTransaction::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(PortfolioItem::class);

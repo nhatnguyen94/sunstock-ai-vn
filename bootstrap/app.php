@@ -65,6 +65,16 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping()
             ->runInBackground();
 
+        // Market overview (indices, breadth, liquidity, movers, a quote per symbol): one ~4 s KBS call. Every 5 minutes
+        // through the session, plus a closing snapshot after the ATC auction and one in the evening for late data.
+        $schedule->command('sync:market-overview')->weekdays()->everyFiveMinutes()
+            ->timezone('Asia/Ho_Chi_Minh')->between('9:00', '15:10')
+            ->withoutOverlapping()
+            ->runInBackground();
+        $schedule->command('sync:market-overview')->weekdays()->dailyAt('18:00')
+            ->timezone('Asia/Ho_Chi_Minh')
+            ->runInBackground();
+
         // Gold/silver (SJC + BTMC) and world gold: quotes change through the day and there is no free history
         // API, so we snapshot every 15 minutes during Vietnam business hours to build our own.
         $schedule->command('sync:gold-prices')->everyFifteenMinutes()

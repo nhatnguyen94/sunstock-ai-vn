@@ -1,16 +1,19 @@
 @extends('layouts.app')
 
 @php
-    function parseRate($value) {
-        $value = trim($value);
-        if ($value === '-' || $value === '' || $value === null) return null;
-        $value = str_replace(',', '', $value);
-        return is_numeric($value) ? (float)$value : null;
+    // (guarded: a view is compiled to a plain PHP file, so a second render in the same process would redeclare it)
+    if (! function_exists('parseRate')) {
+        function parseRate($value) {
+            $value = trim($value);
+            if ($value === '-' || $value === '' || $value === null) return null;
+            $value = str_replace(',', '', $value);
+            return is_numeric($value) ? (float)$value : null;
+        }
     }
 @endphp
 
 @section('head')
-@vite('resources/frontend/css/index.css')
+@vite(['resources/frontend/css/index.css', 'resources/frontend/css/market/market.css', 'resources/frontend/css/shared/watchlist.css', 'resources/frontend/css/shared/charts.css'])
 @endsection
 
 @section('content')
@@ -110,6 +113,8 @@
         </div>
     </div>
 </div>
+
+@include('partials.market-overview')
 
 <div class="container">
     <!-- 1. FEATURED STOCKS -->
@@ -421,8 +426,22 @@
 
 @section('scripts')
 
+@php
+    $marketJs = ($market['has_data'] ?? false) ? [
+        'auth' => auth()->check(),
+        'open' => (bool) $market['market_open'],
+        'dataUrl' => route('market.data', [], false),
+        'watchlistUrl' => auth()->check() ? route('watchlist.index', [], false) : '/login',
+        'series' => $market['vnindex_series'],
+        'movers' => $market['movers'],
+        'watchlist' => $watchRows,
+        'watched' => $watched,
+    ] : null;
+@endphp
 <script>
 window._isAuth = {{ json_encode(Auth::check()) }};
+window.__MARKET__ = @json($marketJs);
 </script>
 @vite('resources/frontend/js/index.js')
+@vite('resources/frontend/js/market/home.js')
 @endsection

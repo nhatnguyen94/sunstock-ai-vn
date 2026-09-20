@@ -47,4 +47,10 @@ return [
         'path' => env('PYTHON_PATH', 'python'),
     ],
 
+    // Handed to every Python subprocess (vnai reads it from the ENVIRONMENT, not from .env): without it the
+    // scripts run as an anonymous "Guest" = 20 vnstock requests per minute, shared by the whole app.
+    'vnstock' => [
+        'api_key' => env('VNSTOCK_API_KEY'),
+    ],
+
 ];

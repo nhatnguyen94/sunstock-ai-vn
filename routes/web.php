@@ -20,11 +20,13 @@ use App\Frontend\Controllers\EmailVerificationController;
 use App\Frontend\Controllers\ExchangeRateController;
 use App\Frontend\Controllers\FundController;
 use App\Frontend\Controllers\GoldPriceController;
+use App\Frontend\Controllers\MarketController;
 use App\Frontend\Controllers\NewsController as FrontendNewsController;
 use App\Frontend\Controllers\PasswordResetController;
 use App\Frontend\Controllers\PortfolioController;
 use App\Frontend\Controllers\ProfileController;
 use App\Frontend\Controllers\StockController;
+use App\Frontend\Controllers\WatchlistController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [StockController::class, 'home'])->name('home');
@@ -46,6 +48,9 @@ Route::middleware('throttle:30,1')->group(function () {
         ->where('symbol', '[A-Za-z0-9]{2,10}')->name('company.show');
     Route::post('/company/{symbol}/load', [CompanyProfileController::class, 'load'])
         ->where('symbol', '[A-Za-z0-9]{2,10}')->name('company.load');
+
+    // Market overview JSON (indices, breadth, movers, + the signed-in user's watchlist), polled by the home page
+    Route::get('/market/data', [MarketController::class, 'data'])->name('market.data');
 
     // Gold prices (SJC / BTMC / world) — sits with the exchange rate under the "Thị trường" menu
     Route::get('/gold', [GoldPriceController::class, 'index'])->name('gold.index');
@@ -114,6 +119,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->where('symbol', '[A-Za-z0-9]{2,10}')->name('portfolio.quote');
     Route::get('/portfolio/{id}', [PortfolioController::class, 'show'])->name('portfolio.show');
     Route::get('/portfolio/{id}/export', [PortfolioController::class, 'export'])->name('portfolio.export');
+    // Buy/sell ledger
+    Route::post('/portfolio/{id}/transactions', [PortfolioController::class, 'storeTransaction'])->name('portfolio.transactions.store');
+    Route::get('/portfolio/{id}/transactions/export', [PortfolioController::class, 'exportTransactions'])->name('portfolio.transactions.export');
+    Route::delete('/portfolio/transactions/{transactionId}', [PortfolioController::class, 'destroyTransaction'])->name('portfolio.transactions.destroy');
     Route::get('/portfolio/{id}/edit', [PortfolioController::class, 'edit'])->name('portfolio.edit');
     Route::put('/portfolio/{id}', [PortfolioController::class, 'update'])->name('portfolio.update');
     Route::delete('/portfolio/{id}', [PortfolioController::class, 'destroy'])->name('portfolio.destroy');
@@ -127,6 +136,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Portfolio AJAX routes
     Route::post('/portfolio/{id}/update-prices', [PortfolioController::class, 'updatePrices'])->name('portfolio.update-prices');
     Route::get('/portfolio/{id}/rebalance-suggestions', [PortfolioController::class, 'getRebalanceSuggestions'])->name('portfolio.rebalance-suggestions');
+});
+
+// Watchlist: any signed-in user (no verified-email wall — following a stock should be one click)
+Route::middleware(['auth', 'throttle:60,1'])->group(function () {
+    Route::get('/watchlist', [WatchlistController::class, 'index'])->name('watchlist.index');
+    Route::get('/watchlist/data', [WatchlistController::class, 'data'])->name('watchlist.data');
+    Route::post('/watchlist', [WatchlistController::class, 'store'])->name('watchlist.store');
+    Route::delete('/watchlist/{symbol}', [WatchlistController::class, 'destroy'])->where('symbol', '[A-Za-z0-9]{2,12}')->name('watchlist.destroy');
 });
 
 // Admin routes

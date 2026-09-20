@@ -20,6 +20,7 @@
 | GET | `/funds/{code}` | `funds.show` | `FundController` | `show` |
 | GET | `/funds/{code}/detail` | `funds.detail` | `FundController` | `detail` |
 | GET | `/gold` | `gold.index` | `GoldPriceController` | `index` |
+| GET | `/market/data` | `market.data` | `MarketController` | `data` |
 | GET | `/gold/history/{id}` | `gold.history` | `GoldPriceController` | `history` |
 | POST | `/gold/refresh` | `gold.refresh` | `GoldPriceController` | `refresh` |
 | POST | `/search` | `stock.search` | `StockController` | `search` |
@@ -83,6 +84,13 @@
 | GET | `/portfolio/add?symbol=` | `portfolio.quick-add` | `PortfolioController` | `quickAdd` (entry from stock/company pages: 0 portfolios → create, 1 → add form, several → chooser) |
 | GET | `/portfolio/quote/{symbol}` | `portfolio.quote` | `PortfolioController` | `quote` (name + latest price in VND, JSON) |
 | GET | `/portfolio/{id}/export` | `portfolio.export` | `PortfolioController` | `export` (CSV, UTF-8 BOM) |
+| POST | `/portfolio/{id}/transactions` | `portfolio.transactions.store` | `PortfolioController` | `storeTransaction` |
+| GET | `/portfolio/{id}/transactions/export` | `portfolio.transactions.export` | `PortfolioController` | `exportTransactions` |
+| DELETE | `/portfolio/transactions/{transactionId}` | `portfolio.transactions.destroy` | `PortfolioController` | `destroyTransaction` |
+| GET | `/watchlist` | `watchlist.index` | `WatchlistController` | `index` *(auth only — no verified-email wall)* |
+| GET | `/watchlist/data` | `watchlist.data` | `WatchlistController` | `data` |
+| POST | `/watchlist` | `watchlist.store` | `WatchlistController` | `store` |
+| DELETE | `/watchlist/{symbol}` | `watchlist.destroy` | `WatchlistController` | `destroy` |
 | GET | `/portfolio/{id}/rebalance-suggestions` | `portfolio.rebalance-suggestions` | `PortfolioController` | `getRebalanceSuggestions` |
 
 ## Backend / Admin Routes (prefix: `/admin`, middleware: `auth:web` + `admin`)

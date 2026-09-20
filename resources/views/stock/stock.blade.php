@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('head')
-@vite(['resources/frontend/css/stock/stock.css', 'resources/frontend/css/shared/charts.css'])
+@vite(['resources/frontend/css/stock/stock.css', 'resources/frontend/css/shared/charts.css', 'resources/frontend/css/shared/watchlist.css'])
 @endsection
 
 @section('content')
@@ -55,6 +55,10 @@
                         <i class="bi bi-house"></i>
                         Trang chủ
                     </a>
+                    <button type="button" class="back-button wl-toggle" data-watch="{{ $symbol }}">
+                        <i class="bi bi-star"></i>
+                        <span data-watch-label>Theo dõi</span>
+                    </button>
                     <a href="{{ route('portfolio.quick-add', ['symbol' => $symbol]) }}" class="back-button" title="Thêm {{ $symbol }} vào danh mục đầu tư của bạn">
                         <i class="bi bi-briefcase"></i>
                         Thêm vào danh mục
@@ -265,5 +269,10 @@
 const rawData = @json($data);
 const stockSymbol = '{{ $symbol }}';
 </script>
+@php
+    $watchData = ['auth' => auth()->check(), 'watched' => auth()->check() && app(\App\Frontend\Services\WatchlistService::class)->isWatched(auth()->id(), $symbol) ? [$symbol] : []];
+@endphp
+<script>window.__WATCH__ = @json($watchData);</script>
+@vite('resources/frontend/js/shared/watchlist-init.js')
 @vite('resources/frontend/js/stock/stock.js')
 @endsection

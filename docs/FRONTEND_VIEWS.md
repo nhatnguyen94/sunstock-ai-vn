@@ -34,6 +34,7 @@ resources/
 │   │   ├── shared/
 │   │   │   ├── autocomplete.css ← Dropdown + search-input styles (replaces the CDN awesomplete.css and 3 per-page copies); loaded by layouts/app.blade.php
 │   │   │   └── charts.css       ← Styles for shared/charts.js (legend) and shared/svgcharts.js (donut, bars)
+│   │   │   ├── watchlist.css    ← ★ follow buttons (.wl-star, .wl-btn, .wl-toggle)
 │   │   ├── company/
 │   │   │   └── show.css         ← Company profile page
 │   │   ├── funds/
@@ -106,6 +107,9 @@ resources/
 | `auth/verify-email.blade.php` | *(none)* | `js/auth/verify-email.js` |
 | `exchange_rate/index.blade.php` | `css/exchange_rate/index.css` | `js/exchange_rate/index.js` |
 | `gold/index.blade.php` | `css/gold/gold.css` + `css/shared/charts.css` | `js/gold/index.js` |
+| `index.blade.php` (home) | `css/index.css` + `css/market/market.css` + `css/shared/watchlist.css` + `css/shared/charts.css` | `js/index.js` + `js/market/home.js` |
+| `partials/market-overview.blade.php`, `partials/ticker-items.blade.php` | *(home / layout)* | *(home.js)* |
+| `watchlist/index.blade.php` | `css/watchlist/watchlist.css` + `css/shared/watchlist.css` | `js/watchlist/index.js` |
 | `news/index.blade.php` | `css/news/index.css` | *(none)* |
 | `stock/stock.blade.php` | `css/stock/stock.css` | `js/stock/stock.js` |
 | `stock/compare.blade.php` | `css/stock/compare.css` | `js/stock/compare.js` |
@@ -254,3 +258,9 @@ npm run build
 - One stylesheet, `css/portfolio/portfolio.css` (`pf-*`): buttons are `pf-btn` + one variant (`pf-btn-primary` for THE main action of a page, `-soft` secondary, `-ghost` neutral, `-danger` / `-danger-solid`), `pf-btn-icon` for row actions; a loading button gets `.is-loading` (spinner replaces its icon). Do not add inline `style=` colours or Bootstrap `btn-*` classes to these pages.
 - Destructive actions use Bootstrap **modals** (never `confirm()`), and every handler is attached with `addEventListener` in the page's module — an ES module's functions are not global, so inline `onclick="fn()"` silently does nothing (this is why the old "Cập nhật giá" / edit buttons were dead).
 - Money is **whole VND** everywhere in the UI and DB; the price feed is thousands of VND — convert only through `App\Support\PriceUnit`.
+
+### Market widgets, watchlist and ledger (frontend conventions)
+- **First paint is server-rendered, then JS takes over**: the market section's index cards, breadth and liquidity come from Blade; the movers table and the watchlist card are rendered by `js/market/home.js` from `window.__MARKET__` (JSON) so tabs/exchange chips need no round trip, and the same renderer applies the 60 s poll (`GET /market/data`, only while the market is open and the tab is visible).
+- **★ buttons** are plain `data-watch="SYMBOL"` elements handled by ONE delegated listener in `js/shared/watchlist.js` (`initWatchlistStars({auth, watched})`, `paintStars(root)` after rendering rows, `watchlist:change` event). Stock/company pages load it through `js/shared/watchlist-init.js` + `window.__WATCH__`.
+- **Pure helpers are unit-tested in Node**: `js/market/format.js` (number/percent/value formatting, `esc`, `exchangeLabel`) and `js/portfolio/ledger.js` (fee estimate 0.15 % buy / 0.25 % sell incl. tax, trade preview). Keep DOM code out of them.
+- **Trade modal** (`portfolio/show.blade.php`, `css/portfolio/ledger.css`): one form for buy and sell; opened from the header button (free symbol + autocomplete) or the per-holding ➕/💵 buttons (symbol locked, price prefilled). The fee is auto-estimated until the user edits it.

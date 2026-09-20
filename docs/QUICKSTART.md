@@ -88,6 +88,7 @@ php artisan queue:work
 | `php artisan sync:stock-prices` | Dispatch jobs to sync historical price data (`--symbols=AAA,BBB` for specific symbols) |
 | `php artisan sync:exchange-rates` | Fetch VCB exchange rates via Python |
 | `php artisan sync:gold-prices` | Fetch SJC + BTMC gold/silver and the world gold price, store new quotes (scheduled every 15 min, 07:00–19:00 VN) |
+| `php artisan sync:market-overview` | Fetch indices, breadth, liquidity, top movers and a quote per symbol (KBS, ~4 s); scheduled every 5 min Mon–Fri 09:00–15:10 VN + 18:00 |
 | `php artisan sync:hot-industries` | Sync hot industry stock list |
 | `php artisan sync:news` | Crawl the 5 RSS sources and persist new articles |
 | `php artisan sync:company-financials` | Sync company financials to the DB cache (runs monthly via scheduler) |

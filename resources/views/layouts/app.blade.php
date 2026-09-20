@@ -53,7 +53,7 @@
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->is('stock*') ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->is('stock*', 'watchlist*') ? 'active' : '' }}"
                            href="{{ url('/stock') }}" id="stockDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <i class="bi bi-graph-up"></i> Cổ phiếu
                         </a>
@@ -66,6 +66,9 @@
                             </a>
                             <a class="dropdown-item" href="{{ route('stock.screener') }}">
                                 <i class="bi bi-funnel text-primary"></i> Stock Screener
+                            </a>
+                            <a class="dropdown-item {{ request()->is('watchlist*') ? 'active' : '' }}" href="{{ route('watchlist.index') }}">
+                                <i class="bi bi-star-fill text-warning"></i> Danh sách theo dõi
                             </a>
                         </div>
                     </li>
@@ -159,54 +162,15 @@
         </div>
     </nav>
 
-    <!-- Market Ticker Tape -->
+    <!-- Market Ticker Tape: real index / most-traded quotes from the latest market snapshot -->
+    @php $tickerItems = app(\App\Frontend\Services\MarketOverviewService::class)->ticker(); @endphp
     <div class="ticker-wrap">
-        <div class="ticker-content" id="tickerContent">
-            <!-- Duplicated for seamless loop -->
-            <span class="ticker-item"><i class="bi bi-reception-4 up"></i> <span class="sym">VN-INDEX</span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">VCB</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">FPT</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">VNM</span> <span class="neu"><i class="bi bi-dash"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">ACB</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">HPG</span> <span class="dn"><i class="bi bi-caret-down-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">TCB</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">BID</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">MBB</span> <span class="dn"><i class="bi bi-caret-down-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><i class="bi bi-clock" style="color:#94a3b8;"></i> <span style="color:#94a3b8;">Giờ GD: 9:00 – 14:45</span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><i class="bi bi-lightning-charge up"></i> <span style="color:rgba(255,255,255,0.6);">Dữ liệu được cập nhật tự động mỗi ngày</span></span>
-            <span class="ticker-sep">|</span>
-            <!-- Duplicate for seamless loop -->
-            <span class="ticker-item"><i class="bi bi-reception-4 up"></i> <span class="sym">VN-INDEX</span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">VCB</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">FPT</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">VNM</span> <span class="neu"><i class="bi bi-dash"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">ACB</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">HPG</span> <span class="dn"><i class="bi bi-caret-down-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">TCB</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">BID</span> <span class="up"><i class="bi bi-caret-up-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><span class="sym">MBB</span> <span class="dn"><i class="bi bi-caret-down-fill"></i></span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><i class="bi bi-clock" style="color:#94a3b8;"></i> <span style="color:#94a3b8;">Giờ GD: 9:00 – 14:45</span></span>
-            <span class="ticker-sep">|</span>
-            <span class="ticker-item"><i class="bi bi-lightning-charge up"></i> <span style="color:rgba(255,255,255,0.6);">Dữ liệu được cập nhật tự động mỗi ngày</span></span>
+        <div class="ticker-content {{ count($tickerItems) ? '' : 'ticker-static' }}" id="tickerContent">
+            @include('partials.ticker-items', ['items' => $tickerItems])
+            @if(count($tickerItems))
+                <!-- Duplicate for seamless loop -->
+                @include('partials.ticker-items', ['items' => $tickerItems])
+            @endif
         </div>
     </div>
 

@@ -2,6 +2,7 @@
 
 namespace App\Frontend\Controllers;
 
+use App\Frontend\Services\PortfolioLedgerService;
 use App\Frontend\Services\PortfolioService;
 use App\Support\ActivityLogger;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +15,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class PortfolioController extends Controller
 {
     public function __construct(
-        private PortfolioService $portfolioService
+        private PortfolioService $portfolioService,
+        private PortfolioLedgerService $ledger
     ) {}
 
     /**
@@ -400,6 +402,83 @@ class PortfolioController extends Controller
             }
             fclose($out);
         }, "portfolio-{$name}-" . now()->format('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * Record a buy or sell (the trade modal on the portfolio page). The holding's quantity / average cost follow
+     * the trade; a sell freezes its realised P&L.
+     */
+    public function storeTransaction(Request $request, int $id): RedirectResponse
+    {
+        $request->merge(['stock_symbol' => strtoupper(trim((string) $request->input('stock_symbol')))]);
+
+        $validated = $request->validate([
+            'type' => 'required|in:buy,sell',
+            'stock_symbol' => 'required|string|max:12|exists:stock_symbols,symbol',
+            'quantity' => 'required|integer|min:1|max:1000000000',
+            // whole VND per share (85000, not 85)
+            'price' => 'required|numeric|min:100|max:100000000',
+            'fee' => 'nullable|numeric|min:0|max:10000000000',
+            'traded_at' => 'required|date|before_or_equal:today',
+            'notes' => 'nullable|string|max:500',
+        ], [
+            'type.required' => 'Hãy chọn Mua hoặc Bán.',
+            'stock_symbol.exists' => 'Không tìm thấy mã cổ phiếu này. Hãy chọn mã từ danh sách gợi ý.',
+            'quantity.min' => 'Số lượng phải lớn hơn 0.',
+            'price.min' => 'Giá tính theo VNĐ, tối thiểu 100 (ví dụ 85000 chứ không phải 85).',
+            'traded_at.before_or_equal' => 'Ngày giao dịch không được vượt quá hôm nay.',
+        ]);
+
+        $result = $this->ledger->trade($id, Auth::id(), $validated);
+
+        if (! $result['ok']) {
+            abort_if($result['status'] === 404, 404);
+
+            return redirect()->route('portfolio.show', $id)->withErrors(['error' => $result['message']])->withInput();
+        }
+
+        ActivityLogger::log('portfolio_trade', $result['message'], ['portfolio_id' => $id, 'type' => $validated['type'], 'symbol' => $validated['stock_symbol']]);
+
+        return redirect()->route('portfolio.show', $id)->with('success', $result['message']);
+    }
+
+    /** Undo the newest transaction of a symbol. */
+    public function destroyTransaction(int $transactionId): RedirectResponse
+    {
+        $tx = \App\Models\PortfolioTransaction::find($transactionId);
+        $portfolioId = $tx?->portfolio_id;
+
+        $result = $this->ledger->undo($transactionId, Auth::id());
+
+        if (! $result['ok']) {
+            abort_if($result['status'] === 404, 404);
+
+            return redirect()->route('portfolio.show', $portfolioId)->withErrors(['error' => $result['message']]);
+        }
+
+        return redirect()->route('portfolio.show', $result['portfolio_id'])->with('success', $result['message']);
+    }
+
+    /** CSV of the ledger (UTF-8 with BOM). */
+    public function exportTransactions(int $id): StreamedResponse
+    {
+        $portfolio = $this->portfolioService->getPortfolioById($id, Auth::id()) ?? abort(404);
+        $rows = $this->ledger->history($portfolio->id, 5000)->sortBy([['traded_at', 'asc'], ['id', 'asc']]);
+        $name = \Illuminate\Support\Str::slug($portfolio->name) ?: 'portfolio';
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Ngày', 'Mã', 'Loại', 'Số lượng', 'Giá', 'Giá trị', 'Phí + thuế', 'Giá vốn BQ', 'Lãi/Lỗ đã chốt (₫)', 'Ghi chú']);
+            foreach ($rows as $t) {
+                fputcsv($out, [
+                    $t->traded_at->format('Y-m-d'), $t->stock_symbol, $t->isSell() ? 'Bán' : 'Mua', $t->quantity,
+                    round($t->price), round($t->gross), round($t->fee),
+                    $t->cost_basis !== null ? round($t->cost_basis) : '', $t->realized_pl !== null ? round($t->realized_pl) : '', $t->notes,
+                ]);
+            }
+            fclose($out);
+        }, "transactions-{$name}-" . now()->format('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**

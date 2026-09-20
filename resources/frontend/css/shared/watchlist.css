@@ -1,0 +1,27 @@
+/* ★ follow button used on the home movers table, stock page, company page and the watchlist page. */
+
+.wl-star {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; padding: 0; border-radius: 50%;
+    border: 1px solid transparent; background: transparent; color: #94a3b8;
+    cursor: pointer; transition: color .15s, background .15s, transform .15s;
+}
+.wl-star:hover { color: #f59e0b; background: #fffbeb; transform: scale(1.08); }
+.wl-star.is-on { color: #f59e0b; }
+.wl-star:disabled { opacity: .5; cursor: progress; }
+.wl-star:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+
+/* labelled variant for page headers: [★ Theo dõi] */
+.wl-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255, 255, 255, .2); color: #fff; border: 1px solid rgba(255, 255, 255, .35);
+    padding: .55rem 1.1rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all .2s;
+}
+.wl-btn:hover { background: rgba(255, 255, 255, .32); }
+.wl-btn.is-on { background: #fbbf24; border-color: #fbbf24; color: #1e3a5f; }
+.wl-btn:disabled { opacity: .6; cursor: progress; }
+
+/* header buttons that already have their own look (.cp-btn on company page, .back-button on stock page) */
+button.wl-toggle { font: inherit; cursor: pointer; }
+.wl-toggle.is-on { background: #fbbf24 !important; border-color: #fbbf24 !important; color: #1e3a5f !important; }
+.wl-toggle:disabled { opacity: .6; cursor: progress; }

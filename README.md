@@ -43,6 +43,7 @@
 - **Compare Stocks** — Side-by-side chart comparison for multiple symbols.
 - **Hot Industries** — Discover top-performing stocks in Banking, Real Estate, and IT sectors.
 - **Portfolio Management** — Create portfolios, track holdings, monitor profit/loss in real time from actually-synced prices, set price targets and stop-loss levels (with automatic one-shot email alerts when crossed), get AI rebalancing suggestions.
+- **Market Overview & Watchlist** — the home page now opens with the market: VN-Index / VN30 / HNX / UPCoM, a 30-session VN-Index chart with volume, breadth (advancers / decliners / ceiling / floor), liquidity per exchange, top gainers / losers / most-traded stocks, and a real ticker tape (refreshes every minute while the market is open). Signed-in users follow stocks with ★ (home, stock page, company page) and manage them at `/watchlist` with live prices.
 - **Exchange Rates** — View Vietcombank (VCB) foreign exchange rates by date, updated daily.
 - **Gold Prices** — `/gold`: SJC bars and Bảo Tín Minh Châu gold/silver (from vnstock), world gold converted to VND/lượng with the domestic premium, day change, lượng/chỉ toggle, value/P&L calculator and a price-history chart that fills in as the system records a quote every 15 minutes. Lives with Exchange Rates under one **Thị trường** menu.
 - **Market News** — Aggregated news from 5 RSS sources (VnExpress ×2, CafeF ×2, Dân Trí ×1) stored in DB with categories (Kinh doanh, Chứng khoán, Thị trường, Doanh nghiệp). Dedicated `/news` page with category filtering, search, and pagination. Synced every 30 minutes via scheduler.
@@ -183,6 +184,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-21 | **Market overview + watchlist + trade ledger** — home page market section (indices, breadth, liquidity, movers, real ticker) from ONE KBS call (~4 s, whole market); `/watchlist` with ★ buttons; portfolio **buy/sell ledger** with weighted-average cost, realised P&L, win rate, undo and CSV; fixed the portfolio's upcoming-events list that was always empty (container never injected its optional service) |
 | 2026-09-20 | **Gold price page** (`/gold`) — SJC + Bảo Tín Minh Châu gold/silver, world gold in VND/lượng and the domestic premium, own 15-minute price history for the chart; navbar now has one **Thị trường** menu (Exchange rate + Gold) |
 | 2026-09-20 | **Portfolio rework** — fixed a money-unit bug (85,000 ₫ buy showed as -99.97%), dead buttons and a broken admin portfolio section; new UI, performance chart, today's P&L, allocation donut, upcoming dividends, CSV export, autocomplete add form with auto price, "add to portfolio" from stock/company pages |
 | 2026-09-19 | **Search autocomplete redesign** — single highlight (hover and keyboard selection no longer look like two selected rows), ranked results (exact ticker first), ticker chips, clear button and spinner; repaired 182 garbled company names |
@@ -237,6 +239,7 @@ MIT License © 2025–2026
 - **So sánh cổ phiếu** — So sánh biểu đồ nhiều mã cổ phiếu cùng lúc.
 - **Ngành hot** — Khám phá cổ phiếu nổi bật trong các ngành Ngân hàng, Bất động sản, CNTT.
 - **Quản lý danh mục** — Tạo danh mục đầu tư, theo dõi lợi nhuận/lỗ theo thời gian thực từ giá đã đồng bộ thật, đặt mức giá mục tiêu và cắt lỗ (tự động gửi email cảnh báo một lần khi chạm mốc), gợi ý cân bằng danh mục bằng AI.
+- **Tổng quan thị trường & Danh sách theo dõi** — trang chủ mở đầu bằng thị trường: VN-Index / VN30 / HNX / UPCoM, biểu đồ VN-Index 30 phiên kèm khối lượng, độ rộng thị trường (tăng / giảm / trần / sàn), thanh khoản từng sàn, top tăng / giảm / thanh khoản cao và thanh ticker dữ liệu thật (tự làm mới mỗi phút khi đang giao dịch). Người dùng đăng nhập bấm ★ để theo dõi (trang chủ, trang cổ phiếu, hồ sơ công ty) và quản lý tại `/watchlist` với giá trực tiếp.
 - **Tỷ giá ngoại tệ** — Xem tỷ giá Vietcombank theo ngày, cập nhật hàng ngày.
 - **Giá vàng** — `/gold`: giá vàng miếng SJC và vàng/bạc Bảo Tín Minh Châu (từ vnstock), giá vàng thế giới quy đổi ra VND/lượng cùng mức chênh lệch trong nước, biến động trong ngày, chuyển đổi lượng/chỉ, máy tính giá trị/lãi lỗ và biểu đồ lịch sử giá (hệ thống ghi lại giá mỗi 15 phút nên biểu đồ dày dần). Nằm chung menu **Thị trường** với Tỷ giá.
 - **Tin tức thị trường** — Tổng hợp tin từ 5 nguồn RSS (VnExpress ×2, CafeF ×2, Dân Trí ×1), lưu vào DB với 4 danh mục (Kinh doanh, Chứng khoán, Thị trường, Doanh nghiệp). Trang `/news` riêng với lọc danh mục, tìm kiếm và phân trang. Đồng bộ tự động mỗi 30 phút.
@@ -344,6 +347,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-21 | **Tổng quan thị trường + danh sách theo dõi + sổ giao dịch** — phần thị trường ở trang chủ (chỉ số, độ rộng, thanh khoản, top tăng/giảm, ticker thật) từ MỘT lần gọi KBS (~4 giây, toàn thị trường); `/watchlist` với nút ★; **sổ giao dịch mua/bán** trong danh mục (giá vốn bình quân, lãi/lỗ đã chốt, tỷ lệ thắng, hoàn tác, CSV); sửa lỗi lịch sự kiện của danh mục luôn rỗng (container không inject service tùy chọn) |
 | 2026-09-20 | **Trang giá vàng** (`/gold`) — vàng/bạc SJC + Bảo Tín Minh Châu, giá vàng thế giới quy ra VND/lượng và chênh lệch trong nước, tự lưu lịch sử giá mỗi 15 phút cho biểu đồ; navbar gom Tỷ giá + Giá vàng vào một menu **Thị trường** |
 | 2026-09-20 | **Làm lại Portfolio** — sửa lỗi đơn vị tiền (mua 85.000₫ hiện -99,97%), nút không hoạt động và phần portfolio trong admin bị lỗi; giao diện mới, biểu đồ hiệu suất, lãi/lỗ hôm nay, tỷ trọng, cổ tức sắp tới, xuất CSV, form thêm cổ phiếu có gợi ý + tự điền giá, nút "Thêm vào danh mục" từ trang cổ phiếu/công ty |
 | 2026-09-19 | **Làm lại ô tìm kiếm mã** — chỉ còn 1 dòng highlight (hover và chọn bằng phím không còn trông như 2 dòng cùng được chọn), kết quả xếp hạng (mã khớp chính xác lên đầu), chip mã, nút xoá, spinner; sửa 182 tên công ty bị lỗi mã hóa |

@@ -5,11 +5,12 @@ namespace Tests\Feature;
 use App\Models\ExchangeRate;
 use App\Models\HotIndustry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\BuildsMarketPayload;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, BuildsMarketPayload;
 
     /**
      * A basic test example.
@@ -31,6 +32,9 @@ class ExampleTest extends TestCase
             'sell' => '25400',
             'date' => now()->format('Y-m-d'),
         ]);
+
+        // Same reason for the market section: an empty snapshot table would make the first visit run the live script
+        $this->seedMarketSnapshot();
 
         $response = $this->get('/');
 

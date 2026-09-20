@@ -3,7 +3,7 @@
 @section('title', $portfolio->name . ' – Danh mục đầu tư | Sun Stock AI')
 
 @section('head')
-@vite(['resources/frontend/css/portfolio/portfolio.css', 'resources/frontend/css/shared/charts.css'])
+@vite(['resources/frontend/css/portfolio/portfolio.css', 'resources/frontend/css/shared/charts.css', 'resources/frontend/css/portfolio/ledger.css'])
 @endsection
 
 @use('App\Support\VnFormat', 'F')
@@ -13,6 +13,9 @@
     $pageData = [
         'refreshUrl'  => route('portfolio.update-prices', $portfolio->id, false),
         'itemUrl'     => '/portfolio/item',
+        'holdings'    => collect($holdings)->mapWithKeys(fn ($h) => [$h['symbol'] => [
+            'qty' => $h['quantity'], 'avg' => round($h['buy_price'], 2), 'price' => round($h['current_price']),
+        ]])->all(),
         'performance' => $performance,
         'allocation'  => [
             'labels' => array_column($allocation, 'symbol'),
@@ -52,12 +55,14 @@
             <button type="button" class="pf-btn pf-btn-soft" id="pfRefresh" title="Lấy giá đóng cửa mới nhất cho các mã trong danh mục">
                 <i class="bi bi-arrow-repeat"></i><span class="pf-spin"></span> Làm mới giá
             </button>
+            <button type="button" class="pf-btn pf-btn-soft pf-trade" data-type="buy" data-symbol="" id="pfTradeOpen"><i class="bi bi-arrow-left-right"></i> Ghi giao dịch</button>
             <a href="{{ route('portfolio.add-stock', $portfolio->id) }}" class="pf-btn pf-btn-primary"><i class="bi bi-plus-lg"></i> Thêm cổ phiếu</a>
             <div class="pf-menu" id="pfMenu">
                 <button type="button" class="pf-btn pf-btn-ghost pf-btn-icon" id="pfMenuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Thêm tùy chọn"><i class="bi bi-three-dots"></i></button>
                 <div class="pf-menu-list" role="menu">
                     <a href="{{ route('portfolio.edit', $portfolio->id) }}"><i class="bi bi-pencil"></i> Chỉnh sửa danh mục</a>
-                    <a href="{{ route('portfolio.export', $portfolio->id) }}"><i class="bi bi-filetype-csv"></i> Xuất CSV</a>
+                    <a href="{{ route('portfolio.export', $portfolio->id) }}"><i class="bi bi-filetype-csv"></i> Xuất CSV danh mục</a>
+                    <a href="{{ route('portfolio.transactions.export', $portfolio->id) }}"><i class="bi bi-receipt"></i> Xuất CSV giao dịch</a>
                     <hr>
                     <button type="button" class="danger" data-toggle="modal" data-target="#pfDeletePortfolio"><i class="bi bi-trash"></i> Xóa danh mục</button>
                 </div>
@@ -109,6 +114,45 @@
             @endif
         </div>
     </div>
+
+    @if($ledger && $ledger['transactions']->isNotEmpty())
+        @php
+            $ls = $ledger['summary'];
+            $realizedUp = $ls['realized'] >= 0;
+            $totalPl = $ls['realized'] + $stats['profit_loss'];
+            $totalUp = $totalPl >= 0;
+        @endphp
+        <div class="pf-kpis">
+            <div class="pf-kpi {{ $realizedUp ? 'up' : 'down' }}">
+                <div class="pf-kpi-label">Lãi / lỗ đã chốt</div>
+                <div class="pf-kpi-value {{ $realizedUp ? 'up' : 'down' }}">{{ $ls['realized'] > 0 ? '+' : '' }}{{ F::number($ls['realized']) }}₫</div>
+                <div class="pf-kpi-sub">
+                    @if($ls['sells'] > 0){{ $ls['sells'] }} lệnh bán · thắng <strong>{{ F::number($ls['win_rate'], 0) }}%</strong>@else Chưa có lệnh bán nào @endif
+                </div>
+            </div>
+            <div class="pf-kpi {{ $totalUp ? 'up' : 'down' }}">
+                <div class="pf-kpi-label">Tổng lãi / lỗ</div>
+                <div class="pf-kpi-value {{ $totalUp ? 'up' : 'down' }}">{{ $totalPl > 0 ? '+' : '' }}{{ F::number($totalPl) }}₫</div>
+                <div class="pf-kpi-sub">Đã chốt + chưa chốt (đang giữ)</div>
+            </div>
+            <div class="pf-kpi">
+                <div class="pf-kpi-label">Phí + thuế đã trả</div>
+                <div class="pf-kpi-value">{{ F::number($ls['fees']) }}₫</div>
+                <div class="pf-kpi-sub">Đã tính vào giá vốn / lãi lỗ</div>
+            </div>
+            <div class="pf-kpi">
+                <div class="pf-kpi-label">Lệnh bán tốt / tệ nhất</div>
+                @if($ls['best'] !== null)
+                    <div class="pf-kpi-sub" style="margin-top:.35rem">
+                        <span class="{{ $ls['best'] >= 0 ? 'up' : 'down' }}">▲ <strong>{{ $ls['best'] > 0 ? '+' : '' }}{{ F::number($ls['best']) }}₫</strong></span><br>
+                        <span class="{{ $ls['worst'] >= 0 ? 'up' : 'down' }}">▼ <strong>{{ $ls['worst'] > 0 ? '+' : '' }}{{ F::number($ls['worst']) }}₫</strong></span>
+                    </div>
+                @else
+                    <div class="pf-kpi-sub" style="margin-top:.35rem">Xuất hiện sau lệnh bán đầu tiên.</div>
+                @endif
+            </div>
+        </div>
+    @endif
 
     {{-- ── Target / stop-loss alerts ── --}}
     @if($alerts['targets_reached'] > 0)
@@ -195,6 +239,8 @@
                             </td>
                             <td class="ctr">
                                 <div class="pf-row-actions">
+                                    <button type="button" class="pf-btn pf-btn-soft pf-btn-icon pf-trade pf-buy" title="Mua thêm {{ $h['symbol'] }}" data-type="buy" data-symbol="{{ $h['symbol'] }}"><i class="bi bi-plus-circle"></i></button>
+                                    <button type="button" class="pf-btn pf-btn-soft pf-btn-icon pf-trade pf-sell" title="Bán {{ $h['symbol'] }}" data-type="sell" data-symbol="{{ $h['symbol'] }}"><i class="bi bi-cash-coin"></i></button>
                                     <button type="button" class="pf-btn pf-btn-soft pf-btn-icon pf-edit" title="Chỉnh sửa {{ $h['symbol'] }}"
                                             data-id="{{ $h['id'] }}" data-symbol="{{ $h['symbol'] }}" data-quantity="{{ $h['quantity'] }}"
                                             data-buy="{{ round($h['buy_price']) }}" data-target="{{ $h['target_price'] ? round($h['target_price']) : '' }}"
@@ -264,7 +310,114 @@
             </div>
         </div>
     @endif
+
+    {{-- ── Ledger ── --}}
+    @if($ledger)
+    <div class="pf-card" id="pfLedger">
+        <div class="pf-card-head">
+            <h2 class="pf-card-title"><i class="bi bi-journal-text"></i> Sổ giao dịch <small>({{ $ledger['transactions']->count() }} giao dịch)</small></h2>
+            @if($ledger['transactions']->isNotEmpty())
+                <a href="{{ route('portfolio.transactions.export', $portfolio->id) }}" class="pf-btn pf-btn-ghost"><i class="bi bi-filetype-csv"></i> Xuất CSV</a>
+            @endif
+        </div>
+        @if($ledger['transactions']->isEmpty())
+            <div class="pf-empty" style="padding:2rem 1.5rem">
+                <i class="bi bi-journal-plus big"></i>
+                <h4>Chưa có giao dịch</h4>
+                <p>Bấm <strong>Ghi giao dịch</strong> (hoặc nút <i class="bi bi-plus-circle"></i> / <i class="bi bi-cash-coin"></i> ở từng mã) để ghi lệnh mua/bán. Hệ thống tự tính giá vốn bình quân và lãi/lỗ đã chốt.</p>
+            </div>
+        @else
+            @if(count($ledger['summary']['by_symbol']))
+                <div class="pf-realized">
+                    <span class="pf-realized-label">Đã chốt theo mã</span>
+                    @foreach($ledger['summary']['by_symbol'] as $r)
+                        <span class="pf-pill {{ $r['realized'] >= 0 ? 'up' : 'down' }}" title="{{ $r['sells'] }} lệnh bán, {{ $r['wins'] }} lệnh lãi">
+                            <strong>{{ $r['symbol'] }}</strong> {{ $r['realized'] > 0 ? '+' : '' }}{{ F::number($r['realized']) }}₫
+                        </span>
+                    @endforeach
+                </div>
+            @endif
+            <div class="table-responsive">
+                <table class="pf-table pf-ledger">
+                    <thead><tr>
+                        <th>Ngày</th><th>Mã</th><th>Loại</th><th class="num">SL</th><th class="num">Giá</th><th class="num">Phí + thuế</th>
+                        <th class="num">Giá vốn BQ</th><th class="num">Lãi / lỗ đã chốt</th><th class="ctr"></th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach($ledger['transactions'] as $t)
+                        <tr>
+                            <td>{{ $t->traded_at->format('d/m/Y') }}</td>
+                            <td><a class="pf-sym" href="{{ route('company.show', $t->stock_symbol) }}">{{ $t->stock_symbol }}</a>
+                                @if($t->notes)<span class="pf-cell-sub" title="{{ $t->notes }}">{{ \Illuminate\Support\Str::limit($t->notes, 26) }}</span>@endif</td>
+                            <td><span class="pf-pill {{ $t->isSell() ? 'down' : 'up' }}">{{ $t->isSell() ? 'Bán' : 'Mua' }}</span></td>
+                            <td class="num">{{ F::number($t->quantity) }}</td>
+                            <td class="num">{{ F::number($t->price) }}₫</td>
+                            <td class="num">{{ $t->fee > 0 ? F::number($t->fee) . '₫' : '—' }}</td>
+                            <td class="num">{{ $t->cost_basis !== null ? F::number($t->cost_basis) . '₫' : '—' }}</td>
+                            <td class="num">
+                                @if($t->realized_pl !== null)
+                                    @php $rUp = $t->realized_pl >= 0; @endphp
+                                    <span class="{{ $rUp ? 'up' : 'down' }}"><strong>{{ $t->realized_pl > 0 ? '+' : '' }}{{ F::number($t->realized_pl) }}₫</strong></span>
+                                    @if($t->cost_basis)<span class="pf-cell-sub {{ $rUp ? 'up' : 'down' }}">{{ F::percent((($t->price * $t->quantity - $t->fee) / ($t->cost_basis * $t->quantity) - 1) * 100, 2, true) }}</span>@endif
+                                @else — @endif
+                            </td>
+                            <td class="ctr">
+                                @if(isset($ledger['undoable'][$t->id]))
+                                    <button type="button" class="pf-btn pf-btn-danger pf-btn-icon pf-undo" title="Hoàn tác giao dịch này" data-id="{{ $t->id }}" data-label="{{ $t->isSell() ? 'bán' : 'mua' }} {{ number_format($t->quantity, 0, ',', '.') }} {{ $t->stock_symbol }}"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <p class="pf-hint" style="padding:0 1.4rem 1rem">Giá vốn bình quân đã gồm phí mua; lãi/lỗ đã chốt = (giá bán − giá vốn) × số lượng − phí và thuế bán. Chỉ hoàn tác được giao dịch gần nhất của mỗi mã.</p>
+        @endif
+    </div>
+    @endif
 </div>
+</div>
+
+{{-- ── Trade (buy / sell) ── --}}
+<div class="modal fade pf-modal" id="pfTradeModal" tabindex="-1" role="dialog" aria-labelledby="pfTradeTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <form class="modal-content" method="POST" id="pfTradeForm" action="{{ route('portfolio.transactions.store', $portfolio->id) }}" autocomplete="off">
+            @csrf
+            <div class="modal-header"><h5 class="modal-title" id="pfTradeTitle">Ghi giao dịch</h5><button type="button" class="close" data-dismiss="modal" aria-label="Đóng">&times;</button></div>
+            <div class="modal-body">
+                <div class="pf-seg" role="radiogroup" aria-label="Loại giao dịch">
+                    <label class="pf-seg-buy"><input type="radio" name="type" value="buy" checked><span><i class="bi bi-arrow-down-left-circle"></i> Mua</span></label>
+                    <label class="pf-seg-sell"><input type="radio" name="type" value="sell"><span><i class="bi bi-arrow-up-right-circle"></i> Bán</span></label>
+                </div>
+                <div class="row">
+                    <div class="col-7"><div class="pf-field"><label for="pfTSymbol">Mã cổ phiếu</label><input class="pf-input" type="text" id="pfTSymbol" name="stock_symbol" maxlength="12" required placeholder="VD: FPT"></div></div>
+                    <div class="col-5"><div class="pf-field"><label for="pfTDate">Ngày</label><input class="pf-input" type="date" id="pfTDate" name="traded_at" required max="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}"></div></div>
+                    <div class="col-6"><div class="pf-field"><label for="pfTQty">Số lượng</label><input class="pf-input" type="number" id="pfTQty" name="quantity" min="1" step="1" required></div></div>
+                    <div class="col-6"><div class="pf-field"><label for="pfTPrice">Giá <small>(₫ / cp)</small></label><input class="pf-input" type="number" id="pfTPrice" name="price" min="100" step="any" required></div></div>
+                    <div class="col-12"><div class="pf-field"><label for="pfTFee"><span id="pfTFeeLabel">Phí giao dịch</span> <small>(₫, tự ước tính — sửa nếu khác)</small></label><input class="pf-input" type="number" id="pfTFee" name="fee" min="0" step="any" value="0"></div></div>
+                </div>
+                <div class="pf-trade-info" id="pfTInfo" hidden></div>
+                <div class="pf-field mb-0"><label for="pfTNotes">Ghi chú <small>(tùy chọn)</small></label><input class="pf-input" type="text" id="pfTNotes" name="notes" maxlength="500"></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="pf-btn pf-btn-ghost" data-dismiss="modal">Hủy</button><button type="submit" class="pf-btn pf-btn-primary" id="pfTSubmit"><i class="bi bi-check2"></i> Ghi nhận</button></div>
+        </form>
+    </div>
+</div>
+
+{{-- ── Undo transaction ── --}}
+<div class="modal fade pf-modal" id="pfUndoModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+        <form class="modal-content" method="POST" id="pfUndoForm" action="#">
+            @csrf @method('DELETE')
+            <div class="modal-body text-center">
+                <i class="bi bi-arrow-counterclockwise down" style="font-size:2rem"></i>
+                <h5 class="mt-2" style="font-weight:800">Hoàn tác giao dịch?</h5>
+                <p class="pf-hint" id="pfUndoLabel"></p>
+                <p class="pf-hint">Số lượng và giá vốn của mã sẽ được khôi phục như trước giao dịch này.</p>
+                <div class="d-flex justify-content-center" style="gap:.5rem"><button type="button" class="pf-btn pf-btn-ghost" data-dismiss="modal">Giữ lại</button><button type="submit" class="pf-btn pf-btn-danger-solid">Hoàn tác</button></div>
+            </div>
+        </form>
+    </div>
 </div>
 
 {{-- ── Edit holding ── --}}
@@ -282,6 +435,7 @@
                 </div>
                 <div class="pf-field mb-0"><label for="pfENotes">Ghi chú</label><textarea class="pf-input" id="pfENotes" name="notes" rows="2" maxlength="1000"></textarea></div>
                 <p class="pf-hint">Khi giá chạm mục tiêu hoặc cắt lỗ, hệ thống gửi email cho bạn (một lần cho mỗi lần chạm).</p>
+                <p class="pf-hint">Muốn ghi mua thêm / bán bớt? Dùng nút <i class="bi bi-plus-circle"></i> / <i class="bi bi-cash-coin"></i> — sổ giao dịch sẽ tự tính giá vốn và lãi/lỗ đã chốt. Sửa số lượng hoặc giá ở đây chỉ là chỉnh số liệu, không tạo giao dịch.</p>
             </div>
             <div class="modal-footer"><button type="button" class="pf-btn pf-btn-ghost" data-dismiss="modal">Hủy</button><button type="submit" class="pf-btn pf-btn-primary"><i class="bi bi-check2"></i> Lưu thay đổi</button></div>
         </form>

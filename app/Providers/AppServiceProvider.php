@@ -27,6 +27,9 @@ use App\Frontend\Interfaces\CompanyFinancialRepositoryInterface;
 use App\Frontend\Interfaces\CompanyProfileRepositoryInterface;
 use App\Frontend\Interfaces\FundRepositoryInterface;
 use App\Frontend\Interfaces\GoldPriceRepositoryInterface;
+use App\Frontend\Interfaces\MarketSnapshotRepositoryInterface;
+use App\Frontend\Interfaces\PortfolioTransactionRepositoryInterface;
+use App\Frontend\Interfaces\WatchlistRepositoryInterface;
 use App\Frontend\Interfaces\NewsRepositoryInterface as FrontendNewsRepositoryInterface;
 use App\Frontend\Interfaces\NewsServiceInterface;
 use App\Frontend\Interfaces\PortfolioRepositoryInterface;
@@ -36,12 +39,18 @@ use App\Frontend\Repositories\CompanyFinancialRepository;
 use App\Frontend\Repositories\CompanyProfileRepository;
 use App\Frontend\Repositories\FundRepository;
 use App\Frontend\Repositories\GoldPriceRepository;
+use App\Frontend\Repositories\MarketSnapshotRepository;
+use App\Frontend\Repositories\PortfolioTransactionRepository;
+use App\Frontend\Repositories\WatchlistRepository;
 use App\Frontend\Repositories\ExchangeRateRepository;
 use App\Frontend\Repositories\NewsRepository as FrontendNewsRepository;
 use App\Frontend\Repositories\PortfolioRepository;
 use App\Frontend\Repositories\StockRepository;
 use App\Frontend\Repositories\UserProfileRepository;
+use App\Frontend\Services\CompanyProfileService;
 use App\Frontend\Services\NewsService;
+use App\Frontend\Services\PortfolioLedgerService;
+use App\Frontend\Services\PortfolioService;
 use App\Backend\Interfaces\RoleRepositoryInterface;
 use App\Backend\Interfaces\RoleServiceInterface;
 use App\Backend\Interfaces\PermissionRepositoryInterface;
@@ -134,6 +143,27 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             GoldPriceRepositoryInterface::class,
             GoldPriceRepository::class
+        );
+        $this->app->bind(
+            MarketSnapshotRepositoryInterface::class,
+            MarketSnapshotRepository::class
+        );
+        $this->app->bind(
+            PortfolioTransactionRepositoryInterface::class,
+            PortfolioTransactionRepository::class
+        );
+        // Laravel leaves `?Service $x = null` constructor parameters at their default (null) instead of resolving
+        // them, so the optional collaborators are handed over explicitly. Unit tests keep building the service with
+        // just the two repositories.
+        $this->app->bind(PortfolioService::class, fn ($app) => new PortfolioService(
+            $app->make(PortfolioRepositoryInterface::class),
+            $app->make(StockRepositoryInterface::class),
+            $app->make(CompanyProfileService::class),
+            $app->make(PortfolioLedgerService::class)
+        ));
+        $this->app->bind(
+            WatchlistRepositoryInterface::class,
+            WatchlistRepository::class
         );
         $this->app->bind(
             ActivityLogRepositoryInterface::class,

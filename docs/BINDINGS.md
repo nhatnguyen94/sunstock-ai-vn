@@ -16,6 +16,9 @@
 | `App\Frontend\Interfaces\CompanyProfileRepositoryInterface` | `App\Frontend\Repositories\CompanyProfileRepository` | Injected into `CompanyProfileService` |
 | `App\Frontend\Interfaces\FundRepositoryInterface` | `App\Frontend\Repositories\FundRepository` | Injected into `FundService` |
 | `App\Frontend\Interfaces\GoldPriceRepositoryInterface` | `App\Frontend\Repositories\GoldPriceRepository` | Injected into `GoldPriceService` |
+| `App\Frontend\Interfaces\MarketSnapshotRepositoryInterface` | `App\Frontend\Repositories\MarketSnapshotRepository` | Injected into `MarketOverviewService` |
+| `App\Frontend\Interfaces\WatchlistRepositoryInterface` | `App\Frontend\Repositories\WatchlistRepository` | Injected into `WatchlistService` |
+| `App\Frontend\Interfaces\PortfolioTransactionRepositoryInterface` | `App\Frontend\Repositories\PortfolioTransactionRepository` | Injected into `PortfolioLedgerService` |
 | `App\Backend\Interfaces\NewsRepositoryInterface` | `App\Backend\Repositories\NewsRepository` | Injected into `App\Backend\Services\NewsService` (Admin) |
 | `App\Backend\Interfaces\NewsServiceInterface` | `App\Backend\Services\NewsService` | Injected into `App\Backend\Controllers\NewsController` (Admin) |
 | `App\Backend\Interfaces\StockRepositoryInterface` | `App\Backend\Repositories\StockRepository` | Injected into `App\Backend\Services\StockService` (Admin) |
@@ -28,7 +31,7 @@
 | `App\Backend\Interfaces\PermissionRepositoryInterface` | `App\Backend\Repositories\PermissionRepository` | Injected into `App\Backend\Services\PermissionService` (Admin) |
 | `App\Backend\Interfaces\PermissionServiceInterface` | `App\Backend\Services\PermissionService` | Injected into `App\Backend\Controllers\PermissionController` (Admin) |
 
-> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService`, `CompanyProfileService`, `FundService`, `GoldPriceService` are **not** bound via interfaces — they are injected directly as concrete classes.
+> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService`, `CompanyProfileService`, `FundService`, `GoldPriceService`, `MarketOverviewService`, `WatchlistService`, `PortfolioLedgerService` are **not** bound via interfaces — they are injected directly as concrete classes.
 
 ## Adding a New Binding
 
@@ -80,3 +83,5 @@ $middleware->alias([
 ```
 
 `AdminAccess` checks `Auth::user()->canAccessBackend()` directly — this is a separate, still-hardcoded (role-name) coarse check, independent of the `access-backend` permission/Gate. See "Two-layer authorization" in `docs/RBAC.md`.
+
+> **Explicit closure binding — `PortfolioService`**: Laravel does **not** resolve `?Service $x = null` constructor parameters (it just uses the default), so `PortfolioService`'s optional `CompanyProfileService` and `PortfolioLedgerService` used to be `null` in production (the portfolio's upcoming-events list was always empty and no ledger was written). `AppServiceProvider` therefore binds it with a closure that passes all four collaborators; unit tests keep constructing it with just the two repositories. Any future optional collaborator needs the same treatment (regression test: `PortfolioLedgerServiceTest::test_the_container_gives_portfolio_service_its_optional_collaborators`).

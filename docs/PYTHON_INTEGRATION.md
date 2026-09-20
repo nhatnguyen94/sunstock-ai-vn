@@ -116,6 +116,14 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 - **Args**: Fund short name (regex-validated) — `FundService::runDetailScript()` via `GET /funds/{code}/detail`
 - **Output**: NAV thinned to daily for the last 3 years and weekly before that (~1.7k points instead of ~4k); cached 6h in `Cache` behind `SingleFlight`
 
+### `py/get_market_overview.py`
+- **Purpose**: The whole market in one go for the home page / ticker / watchlist — four indices with a 30-session series, breadth and liquidity per exchange, top gainers / losers / most-traded (overall and per exchange) and a quote for every symbol
+- **Args**: None — `MarketOverviewService::runScript()` (page first-visit loader, `SyncMarketOverviewJob`, `sync:market-overview`)
+- **Source**: **KBS** through vnstock. `Listing.symbols_by_exchange()` (~1 s, gives exchange + type) → `Trading.price_board()` for all ~1,500 stocks/ETFs in ONE request (~1 s: price, reference, % change, volume, traded value) → `Quote(<index>).history()` for VNINDEX / VN30 / HNXINDEX / UPCOMINDEX. Run concurrently, ~4 s in total. The VCI source, in contrast, timed out at 30 s from the container and answered its listing in 30 s.
+- **Output**: `{fetched_at, trade_date, indices[], exchanges{HOSE,HNX,UPCOM}, movers{ALL,HOSE,HNX,UPCOM}{gainers,losers,value}, quotes{SYMBOL:[price,ref,%,vol,value,ceiling,floor]}, errors, warnings}`; whole VND. `{"error"}` only when nothing answered; a failed board with working indices is reported in `errors.board` and the service refuses to store the half-empty payload.
+- **Gotchas**: bonds and covered warrants (`type` bond/cw) make the board endpoint reject the whole request (`Invalid derivative or bond symbol`) and are filtered out; vnstock modules must be imported **before** the thread pool (lazy imports from several threads deadlock on the module lock); stocks that did not trade are not counted as "unchanged" (UPCoM's ~900 idle tickers would swamp the breadth bar); gainers/losers need ≥ 5 billion VND traded (one-lot trades show +38%); `trade_date` is the latest index bar, so a weekend run stores Friday's session under Friday's date.
+- **Cache**: `market_snapshots` (one row per session, overwritten as the day goes on; `quotes` kept on the newest row only). Stale after 5 min during the session (Mon–Fri 09:00–15:00 VN), 6 h outside it.
+
 ### `py/get_gold_price.py`
 - **Purpose**: Current gold/silver prices — SJC bars, Bảo Tín Minh Châu (BTMC) products and the world gold price (USD/oz) — for the `/gold` page
 - **Args**: None — `GoldPriceService::runScript()` (page first-visit loader, manual refresh, `SyncGoldPricesJob`, `sync:gold-prices`)
@@ -144,6 +152,7 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 | `FundService::runListScript()` | `get_fund_list.py` | `sync:funds` + first catalog visit | 60s |
 | `FundService::runDetailScript()` | `get_fund_detail.py` | Web request (`GET /funds/{code}/detail`) | 60s |
 | `GoldPriceService::runScript()` | `get_gold_price.py` | Web request (first visit / "Làm mới") + `SyncGoldPricesJob` (`$timeout=90`) + `sync:gold-prices` (every 15 min, 07:00–19:00 VN) | 60s |
+| `MarketOverviewService::runScript()` | `get_market_overview.py` | Web request (first visit only) + `SyncMarketOverviewJob` (`$timeout=90`) + `sync:market-overview` (every 5 min in session, 18:00) | 60s |
 
 Changing a job's own `$timeout`/a command's expected runtime? Update the matching row here and the matching `PythonRunner::run()` call together — they're meant to move as a pair.
 
@@ -183,3 +192,7 @@ User feedback (2026-09-16): syncing felt slow, whether triggered manually or via
 ## Exchange Rate Service Pattern
 
 `ExchangeRateService::fetchRatesFromPython()` calls `py/get_exchange_rate.py` via `PythonRunner::run()` and stores results in the `exchange_rates` table via `ExchangeRateRepository`.
+
+## vnstock API key and rate limits
+
+vnstock's anonymous **Guest** tier allows only **20 requests per minute** (the library prints a banner and waits when it is hit); a registered key raises that. `vnai` reads the key from the **environment variable** `VNSTOCK_API_KEY`, not from `.env`. Artisan, queue workers and the scheduler already inherit it (Laravel exports `.env` into the process environment), and `PythonRunner` now also passes `config('services.vnstock.api_key')` explicitly (validated `[A-Za-z0-9_.-]{8,200}`, shell-escaped) so PHP-FPM pools with `clear_env` behave the same. When you run a script by hand inside the container, pass it yourself: `docker compose exec -e VNSTOCK_API_KEY=... php /opt/venv/bin/python3 py/<script>.py`. Budget requests accordingly: the market script costs 6 per run (listing + 4 indices + 1 board), which is why the board is fetched in a single request.

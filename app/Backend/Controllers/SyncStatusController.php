@@ -6,6 +6,7 @@ use App\Models\CompanyFinancial;
 use App\Models\CompanyProfile;
 use App\Models\Fund;
 use App\Models\GoldPrice;
+use App\Models\MarketSnapshot;
 use App\Models\ExchangeRate;
 use App\Models\HotIndustry;
 use App\Models\News;
@@ -33,6 +34,7 @@ class SyncStatusController extends Controller
         'sync:company-financials'=> ['sync:company-financials', ['--stale' => true, '--dispatch' => true]],
         'sync:funds'             => ['sync:funds',             []],
         'sync:gold-prices'       => ['sync:gold-prices',       []],
+        'sync:market-overview'   => ['sync:market-overview',   []],
         'sync:company-profiles'  => ['sync:company-profiles',  ['--seed' => true, '--limit' => 50, '--dispatch' => true]],
     ];
 
@@ -103,6 +105,15 @@ class SyncStatusController extends Controller
                 'row_count'   => CompanyProfile::count(),
                 'last_sync'   => CompanyProfile::max('synced_at'),
                 'description' => 'Cổ đông, ban lãnh đạo, công ty con, sự kiện — cache khi có người xem; làm mới Chủ nhật 03:00 (nút này: làm mới hồ sơ cũ + nạp thêm 50 mã)',
+            ],
+            [
+                'key'         => 'sync:market-overview',
+                'label'       => 'Tổng quan thị trường',
+                'icon'        => 'chart-line',
+                'color'       => 'blue',
+                'row_count'   => MarketSnapshot::count(),
+                'last_sync'   => MarketSnapshot::max('synced_at'),
+                'description' => 'VN-Index/VN30/HNX/UPCoM, độ rộng thị trường, thanh khoản, top tăng/giảm và giá mọi mã (bảng giá KBS, 1 lần gọi ~4s) — mỗi 5 phút trong phiên giao dịch, 1 lần lúc 18:00',
             ],
             [
                 'key'         => 'sync:gold-prices',

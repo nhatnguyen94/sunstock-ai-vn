@@ -51,6 +51,48 @@ class PythonRunnerTest extends TestCase
     }
 
     #[Group('pythonRunner')]
+    public function test_the_configured_vnstock_api_key_reaches_the_python_process_environment(): void
+    {
+        // vnai only reads VNSTOCK_API_KEY from the environment. Artisan/queue processes usually inherit it from the
+        // .env that Laravel loaded, but a PHP-FPM pool with clear_env does not — so the runner exports it itself.
+        $this->withoutInheritedApiKey(function () {
+            config(['services.vnstock.api_key' => 'test-key_ABC-123456']);
+
+            $decoded = PythonRunner::runAndDecodeJson(base_path('tests/Fixtures/python/print_env.py'), [], 5);
+
+            $this->assertSame(['key' => 'test-key_ABC-123456'], $decoded);
+        });
+    }
+
+    #[Group('pythonRunner')]
+    public function test_no_api_key_is_passed_when_none_is_configured_or_it_looks_malformed(): void
+    {
+        $this->withoutInheritedApiKey(function () {
+            foreach ([null, '', 'short', "bad key; rm -rf /"] as $value) {
+                config(['services.vnstock.api_key' => $value]);
+
+                $decoded = PythonRunner::runAndDecodeJson(base_path('tests/Fixtures/python/print_env.py'), [], 5);
+
+                $this->assertSame(['key' => null], $decoded, 'key ' . var_export($value, true) . ' must not be exported');
+            }
+        });
+    }
+
+    /** Run `$fn` with VNSTOCK_API_KEY removed from this process's own environment (children would inherit it). */
+    private function withoutInheritedApiKey(callable $fn): void
+    {
+        $inherited = getenv('VNSTOCK_API_KEY');
+        putenv('VNSTOCK_API_KEY');
+        try {
+            $fn();
+        } finally {
+            if ($inherited !== false) {
+                putenv('VNSTOCK_API_KEY=' . $inherited);
+            }
+        }
+    }
+
+    #[Group('pythonRunner')]
     public function test_run_and_decode_json_parses_the_last_json_line(): void
     {
         $decoded = PythonRunner::runAndDecodeJson($this->fixture(), [0], 5);

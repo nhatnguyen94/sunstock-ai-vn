@@ -56,7 +56,7 @@ class PythonRunner
 
         $command = PHP_OS_FAMILY === 'Windows'
             ? self::buildCommand($pythonPath, $scriptPath, $args)
-            : self::homeOverride() . 'timeout ' . escapeshellarg((string) $timeoutSeconds) . ' ' . self::buildCommand($pythonPath, $scriptPath, $args);
+            : self::homeOverride() . self::apiKeyEnv() . 'timeout ' . escapeshellarg((string) $timeoutSeconds) . ' ' . self::buildCommand($pythonPath, $scriptPath, $args);
 
         if ($suppressStderr) {
             $command .= PHP_OS_FAMILY === 'Windows' ? ' 2>NUL' : ' 2>/dev/null';
@@ -122,6 +122,19 @@ class PythonRunner
         }
 
         return 'HOME=' . escapeshellarg($fallback) . ' ';
+    }
+
+    /**
+     * `VNSTOCK_API_KEY='...' ` prefix so the Python side registers with the configured key (higher rate
+     * limit than the anonymous Guest tier). Nothing when no key is configured or it looks malformed.
+     */
+    private static function apiKeyEnv(): string
+    {
+        $key = trim((string) config('services.vnstock.api_key'));
+
+        return ($key !== '' && preg_match('/^[A-Za-z0-9_\-.]{8,200}$/', $key))
+            ? 'VNSTOCK_API_KEY=' . escapeshellarg($key) . ' '
+            : '';
     }
 
     private static function buildCommand(string $pythonPath, string $scriptPath, array $args): string

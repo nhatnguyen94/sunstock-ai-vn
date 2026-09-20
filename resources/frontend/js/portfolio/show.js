@@ -7,6 +7,8 @@
 import { AreaSeries, LineSeries, LineType, attachLegend, cleanSeries, fmtInt, makeChart } from '../shared/charts.js';
 import { donut } from '../shared/svgcharts.js';
 import { toast } from '../shared/toast.js';
+import { stockAutocomplete } from '../shared/autocomplete.js';
+import { estimateFee, tradePreview } from './ledger.js';
 
 const cfg = window.__PF__ || {};
 const $id = (id) => document.getElementById(id);
@@ -127,3 +129,76 @@ if (perfEl && Array.isArray(cfg.performance) && cfg.performance.length > 1) {
     perfEl.innerHTML = '<p class="pf-hint" style="padding:2rem 0;text-align:center">Chưa đủ dữ liệu giá để vẽ biểu đồ. Biểu đồ sẽ xuất hiện khi các mã trong danh mục có lịch sử giá.</p>';
     perfEl.style.height = 'auto';
 }
+
+// ── Trade modal (buy / sell → POST /portfolio/{id}/transactions) ────────────
+const tradeForm = $id('pfTradeForm');
+if (tradeForm) {
+    const held = cfg.holdings || {};
+    const el = { sym: $id('pfTSymbol'), qty: $id('pfTQty'), price: $id('pfTPrice'), fee: $id('pfTFee'), info: $id('pfTInfo'), submit: $id('pfTSubmit'), feeLabel: $id('pfTFeeLabel') };
+    const typeOf = () => tradeForm.querySelector('input[name="type"]:checked').value;
+    let feeTouched = false;
+    let quoteSeq = 0;
+
+    function refresh() {
+        const type = typeOf();
+        const symbol = el.sym.value.trim().toUpperCase();
+        const qty = parseInt(el.qty.value, 10) || 0;
+        const price = parseFloat(el.price.value) || 0;
+
+        el.feeLabel.textContent = type === 'sell' ? 'Phí + thuế bán' : 'Phí giao dịch';
+        $id('pfTradeTitle').textContent = type === 'sell' ? 'Bán cổ phiếu' : 'Mua cổ phiếu';
+        el.submit.classList.toggle('pf-btn-danger-solid', type === 'sell');
+        el.submit.classList.toggle('pf-btn-primary', type !== 'sell');
+
+        if (!feeTouched && qty && price) el.fee.value = estimateFee(type, qty, price);
+
+        const p = tradePreview({ type, qty, price, fee: parseFloat(el.fee.value) || 0, holding: held[symbol] || null });
+        el.info.hidden = !p;
+        if (p) {
+            el.info.className = 'pf-trade-info ' + (p.tone || '');
+            el.info.innerHTML = p.html;
+        }
+    }
+
+    function openTrade(type, symbol) {
+        tradeForm.querySelector(`input[name="type"][value="${type}"]`).checked = true;
+        el.sym.value = symbol || '';
+        el.sym.readOnly = !!symbol;
+        el.qty.value = '';
+        el.price.value = symbol && held[symbol] ? held[symbol].price : '';
+        el.fee.value = 0;
+        feeTouched = false;
+        $id('pfTNotes').value = '';
+        if (symbol && type === 'sell' && held[symbol]) el.qty.value = held[symbol].qty;   // sell = usually the whole position
+        refresh();
+        window.$('#pfTradeModal').modal('show');
+        setTimeout(() => (symbol ? el.qty : el.sym).focus(), 350);
+    }
+
+    document.querySelectorAll('.pf-trade').forEach((b) => b.addEventListener('click', () => openTrade(b.dataset.type, b.dataset.symbol)));
+    tradeForm.querySelectorAll('input[name="type"]').forEach((r) => r.addEventListener('change', refresh));
+    [el.sym, el.qty, el.price].forEach((i) => i.addEventListener('input', refresh));
+    el.fee.addEventListener('input', () => { feeTouched = true; refresh(); });
+
+    // Free symbol (header button): pick from the suggestions, then prefill today's price
+    stockAutocomplete(el.sym, {
+        maxItems: 6,
+        onPick: async (symbol) => {
+            el.sym.value = symbol;
+            const seq = ++quoteSeq;
+            try {
+                const res = await fetch(`/portfolio/quote/${encodeURIComponent(symbol)}`, { headers: { Accept: 'application/json' } });
+                const q = await res.json();
+                if (seq === quoteSeq && q.success && q.price && !el.price.value) { el.price.value = Math.round(q.price); refresh(); }
+            } catch (e) { /* price stays manual */ }
+            refresh();
+        },
+    });
+}
+
+// ── Undo a transaction ──────────────────────────────────────────────────────
+document.querySelectorAll('.pf-undo').forEach((b) => b.addEventListener('click', () => {
+    $id('pfUndoForm').action = `/portfolio/transactions/${b.dataset.id}`;
+    $id('pfUndoLabel').textContent = `Giao dịch: ${b.dataset.label}`;
+    window.$('#pfUndoModal').modal('show');
+}));

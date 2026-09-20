@@ -1,0 +1,66 @@
+/* Watchlist page. Same header language as the gold / funds pages. */
+
+.wlp-header { background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); color: #fff; padding: 2.75rem 0 4.25rem; position: relative; overflow: hidden; }
+.wlp-header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 88% 15%, rgba(251, 191, 36, .32), transparent 45%); }
+.wlp-header-row { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; flex-wrap: wrap; }
+.wlp-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); border-radius: 30px; padding: 5px 16px; margin-bottom: .9rem; font-size: .8rem; font-weight: 600; }
+.wlp-badge i { color: #fbbf24; }
+.wlp-title { font-size: 2.2rem; font-weight: 800; margin: 0 0 .35rem; color: #fff; line-height: 1.2; }
+.wlp-sub { margin: 0; opacity: .92; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.wlp-live { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.16); border-radius: 20px; padding: 2px 12px; font-size: .8rem; font-weight: 700; }
+.wlp-live i { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; }
+.wlp-live.open i { background: #34d399; }
+
+.wlp-add { display: flex; gap: .5rem; width: 460px; max-width: 100%; }
+.wlp-add-box { position: relative; flex: 1; background: #fff; border-radius: 14px; display: flex; align-items: center; padding: 0 .9rem; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.wlp-add-box > i { color: #94a3b8; margin-right: .5rem; }
+.wlp-add-box input { flex: 1; min-width: 0; border: none; outline: none; padding: .8rem 0; font-size: .95rem; background: transparent; color: var(--text-primary); }
+.wlp-add-box .awesomplete { flex: 1; display: flex; }
+.wlp-add-box .awesomplete > input { width: 100%; }
+.wlp-add-btn { border: none; background: #fbbf24; color: #1e3a5f; font-weight: 800; border-radius: 14px; padding: 0 1.3rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.wlp-add-btn:hover { filter: brightness(1.06); }
+.wlp-add-btn:disabled { opacity: .6; cursor: progress; }
+
+.wlp-main { background: var(--bg-light); padding: 0 0 3.5rem; }
+.wlp-card { background: #fff; border: 1px solid var(--border-color); border-radius: 18px; box-shadow: var(--shadow-md); margin-top: -2.25rem; position: relative; z-index: 2; overflow: hidden; }
+.wlp-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); }
+.wlp-stats { display: flex; gap: .5rem; flex-wrap: wrap; }
+.wlp-chip { border-radius: 20px; padding: .25rem .8rem; font-size: .8rem; font-weight: 800; background: #f1f5f9; color: #475569; }
+.wlp-chip.up { background: #ecfdf5; color: #047857; } .wlp-chip.down { background: #fef2f2; color: #b91c1c; }
+.wlp-sort { margin: 0; font-size: .82rem; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; gap: .5rem; }
+.wlp-sort select { border: 2px solid var(--border-color); border-radius: 10px; padding: .3rem .6rem; font-size: .85rem; background: #f8fafc; color: var(--text-primary); }
+
+.wlp-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.wlp-table th { text-align: left; background: var(--bg-light); color: var(--text-secondary); font-size: .7rem; text-transform: uppercase; letter-spacing: .4px; padding: .65rem .8rem; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+.wlp-table td { padding: .7rem .8rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.wlp-table tbody tr:hover { background: #f8fafc; }
+.wlp-table tbody tr.is-removing { opacity: .35; }
+.wlp-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wlp-sym { font-weight: 800; color: var(--primary-blue); text-decoration: none; font-size: 1rem; }
+.wlp-sym:hover { text-decoration: underline; }
+.wlp-nm { display: block; font-size: .74rem; color: var(--text-secondary); max-width: 230px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wlp-ex { display: inline-block; font-size: .66rem; font-weight: 800; background: #eff6ff; color: var(--primary-blue); border-radius: 6px; padding: 0 6px; margin-left: 6px; vertical-align: middle; }
+.wlp-eod { display: inline-block; font-size: .64rem; font-weight: 700; background: #fffbeb; color: #b45309; border-radius: 6px; padding: 0 6px; margin-left: 6px; }
+.up { color: var(--success-green); } .down { color: var(--danger-red); } .flat { color: #d97706; }
+.wlp-pct { display: inline-block; min-width: 72px; text-align: center; border-radius: 8px; padding: .15rem .5rem; font-weight: 800; font-size: .84rem; }
+.wlp-pct.up { background: #ecfdf5; } .wlp-pct.down { background: #fef2f2; } .wlp-pct.flat { background: #fffbeb; }
+.wlp-flag { font-size: .7rem; font-weight: 800; border-radius: 6px; padding: 0 5px; margin-left: 4px; }
+.wlp-flag.ceil { background: #f3e8ff; color: #7e22ce; } .wlp-flag.floor { background: #cffafe; color: #0e7490; }
+.wlp-spark { width: 80px; height: 26px; display: block; }
+.wlp-spark polyline { fill: none; stroke: #94a3b8; stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+tr.up .wlp-spark polyline { stroke: var(--success-green); } tr.down .wlp-spark polyline { stroke: var(--danger-red); }
+.wlp-acts { display: inline-flex; gap: .25rem; }
+.wlp-act { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--border-color); color: #475569; background: #fff; text-decoration: none; font-size: .95rem; }
+.wlp-act:hover { background: #eff6ff; color: var(--primary-blue); text-decoration: none; border-color: #bfdbfe; }
+
+.wlp-empty { text-align: center; padding: 3rem 1.5rem; }
+.wlp-empty i { font-size: 2.6rem; color: #f59e0b; }
+.wlp-empty h3 { font-weight: 800; font-size: 1.2rem; margin: .6rem 0 .3rem; }
+.wlp-empty p { color: var(--text-secondary); max-width: 460px; margin: 0 auto; }
+.wlp-foot { font-size: .76rem; color: var(--text-secondary); padding: .75rem 1.25rem 1rem; margin: 0; }
+
+@media (max-width: 767px) {
+    .wlp-title { font-size: 1.7rem; }
+    .wlp-add { width: 100%; }
+    .wlp-nm { max-width: 140px; }
+}

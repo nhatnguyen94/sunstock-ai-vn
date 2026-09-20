@@ -3,7 +3,7 @@
 @section('title', $symbol . ' – Hồ sơ công ty | Sun Stock AI')
 
 @section('head')
-@vite(['resources/frontend/css/company/show.css', 'resources/frontend/css/shared/charts.css'])
+@vite(['resources/frontend/css/company/show.css', 'resources/frontend/css/shared/charts.css', 'resources/frontend/css/shared/watchlist.css'])
 @endsection
 
 @use('App\Support\VnFormat', 'F')
@@ -46,6 +46,7 @@
             <div class="col-lg-4 text-lg-right cp-header-actions">
                 <a href="{{ url('/stock?symbol=' . $symbol) }}" class="cp-btn"><i class="bi bi-graph-up-arrow"></i> Giá &amp; biểu đồ</a>
                 <a href="{{ url('/stock/compare?symbols=' . $symbol) }}" class="cp-btn"><i class="bi bi-bar-chart-steps"></i> So sánh</a>
+                <button type="button" class="cp-btn wl-toggle" data-watch="{{ $symbol }}"><i class="bi bi-star"></i> <span data-watch-label>Theo dõi</span></button>
                 <a href="{{ route('portfolio.quick-add', ['symbol' => $symbol]) }}" class="cp-btn"><i class="bi bi-briefcase"></i> Thêm vào danh mục</a>
             </div>
         </div>
@@ -306,5 +307,10 @@
 @php $pageData = ['symbol' => $symbol, 'ownership' => $company['ownership_chart'], 'holders' => $company['holders_chart']]; @endphp
 <script>window.__COMPANY__ = @json($pageData);</script>
 @endif
+@php
+    $watchData = ['auth' => auth()->check(), 'watched' => auth()->check() && app(\App\Frontend\Services\WatchlistService::class)->isWatched(auth()->id(), $symbol) ? [$symbol] : []];
+@endphp
+<script>window.__WATCH__ = @json($watchData);</script>
+@vite('resources/frontend/js/shared/watchlist-init.js')
 @vite('resources/frontend/js/company/show.js')
 @endsection
