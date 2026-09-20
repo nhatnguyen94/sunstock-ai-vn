@@ -3,6 +3,7 @@
 namespace Tests\Feature\Backend\Controllers;
 
 use App\Frontend\Services\FundService;
+use App\Frontend\Services\GoldPriceService;
 use App\Models\Fund;
 use App\Models\Permission;
 use App\Models\Role;
@@ -58,6 +59,20 @@ class SyncStatusControllerTest extends TestCase
         $this->postJson('/admin/sync-status/trigger/sync:funds')
             ->assertOk()
             ->assertJsonPath('success', true);
+    }
+
+    #[Group('goldPrice')]
+    public function test_page_lists_the_gold_source_and_the_trigger_runs_the_gold_sync(): void
+    {
+        $this->actingAsUserWithPermissions(['manage-features']);
+
+        $this->get('/admin/sync-status')->assertOk()->assertSee('Giá vàng (SJC, BTMC)')->assertSee('sync:gold-prices');
+
+        $mock = Mockery::mock(GoldPriceService::class);
+        $mock->shouldReceive('sync')->once()->andReturn(['count' => 7, 'warnings' => []]);
+        $this->app->instance(GoldPriceService::class, $mock);
+
+        $this->postJson('/admin/sync-status/trigger/sync:gold-prices')->assertOk()->assertJsonPath('success', true);
     }
 
     #[Group('fundCatalog')]

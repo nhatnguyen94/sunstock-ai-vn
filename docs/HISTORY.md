@@ -2,6 +2,29 @@
 
 ---
 
+## GOLD_PRICE_PAGE - September 20, 2026
+
+### Summary:
+User asked for a gold-price feature (vnstock has it) and to put it in one menu with the exchange rate, as two submenus.
+
+### Added:
+- **Menu**: the single "Tỷ giá" nav item became a **Thị trường** dropdown → *Tỷ giá ngoại tệ* (`/exchange-rate`) and *Giá vàng* (`/gold`); active for both route families; footer link added.
+- **Data** (`py/get_gold_price.py`, vnstock 4.0.4): SJC bars + Bảo Tín Minh Châu gold/silver + world gold (USD/oz), fetched in parallel (~4s). vnstock has **no free history API**, so `sync:gold-prices` (every 15 min, 07:00–19:00 VN, `withoutOverlapping`) records quotes into `gold_prices` and the chart fills in over time (the page says so honestly).
+- **Data-quality findings**: SJC's by-date endpoint returned different prices for the same call (47.9M / 72M / 144.6M) → only the current quote is used and it is cross-checked against BTMC's own SJC line (>4% apart = dropped). BTMC is quoted per chỉ (×10 to lượng), in Vietnam time (→ UTC).
+- **Page** (`/gold`): SJC + BTMC ring-gold + world (USD/oz and VND/lượng at the VCB USD sell rate) + domestic premium cards, day change vs the previous day's last quote, step-line chart (buy/sell, 24h/7d/30d/all, any product), lượng/chỉ toggle for every price, value / P&L calculator, silver table, refresh button (120s cooldown), stale-while-revalidate (one deduplicated `SyncGoldPricesJob` for a page older than 20 min), first-ever visit loads live once via `SingleFlight`. Error state when the source is down.
+- Admin > Sync Status lists the source (`sync:gold-prices`, manual trigger whitelisted); `ExchangeRateRepository::getLatestRate()` added for the USD rate.
+
+### Bug caught by the new tests:
+`GoldPriceRepository::saveQuotes()` looked quotes up with the script's ISO string (`2026-09-20T01:30:00Z`), which never equals the stored DATETIME text, so a **second** sync tried to insert the same row and hit the unique index. Timestamps are now normalised before the lookup. Confirmed on MySQL: run 1 stored 9 new quotes, run 2 stored 0.
+
+### Tests:
++27 (`goldPrice`, incl. one sync-status test). `php artisan test` 298/298, `npm test` 10/10.
+
+### Verified / not verified:
+Live script (12 SJC + 98 BTMC rows, world 4378 USD/oz), real MySQL sync twice, page rendered in the container (200) and in the browser pane via an inline static copy (KPI cards, chart, tables, unit toggle, calculator all working; chart data in that copy was synthetic). The browser sandbox blocks the app's own assets, so the real page was not clicked through end to end. The chart history is thin until the scheduler has run for a while.
+
+---
+
 ## PORTFOLIO_REWORK - September 20, 2026
 
 ### Summary:

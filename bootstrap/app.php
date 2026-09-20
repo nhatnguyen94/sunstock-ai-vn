@@ -65,6 +65,13 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping()
             ->runInBackground();
 
+        // Gold/silver (SJC + BTMC) and world gold: quotes change through the day and there is no free history
+        // API, so we snapshot every 15 minutes during Vietnam business hours to build our own.
+        $schedule->command('sync:gold-prices')->everyFifteenMinutes()
+            ->timezone('Asia/Ho_Chi_Minh')->between('7:00', '19:00')
+            ->withoutOverlapping()
+            ->runInBackground();
+
         // Open-ended fund catalog: Fmarket publishes NAV in the evening, one call refreshes all funds
         $schedule->command('sync:funds')->dailyAt('18:30')
             ->withoutOverlapping()

@@ -26,6 +26,7 @@ use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
 use App\Frontend\Interfaces\CompanyFinancialRepositoryInterface;
 use App\Frontend\Interfaces\CompanyProfileRepositoryInterface;
 use App\Frontend\Interfaces\FundRepositoryInterface;
+use App\Frontend\Interfaces\GoldPriceRepositoryInterface;
 use App\Frontend\Interfaces\NewsRepositoryInterface as FrontendNewsRepositoryInterface;
 use App\Frontend\Interfaces\NewsServiceInterface;
 use App\Frontend\Interfaces\PortfolioRepositoryInterface;
@@ -34,6 +35,7 @@ use App\Frontend\Interfaces\UserProfileRepositoryInterface;
 use App\Frontend\Repositories\CompanyFinancialRepository;
 use App\Frontend\Repositories\CompanyProfileRepository;
 use App\Frontend\Repositories\FundRepository;
+use App\Frontend\Repositories\GoldPriceRepository;
 use App\Frontend\Repositories\ExchangeRateRepository;
 use App\Frontend\Repositories\NewsRepository as FrontendNewsRepository;
 use App\Frontend\Repositories\PortfolioRepository;
@@ -128,6 +130,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             FundRepositoryInterface::class,
             FundRepository::class
+        );
+        $this->app->bind(
+            GoldPriceRepositoryInterface::class,
+            GoldPriceRepository::class
         );
         $this->app->bind(
             ActivityLogRepositoryInterface::class,

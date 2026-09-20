@@ -19,6 +19,7 @@ use App\Frontend\Controllers\CompanyProfileController;
 use App\Frontend\Controllers\EmailVerificationController;
 use App\Frontend\Controllers\ExchangeRateController;
 use App\Frontend\Controllers\FundController;
+use App\Frontend\Controllers\GoldPriceController;
 use App\Frontend\Controllers\NewsController as FrontendNewsController;
 use App\Frontend\Controllers\PasswordResetController;
 use App\Frontend\Controllers\PortfolioController;
@@ -45,6 +46,11 @@ Route::middleware('throttle:30,1')->group(function () {
         ->where('symbol', '[A-Za-z0-9]{2,10}')->name('company.show');
     Route::post('/company/{symbol}/load', [CompanyProfileController::class, 'load'])
         ->where('symbol', '[A-Za-z0-9]{2,10}')->name('company.load');
+
+    // Gold prices (SJC / BTMC / world) — sits with the exchange rate under the "Thị trường" menu
+    Route::get('/gold', [GoldPriceController::class, 'index'])->name('gold.index');
+    Route::get('/gold/history/{id}', [GoldPriceController::class, 'history'])->whereNumber('id')->name('gold.history');
+    Route::post('/gold/refresh', [GoldPriceController::class, 'refresh'])->name('gold.refresh');
 
     // Open-ended fund catalog (vnstock Fund API / Fmarket). /funds/compare must stay above /funds/{code}.
     Route::get('/funds', [FundController::class, 'index'])->name('funds.index');

@@ -49,4 +49,9 @@ class ExchangeRateRepository implements ExchangeRateRepositoryInterface
             $data
         );
     }
+
+    public function getLatestRate(string $currencyCode): ?\App\Models\ExchangeRate
+    {
+        return \App\Models\ExchangeRate::where('currency_code', strtoupper($currencyCode))->orderByDesc('date')->first();
+    }
 }

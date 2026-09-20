@@ -40,6 +40,8 @@ resources/
 │   │   │   └── funds.css        ← Fund catalog / detail / compare pages
 │   │   ├── exchange_rate/
 │   │   │   └── index.css        ← Exchange rate page (799 lines)
+│   │   ├── gold/
+│   │   │   └── gold.css         ← Gold price page (gold accent KPI cards, tables, chart, calculator)
 │   │   ├── news/
 │   │   │   └── index.css        ← News list page (hero, grid, cards, sidebar, badges)
 │   │   ├── stock/
@@ -78,6 +80,8 @@ resources/
 │       │   └── format.js        ← Fund-page formatting/range helpers
 │       ├── exchange_rate/
 │       │   └── index.js         ← Exchange rate JS + key-rates bars (svgcharts)
+│       ├── gold/
+│       │   └── index.js         ← Gold chart (Lightweight Charts step lines), lượng/chỉ toggle, calculator, refresh
 │       ├── stock/
 │       │   ├── stock.js         ← Stock chart JS: Lightweight Charts candles/area + volume + MA/Bollinger overlays + RSI/MACD panes
 │       │   └── compare.js       ← Stock compare JS: Lightweight Charts multi-line, re-based to a common start date
@@ -101,6 +105,7 @@ resources/
 | `auth/reset-password.blade.php` | `css/auth/password-reset.css` | *(none, inline `togglePwd` script)* |
 | `auth/verify-email.blade.php` | *(none)* | `js/auth/verify-email.js` |
 | `exchange_rate/index.blade.php` | `css/exchange_rate/index.css` | `js/exchange_rate/index.js` |
+| `gold/index.blade.php` | `css/gold/gold.css` + `css/shared/charts.css` | `js/gold/index.js` |
 | `news/index.blade.php` | `css/news/index.css` | *(none)* |
 | `stock/stock.blade.php` | `css/stock/stock.css` | `js/stock/stock.js` |
 | `stock/compare.blade.php` | `css/stock/compare.css` | `js/stock/compare.js` |

@@ -5,6 +5,7 @@ namespace App\Backend\Controllers;
 use App\Models\CompanyFinancial;
 use App\Models\CompanyProfile;
 use App\Models\Fund;
+use App\Models\GoldPrice;
 use App\Models\ExchangeRate;
 use App\Models\HotIndustry;
 use App\Models\News;
@@ -31,6 +32,7 @@ class SyncStatusController extends Controller
         'sync:stock-data'        => ['sync:stock-data',        []],
         'sync:company-financials'=> ['sync:company-financials', ['--stale' => true, '--dispatch' => true]],
         'sync:funds'             => ['sync:funds',             []],
+        'sync:gold-prices'       => ['sync:gold-prices',       []],
         'sync:company-profiles'  => ['sync:company-profiles',  ['--seed' => true, '--limit' => 50, '--dispatch' => true]],
     ];
 
@@ -101,6 +103,15 @@ class SyncStatusController extends Controller
                 'row_count'   => CompanyProfile::count(),
                 'last_sync'   => CompanyProfile::max('synced_at'),
                 'description' => 'Cổ đông, ban lãnh đạo, công ty con, sự kiện — cache khi có người xem; làm mới Chủ nhật 03:00 (nút này: làm mới hồ sơ cũ + nạp thêm 50 mã)',
+            ],
+            [
+                'key'         => 'sync:gold-prices',
+                'label'       => 'Giá vàng (SJC, BTMC)',
+                'icon'        => 'currency',
+                'color'       => 'yellow',
+                'row_count'   => GoldPrice::count(),
+                'last_sync'   => GoldPrice::max('synced_at'),
+                'description' => 'Vàng SJC/BTMC, bạc và giá vàng thế giới — chụp snapshot mỗi 15 phút (7h–19h giờ VN) để tự dựng biểu đồ lịch sử',
             ],
             [
                 'key'         => 'sync:funds',

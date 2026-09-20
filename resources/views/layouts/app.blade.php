@@ -79,10 +79,19 @@
                             <i class="bi bi-briefcase"></i> Danh mục
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('exchange-rate*') ? 'active' : '' }}" href="{{ url('/exchange-rate') }}">
-                            <i class="bi bi-currency-exchange"></i> Tỷ giá
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->is('exchange-rate*', 'gold*') ? 'active' : '' }}"
+                           href="#" id="marketDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="bi bi-cash-coin"></i> Thị trường
                         </a>
+                        <div class="dropdown-menu" aria-labelledby="marketDropdown">
+                            <a class="dropdown-item {{ request()->is('exchange-rate*') ? 'active' : '' }}" href="{{ url('/exchange-rate') }}">
+                                <i class="bi bi-currency-exchange text-primary"></i> Tỷ giá ngoại tệ
+                            </a>
+                            <a class="dropdown-item {{ request()->is('gold*') ? 'active' : '' }}" href="{{ route('gold.index') }}">
+                                <i class="bi bi-coin text-warning"></i> Giá vàng
+                            </a>
+                        </div>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {{ request()->is('news*') ? 'active' : '' }}"
@@ -239,6 +248,7 @@
                         <div class="footer-col-title">Tính năng</div>
                         <a href="{{ url('/stock') }}" class="footer-link"><i class="bi bi-graph-up"></i> Tra cứu cổ phiếu</a>
                         <a href="{{ url('/exchange-rate') }}" class="footer-link"><i class="bi bi-currency-exchange"></i> Tỷ giá ngoại tệ</a>
+                        <a href="{{ route('gold.index') }}" class="footer-link"><i class="bi bi-coin"></i> Giá vàng</a>
                         @auth
                         <a href="{{ route('portfolio.index') }}" class="footer-link"><i class="bi bi-briefcase"></i> Danh mục đầu tư</a>
                         @endauth

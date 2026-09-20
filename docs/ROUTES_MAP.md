@@ -19,6 +19,9 @@
 | GET | `/funds/compare` | `funds.compare` | `FundController` | `compare` |
 | GET | `/funds/{code}` | `funds.show` | `FundController` | `show` |
 | GET | `/funds/{code}/detail` | `funds.detail` | `FundController` | `detail` |
+| GET | `/gold` | `gold.index` | `GoldPriceController` | `index` |
+| GET | `/gold/history/{id}` | `gold.history` | `GoldPriceController` | `history` |
+| POST | `/gold/refresh` | `gold.refresh` | `GoldPriceController` | `refresh` |
 | POST | `/search` | `stock.search` | `StockController` | `search` |
 | GET | `/news` | `news.index` | `NewsController` (Frontend) | `index` |
 | GET | `/news/category/{categorySlug}` | `news.category` | `NewsController` (Frontend) | `index` |

@@ -116,6 +116,14 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 - **Args**: Fund short name (regex-validated) — `FundService::runDetailScript()` via `GET /funds/{code}/detail`
 - **Output**: NAV thinned to daily for the last 3 years and weekly before that (~1.7k points instead of ~4k); cached 6h in `Cache` behind `SingleFlight`
 
+### `py/get_gold_price.py`
+- **Purpose**: Current gold/silver prices — SJC bars, Bảo Tín Minh Châu (BTMC) products and the world gold price (USD/oz) — for the `/gold` page
+- **Args**: None — `GoldPriceService::runScript()` (page first-visit loader, manual refresh, `SyncGoldPricesJob`, `sync:gold-prices`)
+- **How**: `vnstock.explorer.misc.gold_price.sjc_gold_price()` and `btmc_goldprice()` run concurrently (~4s). BTMC prices are per chỉ in the source and multiplied ×10 to VND/lượng; its timestamps are Vietnam time and converted to UTC; "ĐỒNG XU" (coins) are skipped; silver keeps the pack unit written in the product name.
+- **Output**: `{fetched_at, sjc:[{product,branch,buy,sell}], btmc:[{metal,product,purity,buy,sell,unit,quoted_at}], world_usd_oz, errors, warnings}`. `{"error"}` only when no source answered at all; one source failing degrades to a `warnings` entry.
+- **Gotchas**: the SJC by-date endpoint is unreliable (the same call returned 47.9M / 72M / 144.6M), so only the *current* SJC quote is used and it is dropped when its sell price is more than 4% away from BTMC's own "SJC" line (`SJC_CROSSCHECK_TOLERANCE`). There is no free history API (only the paid `vnstock_data`), so history is accumulated in `gold_prices` by the 15-minute scheduler.
+- **Cache**: `gold_prices` table (one row per source/product/branch/quote time); stale after 20 min → one deduplicated `SyncGoldPricesJob`.
+
 ### `py/register_api_key.py`
 - **Purpose**: Register or configure vnstock API key for sponsored tier access
 - **Args**: None (interactive or reads from env)
@@ -135,6 +143,7 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 | `CompanyProfileService::runScript()` | `get_company_profile.py` | Web request (first-visit loader / forced refresh) + `SyncCompanyProfileJob` (`$timeout=90`) + `sync:company-profiles` | 60s |
 | `FundService::runListScript()` | `get_fund_list.py` | `sync:funds` + first catalog visit | 60s |
 | `FundService::runDetailScript()` | `get_fund_detail.py` | Web request (`GET /funds/{code}/detail`) | 60s |
+| `GoldPriceService::runScript()` | `get_gold_price.py` | Web request (first visit / "Làm mới") + `SyncGoldPricesJob` (`$timeout=90`) + `sync:gold-prices` (every 15 min, 07:00–19:00 VN) | 60s |
 
 Changing a job's own `$timeout`/a command's expected runtime? Update the matching row here and the matching `PythonRunner::run()` call together — they're meant to move as a pair.
 

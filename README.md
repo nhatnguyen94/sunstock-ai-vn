@@ -44,6 +44,7 @@
 - **Hot Industries** — Discover top-performing stocks in Banking, Real Estate, and IT sectors.
 - **Portfolio Management** — Create portfolios, track holdings, monitor profit/loss in real time from actually-synced prices, set price targets and stop-loss levels (with automatic one-shot email alerts when crossed), get AI rebalancing suggestions.
 - **Exchange Rates** — View Vietcombank (VCB) foreign exchange rates by date, updated daily.
+- **Gold Prices** — `/gold`: SJC bars and Bảo Tín Minh Châu gold/silver (from vnstock), world gold converted to VND/lượng with the domestic premium, day change, lượng/chỉ toggle, value/P&L calculator and a price-history chart that fills in as the system records a quote every 15 minutes. Lives with Exchange Rates under one **Thị trường** menu.
 - **Market News** — Aggregated news from 5 RSS sources (VnExpress ×2, CafeF ×2, Dân Trí ×1) stored in DB with categories (Kinh doanh, Chứng khoán, Thị trường, Doanh nghiệp). Dedicated `/news` page with category filtering, search, and pagination. Synced every 30 minutes via scheduler.
 - **AI Chat & Prediction** — Ask financial questions and get market predictions, powered by the Groq API (free tier, ~0.4s responses).
 - **User Accounts** — Register, log in, email verification, forgot/reset password, profile management (avatar, birthday, gender, address, bio).
@@ -182,6 +183,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-20 | **Gold price page** (`/gold`) — SJC + Bảo Tín Minh Châu gold/silver, world gold in VND/lượng and the domestic premium, own 15-minute price history for the chart; navbar now has one **Thị trường** menu (Exchange rate + Gold) |
 | 2026-09-20 | **Portfolio rework** — fixed a money-unit bug (85,000 ₫ buy showed as -99.97%), dead buttons and a broken admin portfolio section; new UI, performance chart, today's P&L, allocation donut, upcoming dividends, CSV export, autocomplete add form with auto price, "add to portfolio" from stock/company pages |
 | 2026-09-19 | **Search autocomplete redesign** — single highlight (hover and keyboard selection no longer look like two selected rows), ranked results (exact ticker first), ticker chips, clear button and spinner; repaired 182 garbled company names |
 | 2026-09-19 | **Company Profile page** (`/company/{symbol}`) and **Open-ended Fund catalog** (`/funds`, detail, compare) from free vnstock `Company`/`Fund` APIs; **charts moved from ApexCharts (CDN) to TradingView Lightweight Charts (bundled locally)** with volume, MA/Bollinger overlays and RSI/MACD as real chart panes; fixed a real bug where every Python call made from a web request failed (`Permission denied: /var/www/.vnstock`) |
@@ -236,6 +238,7 @@ MIT License © 2025–2026
 - **Ngành hot** — Khám phá cổ phiếu nổi bật trong các ngành Ngân hàng, Bất động sản, CNTT.
 - **Quản lý danh mục** — Tạo danh mục đầu tư, theo dõi lợi nhuận/lỗ theo thời gian thực từ giá đã đồng bộ thật, đặt mức giá mục tiêu và cắt lỗ (tự động gửi email cảnh báo một lần khi chạm mốc), gợi ý cân bằng danh mục bằng AI.
 - **Tỷ giá ngoại tệ** — Xem tỷ giá Vietcombank theo ngày, cập nhật hàng ngày.
+- **Giá vàng** — `/gold`: giá vàng miếng SJC và vàng/bạc Bảo Tín Minh Châu (từ vnstock), giá vàng thế giới quy đổi ra VND/lượng cùng mức chênh lệch trong nước, biến động trong ngày, chuyển đổi lượng/chỉ, máy tính giá trị/lãi lỗ và biểu đồ lịch sử giá (hệ thống ghi lại giá mỗi 15 phút nên biểu đồ dày dần). Nằm chung menu **Thị trường** với Tỷ giá.
 - **Tin tức thị trường** — Tổng hợp tin từ 5 nguồn RSS (VnExpress ×2, CafeF ×2, Dân Trí ×1), lưu vào DB với 4 danh mục (Kinh doanh, Chứng khoán, Thị trường, Doanh nghiệp). Trang `/news` riêng với lọc danh mục, tìm kiếm và phân trang. Đồng bộ tự động mỗi 30 phút.
 - **AI Chat & Dự đoán** — Hỏi đáp tài chính và dự đoán thị trường qua Groq API (miễn phí, phản hồi ~0.4s).
 - **Tài khoản người dùng** — Đăng ký, đăng nhập, xác thực email, quên/đặt lại mật khẩu, quản lý hồ sơ (avatar, ngày sinh, giới tính, địa chỉ, tiểu sử).
@@ -341,6 +344,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-20 | **Trang giá vàng** (`/gold`) — vàng/bạc SJC + Bảo Tín Minh Châu, giá vàng thế giới quy ra VND/lượng và chênh lệch trong nước, tự lưu lịch sử giá mỗi 15 phút cho biểu đồ; navbar gom Tỷ giá + Giá vàng vào một menu **Thị trường** |
 | 2026-09-20 | **Làm lại Portfolio** — sửa lỗi đơn vị tiền (mua 85.000₫ hiện -99,97%), nút không hoạt động và phần portfolio trong admin bị lỗi; giao diện mới, biểu đồ hiệu suất, lãi/lỗ hôm nay, tỷ trọng, cổ tức sắp tới, xuất CSV, form thêm cổ phiếu có gợi ý + tự điền giá, nút "Thêm vào danh mục" từ trang cổ phiếu/công ty |
 | 2026-09-19 | **Làm lại ô tìm kiếm mã** — chỉ còn 1 dòng highlight (hover và chọn bằng phím không còn trông như 2 dòng cùng được chọn), kết quả xếp hạng (mã khớp chính xác lên đầu), chip mã, nút xoá, spinner; sửa 182 tên công ty bị lỗi mã hóa |
 | 2026-09-19 | **Trang hồ sơ công ty** (`/company/{symbol}`) và **danh mục quỹ mở** (`/funds`, chi tiết, so sánh) từ vnstock `Company`/`Fund` miễn phí; **đổi biểu đồ từ ApexCharts (CDN) sang TradingView Lightweight Charts (bundle local)** có volume, MA/Bollinger và RSI/MACD dạng pane thật; sửa lỗi thật: mọi lệnh Python gọi từ web request đều thất bại (`Permission denied: /var/www/.vnstock`) |

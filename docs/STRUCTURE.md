@@ -15,6 +15,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `ProfileController.php` - User profile management (show/edit/update: username, mobile, birthday, gender, address, bio, avatar upload, password change). `storeAvatar()` handles upload/replace/remove of the avatar file on the `public` disk (`storage/app/public/avatars`, served via `storage/` symlink) — public so it's unit-testable with `Storage::fake()`
   - `PortfolioController.php` - Portfolio management (full CRUD + stock management + AJAX price update)
   - `ExchangeRateController.php` - View & search exchange rates
+  - `GoldPriceController.php` - Gold page `/gold` (`index`), chart series `/gold/history/{id}?range=1D|7D|30D|ALL` (`history`, JSON) and rate-limited "Làm mới" (`refresh`, POST: 429 on cooldown, 502 on source failure)
   - `CompanyProfileController.php` - Company profile page `/company/{symbol}` (`show`) + AJAX first-visit loader / manual refresh (`load`, POST, `?force=1` is rate-limited). Cached profile → instant server-rendered page; none yet → light shell whose JS loads it once then reloads
   - `FundController.php` - Open-ended fund catalog: `index` (filter type/owner/text, sort by any return window), `show`, `detail` (JSON: NAV history + holdings + per-window stats), `compare` (≤4 funds)
   - `AiController.php` - AI market prediction
@@ -28,6 +29,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `CompanyFinancialService.php` - Fetches company financials (income/balance/cashflow/ratio) via Python; DB-cached, falls back to live Python on miss. `screenStocks(filters)` parses cached ratio JSON into a filterable/sortable screener dataset (cached 1h as `screener_ratio_metrics`)
   - `CompanyProfileService.php` - Company profile (vnstock `Company`, KBS + VCI merged by `py/get_company_profile.py`): DB-first, **stale-while-revalidate** (stale copy served instantly + one deduplicated `SyncCompanyProfileJob` queued), `load()` for first-visit/forced refresh via `SingleFlight`, 15-min negative cache for unknown symbols (timeouts/outages are NOT negative-cached), `present()` shapes events (upcoming/dividends/meetings/insider trades), grouped officers and donut-chart series. Python boundary is the protected `runScript()` so tests stub it
   - `FundService.php` - Fund catalog (vnstock `Fund`/Fmarket): `catalog()` (first-ever visit loads the listing live, then DB-only), `normalizeFilters()` (whitelists type/sort/dir — nothing user-supplied reaches `ORDER BY`), `syncAll()` (one Fmarket call updates every fund), `detail()` (NAV history + holdings, cached 6h in `Cache` + `SingleFlight`, adds `FundMetrics` stats), `parseCodes()`/`compareFunds()`/`pickerList()`. Python boundary: protected `runListScript()`/`runDetailScript()`
+  - `GoldPriceService.php` - Gold/silver prices (vnstock `sjc_gold_price` + `btmc_goldprice` via `py/get_gold_price.py`): DB-first, first-ever visit loads live once (`SingleFlight`), a page older than 20 min queues one deduplicated `SyncGoldPricesJob`; `page()` builds headline SJC/BTMC quotes with day change, SJC uniform-branch detection, world price in VND/lượng (USD × 37.5/31.1035 × VCB USD sell) and the domestic premium; `history()` for the chart; `sync()`, `refresh()` (120s cooldown), protected `runScript()`
 
 - **Repositories**: `app/Frontend/Repositories/` - Database access for Frontend
   - `StockRepository.php` - CRUD operations for stock data. `getLatestPrices(symbols)` — batch latest-close lookup via `Stock::latestPrice`, used by `PortfolioService`
@@ -38,10 +40,12 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `CompanyFinancialRepository.php` - DB cache for company financials: find(symbol, type, period), upsert, getAllRatiosByPeriod(period) for the screener
   - `CompanyProfileRepository.php` - DB cache for company profiles: find, upsert, staleSymbols(limit), allSymbols
   - `FundRepository.php` - Fund catalog queries: `search(filters)` (NULL returns always sort last; `SORTABLE` whitelist), findByShortName/findManyByShortNames, upsertMany, typeCounts/typeStats/owners/lastSyncedAt
+  - `GoldPriceRepository.php` - Gold quotes: `saveQuotes` (normalises `quoted_at`, SJC only stores a changed price), `latestQuotes(metal)` (newest row per source/product/branch), `quoteBefore`, `history`, `latestWorldPrice`, `lastSyncedAt`, `count`
 
 - **Interfaces**: `app/Frontend/Interfaces/` - Contracts for Frontend
   - `StockRepositoryInterface.php` — includes `getLatestPrices(symbols)`
   - `ExchangeRateRepositoryInterface.php`
+  - `GoldPriceRepositoryInterface.php` — saveQuotes, latestQuotes, quoteBefore, history, exists, latestWorldPrice, lastSyncedAt, count
   - `UserProfileRepositoryInterface.php`
   - `PortfolioRepositoryInterface.php` — includes `getAllActivePortfolios()` for the scheduled bulk price refresh, `setAlertFlag(item, column, value)` for target/stop-loss timestamps
   - `NewsServiceInterface.php` — getLatestNews, getPaginatedNews, getCategories
@@ -116,6 +120,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `CompanyFinancial.php` - DB cache for company financial data; fields: symbol, type, period, raw_data (JSON), synced_at; STALE_DAYS=30
   - `CompanyProfile.php` - DB cache of one company's whole profile (symbol unique, `data` JSON, synced_at); `STALE_DAYS=3`, `isStale()`
   - `Fund.php` - One open-ended fund (Fmarket): identity, `type_code` (STOCK/BOND/BALANCED/MMF/OTHER, derived from the Vietnamese label by `typeCodeFromLabel()`), fee, NAV, return columns `nav_change_*` (NULL = fund too young); `TYPE_LABELS`, `RETURN_COLUMNS`
+  - `GoldPrice.php` - One gold/silver quote (`source` SJC|BTMC, `metal`, `product`, `branch`, `buy_price`/`sell_price` whole VND per lượng, `world_price` USD/oz, `quoted_at` UTC); unique per source+product+branch+quoted_at; `spread` and `display_name` accessors
   - `ActivityLog.php` - Activity log model; no `updated_at`; `iconConfig()` static method maps event_type → icon/color; event types: user_register, user_login, admin_login, portfolio_created, portfolio_deleted, stock_added, stock_removed, news_sync, stock_price_sync, admin_action
   - `QueueJobLog.php` - One row per queue job attempt (started/finished/duration/status/summary), written by `App\Support\QueueJobLogger`; powers Admin > Giám sát Queue's real-time view — see "Queue Monitoring" below
 
@@ -146,6 +151,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Console/Commands/SyncCompanyFinancials.php` - Sync company financials to DB cache; `--dispatch` mode pre-filters fully-fresh symbols
 - `app/Console/Commands/SyncCompanyProfiles.php` - `sync:company-profiles`: refresh stale cached profiles (`--symbol=`, `--seed` also adds not-yet-cached `stocks`, `--limit=50`, `--dispatch`)
 - `app/Console/Commands/SyncFunds.php` - `sync:funds`: one Fmarket call updates every fund's NAV/returns (scheduled daily 18:30)
+- `app/Console/Commands/SyncGoldPrices.php` - `sync:gold-prices`: fetch SJC + BTMC + world gold and store new quotes (scheduled every 15 min, 07:00–19:00 Asia/Ho_Chi_Minh)
 - `app/Console/Commands/SyncPortfolioPrices.php` - `sync:portfolio-prices`: refresh every active portfolio's `current_price` from the latest `StockPrice` and fire target/stop-loss email alerts
 - `app/Console/Commands/PruneQueueJobLogs.php` - `queue-logs:prune`: mark stuck `queue_job_logs` rows stale, delete old finished ones — see "Queue Monitoring" below
 - `app/Console/Commands/RegisterVnstockApiKey.php` - Register vnstock API key via Python script
@@ -155,6 +161,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Jobs/BackfillStockPriceChunk.php` - Queued job for historical price backfill (multi-symbol batch, date range). `queueSummary()`: symbol count + first 3 + date range
 - `app/Jobs/SyncCompanyFinancialJob.php` - Queued job for syncing company financials (all types/periods for one symbol). `queueSummary()`: the symbol
 - `app/Jobs/SyncCompanyProfileJob.php` - Queued refresh of one company profile (`$timeout=90`, `tries=2`); throws on a transient failure so the queue retries, swallows "no such company". `queueSummary()`: the symbol
+- `app/Jobs/SyncGoldPricesJob.php` - Queued gold refresh dispatched by `GoldPriceService::queueRefresh()` (`$timeout=90`, `tries=2`); throws on a source error so the queue retries
 - All four implement a `queueSummary(): string` method (no formal interface — checked via `method_exists()`) purely for the Queue Monitor's real-time display; unrelated to `handle()`/queue processing itself
 
 ### Queue Monitoring
@@ -182,6 +189,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 ### Python Scripts (`py/`)
 - `get_stock.py` - Fetch historical price data for one or more symbols (via vnstock, VCI source, 1 year)
 - `get_exchange_rate.py` - Fetch VCB exchange rates by date or last N days
+- `get_gold_price.py` - Fetch SJC + BTMC gold/silver prices and the world gold price (vnstock), cross-checking SJC against BTMC
 - `get_hot_industries.py` - Fetch hot industry stocks (Banking, Real Estate, IT)
 - `get_stock_list.py` - Fetch full list of stock symbols from vnstock
 - `get_company_finance.py` - Fetch company financial statements (income/balance/cashflow/ratio) for a symbol+type+period
