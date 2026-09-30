@@ -28,7 +28,7 @@ function renderTags() {
                 ${sym}
                 <i class="bi bi-x-circle-fill remove-btn" onclick="removeSymbol('${sym}')"></i>
             </div>`).join('') +
-        `<span style="color:#9ca3af;font-size:0.78rem;margin-left:6px;">${symbols.length}/4 ma</span>
+        `<span style="color:#9ca3af;font-size:0.78rem;margin-left:6px;">${symbols.length}/4 mã</span>
     </div>`;
     document.getElementById('emptyState').style.display = 'none';
     fetchCompareData();

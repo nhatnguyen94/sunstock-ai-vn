@@ -53,7 +53,7 @@
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->is('stock*', 'watchlist*') ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->is('stock*', 'watchlist*', 'etf*') ? 'active' : '' }}"
                            href="{{ url('/stock') }}" id="stockDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <i class="bi bi-graph-up"></i> Cổ phiếu
                         </a>
@@ -66,6 +66,9 @@
                             </a>
                             <a class="dropdown-item" href="{{ route('stock.screener') }}">
                                 <i class="bi bi-funnel text-primary"></i> Stock Screener
+                            </a>
+                            <a class="dropdown-item {{ request()->is('etf*') ? 'active' : '' }}" href="{{ route('etf.index') }}">
+                                <i class="bi bi-bar-chart-steps text-primary"></i> Quỹ ETF
                             </a>
                             <a class="dropdown-item {{ request()->is('watchlist*') ? 'active' : '' }}" href="{{ route('watchlist.index') }}">
                                 <i class="bi bi-star-fill text-warning"></i> Danh sách theo dõi

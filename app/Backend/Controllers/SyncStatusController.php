@@ -5,6 +5,7 @@ namespace App\Backend\Controllers;
 use App\Models\CompanyFinancial;
 use App\Models\CompanyProfile;
 use App\Models\Fund;
+use App\Models\Etf;
 use App\Models\GoldPrice;
 use App\Models\MarketSnapshot;
 use App\Models\ExchangeRate;
@@ -33,6 +34,7 @@ class SyncStatusController extends Controller
         'sync:stock-data'        => ['sync:stock-data',        []],
         'sync:company-financials'=> ['sync:company-financials', ['--stale' => true, '--dispatch' => true]],
         'sync:funds'             => ['sync:funds',             []],
+        'sync:etfs'              => ['sync:etfs',              []],
         'sync:gold-prices'       => ['sync:gold-prices',       []],
         'sync:market-overview'   => ['sync:market-overview',   []],
         'sync:company-profiles'  => ['sync:company-profiles',  ['--seed' => true, '--limit' => 50, '--dispatch' => true]],
@@ -83,7 +85,7 @@ class SyncStatusController extends Controller
                 'key'         => 'sync:stock-data',
                 'label'       => 'Danh sách cổ phiếu',
                 'icon'        => 'database',
-                'color'       => 'teal',
+                'color'       => 'cyan',
                 'row_count'   => StockSymbol::count(),
                 'last_sync'   => StockSymbol::max('updated_at'),
                 'description' => 'Symbol list từ vnstock — chạy mỗi thứ Hai lúc 07:00',
@@ -132,6 +134,15 @@ class SyncStatusController extends Controller
                 'row_count'   => Fund::count(),
                 'last_sync'   => Fund::max('synced_at'),
                 'description' => 'NAV + lợi suất toàn bộ quỹ mở (1 lần gọi) — chạy hàng ngày lúc 18:30',
+            ],
+            [
+                'key'         => 'sync:etfs',
+                'label'       => 'Quỹ ETF (KBS)',
+                'icon'        => 'chart-arrows',
+                'color'       => 'cyan',
+                'row_count'   => Etf::count(),
+                'last_sync'   => Etf::max('synced_at'),
+                'description' => 'Danh sách ETF và quỹ đóng niêm yết (mã + tên) — chạy hàng tuần Chủ nhật 03:30; giá lấy từ sync:stock-prices',
             ],
         ];
 

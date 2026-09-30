@@ -1,0 +1,39 @@
+/* ETF pages: extras on top of the shared fund look (css/funds/funds.css, fd-*). */
+
+.etf-guide { padding: 0; overflow: hidden; }
+.etf-guide > summary {
+    cursor: pointer; list-style: none; padding: 1rem 1.4rem; font-weight: 700; color: var(--primary-blue);
+    display: flex; align-items: center; gap: .6rem;
+}
+.etf-guide > summary::-webkit-details-marker { display: none; }
+.etf-guide > summary::after { content: '▾'; margin-left: auto; transition: transform .2s; }
+.etf-guide[open] > summary::after { transform: rotate(180deg); }
+.etf-guide-body { padding: 0 1.4rem 1.2rem; font-size: .92rem; line-height: 1.65; color: var(--text-primary); }
+.etf-guide-body ul { padding-left: 1.2rem; margin-bottom: .6rem; }
+.etf-guide-body li { margin-bottom: .35rem; }
+.etf-guide-note { font-size: .82rem; color: var(--text-secondary); background: var(--bg-light); border-radius: 10px; padding: .6rem .8rem; margin: 0; }
+
+.etf-table td, .etf-table th { white-space: nowrap; }
+.etf-table .etf-star { width: 34px; padding-right: 0; text-align: center; }
+.etf-tags { display: flex; gap: 6px; margin-top: 3px; }
+.etf-tag {
+    font-size: .68rem; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+    color: var(--text-secondary); background: var(--bg-light); border: 1px solid var(--border-color);
+    border-radius: 20px; padding: 1px 8px;
+}
+.etf-tag-index { color: var(--primary-blue); background: var(--light-blue); border-color: rgba(37, 99, 235, .2); }
+
+/* Detail page */
+.etf-note { font-size: .9rem; color: var(--text-secondary); margin: 0 0 .9rem; }
+.etf-windows { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.etf-windows th { text-align: left; font-size: .74rem; text-transform: uppercase; letter-spacing: .4px; color: var(--text-secondary); padding: .5rem .7rem; border-bottom: 2px solid var(--border-color); }
+.etf-windows td { padding: .55rem .7rem; border-bottom: 1px solid var(--border-color); }
+.etf-windows .num, .etf-windows th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.etf-chart { height: 340px; }
+.etf-ranges { display: flex; gap: 6px; flex-wrap: wrap; }
+.etf-ranges button {
+    background: #fff; border: 1px solid var(--border-color); border-radius: 20px; padding: .3rem .9rem;
+    font-size: .82rem; font-weight: 700; color: var(--text-primary); cursor: pointer;
+}
+.etf-ranges button.active { background: var(--primary-blue); border-color: var(--primary-blue); color: #fff; }
+.etf-empty-chart { padding: 2rem 0; text-align: center; color: var(--text-secondary); }

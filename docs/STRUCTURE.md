@@ -21,6 +21,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `WatchlistController.php` - `/watchlist` page (`index`), polling JSON (`data`), follow (`store`, POST) / unfollow (`destroy`, DELETE)
   - `CompanyProfileController.php` - Company profile page `/company/{symbol}` (`show`) + AJAX first-visit loader / manual refresh (`load`, POST, `?force=1` is rate-limited). Cached profile → instant server-rendered page; none yet → light shell whose JS loads it once then reloads
   - `FundController.php` - Open-ended fund catalog: `index` (filter type/owner/text, sort by any return window), `show`, `detail` (JSON: NAV history + holdings + per-window stats), `compare` (≤4 funds)
+  - `EtfController.php` - ETF / listed-fund pages: `index` (`/etf`, filter kind/index/text, sort by liquidity or any return window, compare picker → `/stock/compare?symbols=`) and `show` (`/etf/{symbol}`: price, liquidity, 52-week range, closing-price chart, return/drawdown/volatility table, funds tracking the same index). Also passes the signed-in user's own ★ list
   - `AiController.php` - AI market prediction
 
 - **Services**: `app/Frontend/Services/` - Business logic for Frontend
@@ -36,6 +37,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `GoldPriceService.php` - Gold/silver prices (vnstock `sjc_gold_price` + `btmc_goldprice` via `py/get_gold_price.py`): DB-first, first-ever visit loads live once (`SingleFlight`), a page older than 20 min queues one deduplicated `SyncGoldPricesJob`; `page()` builds headline SJC/BTMC quotes with day change, SJC uniform-branch detection, world price in VND/lượng (USD × 37.5/31.1035 × VCB USD sell) and the domestic premium; `history()` for the chart; `sync()`, `refresh()` (120s cooldown), protected `runScript()`
   - `MarketOverviewService.php` - Market overview (KBS via `py/get_market_overview.py`): DB-first with stale-while-revalidate (5 min in session / 6 h outside; first-ever visit loads live once via `SingleFlight`); `overview()` (indices + sparklines, breadth, liquidity vs previous session only once the session is complete, movers), `quotes(symbols)`, `ticker()` (60 s cache, never throws), `sync()` (refuses half-empty payloads), `refresh()`, `queueRefresh()`, `isMarketOpen()`, protected `runScript()`
   - `StockPriceFreshness.php` - Stock page/compare data policy: `ensure()`/`ensureMany()` (never-synced → one short fetch with failure memory, stale → one deduplicated `RefreshStockPricesJob`, unknown → no Python and no `stocks` row), `withLiveBar()`/`liveBar()` (newest session painted from the market snapshot in feed units), `isValidSymbol()` (`\z`, so `"FPT\n"` is rejected)
+  - `EtfService.php` - ETF pages: roster from `py/get_etf_list.py` (`syncAll()` upserts by symbol and prunes delisted funds; first visit loads it once via `SingleFlight`), `catalog()` (rows = live quote from the market snapshot or last two closes converted from feed units, returns 1M/3M/6M/YTD/1Y/3Y, 20-session average traded value; whitelisted sort with NULLs last; filters), `detail()` (windows, YTD, 52-week range, chart series, peers = same tracked index). Per-fund series cached 10 min (`etf:series:v1`, dropped by a sync). Python boundary: protected `runListScript()`
   - `WatchlistService.php` - Follow list: `add` (validates ticker shape + listed symbol, idempotent, max 50), `remove`, `rows()` priced from the market snapshot with a last-close fallback (`source` live/eod), 20-session sparkline
   - `PortfolioLedgerService.php` - Buy/sell ledger: `trade()` (buy = weighted-average cost incl. fee; sell = freeze cost basis + realised P&L, reject over-selling; all in one DB transaction), `undo()` (only the newest transaction of a symbol), `logBuy()` (add-stock form), `overview()`/`summary()` (realised P&L, win rate, fees, best/worst, per-symbol)
 
@@ -48,6 +50,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `CompanyFinancialRepository.php` - DB cache for company financials: find(symbol, type, period), upsert, getAllRatiosByPeriod(period) for the screener
   - `CompanyProfileRepository.php` - DB cache for company profiles: find, upsert, staleSymbols(limit), allSymbols
   - `FundRepository.php` - Fund catalog queries: `search(filters)` (NULL returns always sort last; `SORTABLE` whitelist), findByShortName/findManyByShortNames, upsertMany, typeCounts/typeStats/owners/lastSyncedAt
+  - `EtfRepository.php` - `all`, `find`, `upsertMany` (by symbol), `deleteNotIn`, `series(symbols, from)` (daily `[date, close, volume]` per symbol from `stock_prices`)
   - `GoldPriceRepository.php` - Gold quotes: `saveQuotes` (normalises `quoted_at`, SJC only stores a changed price), `latestQuotes(metal)` (newest row per source/product/branch), `quoteBefore`, `history`, `latestWorldPrice`, `lastSyncedAt`, `count`
   - `MarketSnapshotRepository.php` - `latest(withQuotes)`, `previous()`, `save()` (upsert by trade date; only the newest session keeps the quote map)
   - `WatchlistRepository.php` - symbols (newest first), has, count, add (idempotent), remove
@@ -56,6 +59,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - **Interfaces**: `app/Frontend/Interfaces/` - Contracts for Frontend
   - `StockRepositoryInterface.php` — includes `getLatestPrices(symbols)`
   - `ExchangeRateRepositoryInterface.php`
+  - `EtfRepositoryInterface.php` — all, find, count, lastSyncedAt, upsertMany, deleteNotIn, series
   - `GoldPriceRepositoryInterface.php` — saveQuotes, latestQuotes, quoteBefore, history, exists, latestWorldPrice, lastSyncedAt, count
   - `MarketSnapshotRepositoryInterface.php` — latest, previous, save
   - `WatchlistRepositoryInterface.php` — symbols, has, count, add, remove
@@ -134,6 +138,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
   - `CompanyFinancial.php` - DB cache for company financial data; fields: symbol, type, period, raw_data (JSON), synced_at; STALE_DAYS=30
   - `CompanyProfile.php` - DB cache of one company's whole profile (symbol unique, `data` JSON, synced_at); `STALE_DAYS=3`, `isStale()`
   - `Fund.php` - One open-ended fund (Fmarket): identity, `type_code` (STOCK/BOND/BALANCED/MMF/OTHER, derived from the Vietnamese label by `typeCodeFromLabel()`), fee, NAV, return columns `nav_change_*` (NULL = fund too young); `TYPE_LABELS`, `RETURN_COLUMNS`
+  - `Etf.php` - One ETF / listed closed-end fund (`symbol` unique = `stocks.symbol`, `name`, `name_en`, `exchange`, `kind` etf|closed); `manager` and `tracked_index` accessors parse the name via `EtfMeta`. Prices are the normal `stocks`/`stock_prices` rows
   - `GoldPrice.php` - One gold/silver quote (`source` SJC|BTMC, `metal`, `product`, `branch`, `buy_price`/`sell_price` whole VND per lượng, `world_price` USD/oz, `quoted_at` UTC); unique per source+product+branch+quoted_at; `spread` and `display_name` accessors
   - `MarketSnapshot.php` - One trading session's market overview (`data` JSON, `quotes` JSON on the newest row only, `trade_date` cast `date:Y-m-d` so upserts match on every DB)
   - `WatchlistItem.php` - user_id + symbol (unique pair, cascade on user delete)
@@ -146,6 +151,8 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Support/PythonRunner.php` - **Mandatory** wrapper for every `py/*.py` call (`run()`/`runAndDecodeJson()`) — wraps `exec()` with the Unix `timeout` utility so a hung Python subprocess can't block a worker/request past a configured ceiling, which plain `exec()` + Laravel's own job `--timeout` cannot guarantee (pcntl signal delivery doesn't interrupt a blocked syscall). See `docs/PYTHON_INTEGRATION.md` for the full per-call-site timeout table and the real bug this fixes.
 - `app/Support/SingleFlight.php` - `run(key, cached, produce)`: when N requests miss the same cache at once only ONE runs the expensive producer (a ~4s Python subprocess); the rest wait on a `Cache::lock` and re-read the result. Used by `CompanyProfileService` and `FundService`
 - `app/Support/DatabaseBackup.php` - mysqldump → `<root>/<year>/<month>/<day>/<db>_db.zip` (root = `config/backup.php` `path` or `<parent of project>/database_backup`, bind-mounted at `/backups` in Docker); truncation check, validates the zip, `latest()`/`isFresh()`, never deletes. Restore steps: `docs/DOCKER.md` §6b
+- `app/Support/EtfMeta.php` - Pure: registered name → manager (SSIAM, DCVFM, …), tracked index (VN30, VNX50, VNDiamond, …), `kind()` etf/closed, `shortName()`, `indexNote()` (only for indices we are sure about). Unrecognised names give null, never a guess
+- `app/Support/EtfMetrics.php` - Pure maths over `[date, close, volume]`: `stats()` (return/drawdown/volatility via `FundMetrics`, but NULL when the history does not cover the window), `ytd()` (from the previous year's last close; null for a fund listed this year), `averageValue()` (liquidity), `range52w()`
 - `app/Support/TradingCalendar.php` - `lastCompletedSession()` (weekday ≥ 15:15 VN → that day, otherwise the previous weekday; Sat/Sun/Monday morning → Friday) and `isSessionOpen()`; holidays unknown by design
 - *(AI chat)* `resources/frontend/js/shared/ai-chat.js` (`initAiChat()`: popup wiring with addEventListener — the layout script is an ES module, so inline `onclick` cannot reach its functions), `shared/ai-text.js` (`formatAiText()`: escape first, then Markdown-lite → safe HTML incl. tables), used by `layouts/app.js` and `index.js` (home prediction)
 - *(admin UI)* `resources/views/layouts/admin.blade.php` (shell), `resources/frontend/css/admin/app.css` (Tabler 1.5 + design tokens + components), `resources/frontend/js/admin/app.js` + `helpers.js` (palette, theme, toasts, confirm dialog)
@@ -173,6 +180,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Console/Commands/SyncCompanyFinancials.php` - Sync company financials to DB cache; `--dispatch` mode pre-filters fully-fresh symbols
 - `app/Console/Commands/SyncCompanyProfiles.php` - `sync:company-profiles`: refresh stale cached profiles (`--symbol=`, `--seed` also adds not-yet-cached `stocks`, `--limit=50`, `--dispatch`)
 - `app/Console/Commands/SyncFunds.php` - `sync:funds`: one Fmarket call updates every fund's NAV/returns (scheduled daily 18:30)
+- `app/Console/Commands/SyncEtfs.php` - `sync:etfs`: refresh the ETF/fund roster (scheduled weekly, Sunday 03:30 Asia/Ho_Chi_Minh; prices come from `sync:stock-prices`)
 - `app/Console/Commands/SyncGoldPrices.php` - `sync:gold-prices`: fetch SJC + BTMC + world gold and store new quotes (scheduled every 15 min, 07:00–19:00 Asia/Ho_Chi_Minh)
 - `app/Console/Commands/SyncMarketOverview.php` - `sync:market-overview`: one KBS call → snapshot (scheduled every 5 min Mon–Fri 09:00–15:10 + 18:00 Asia/Ho_Chi_Minh)
 - `app/Console/Commands/SyncPortfolioPrices.php` - `sync:portfolio-prices`: refresh every active portfolio's `current_price` from the latest `StockPrice` and fire target/stop-loss email alerts
@@ -214,6 +222,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 ### Python Scripts (`py/`)
 - `get_stock.py` - Daily OHLCV history for one or more symbols: KBS-direct (stdlib HTTPS, ~0.25 s, no vnstock import) → vnstock KBS → vnstock VCI; optional start/end for incremental refreshes
 - `get_exchange_rate.py` - Fetch VCB exchange rates by date or last N days
+- `get_etf_list.py` - Roster of ETFs and listed closed-end funds from the KBS listing (type `fund`)
 - `get_gold_price.py` - Fetch SJC + BTMC gold/silver prices and the world gold price (vnstock), cross-checking SJC against BTMC
 - `get_market_overview.py` - Whole-market snapshot from KBS: indices, breadth, liquidity, movers, a quote per symbol (one board request)
 - `get_hot_industries.py` - Fetch hot industry stocks (Banking, Real Estate, IT)

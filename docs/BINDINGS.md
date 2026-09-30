@@ -15,6 +15,7 @@
 | `App\Frontend\Interfaces\CompanyFinancialRepositoryInterface` | `App\Frontend\Repositories\CompanyFinancialRepository` | Injected into `CompanyFinancialService` |
 | `App\Frontend\Interfaces\CompanyProfileRepositoryInterface` | `App\Frontend\Repositories\CompanyProfileRepository` | Injected into `CompanyProfileService` |
 | `App\Frontend\Interfaces\FundRepositoryInterface` | `App\Frontend\Repositories\FundRepository` | Injected into `FundService` |
+| `App\Frontend\Interfaces\EtfRepositoryInterface` | `App\Frontend\Repositories\EtfRepository` | Injected into `EtfService` |
 | `App\Frontend\Interfaces\GoldPriceRepositoryInterface` | `App\Frontend\Repositories\GoldPriceRepository` | Injected into `GoldPriceService` |
 | `App\Frontend\Interfaces\MarketSnapshotRepositoryInterface` | `App\Frontend\Repositories\MarketSnapshotRepository` | Injected into `MarketOverviewService` |
 | `App\Frontend\Interfaces\WatchlistRepositoryInterface` | `App\Frontend\Repositories\WatchlistRepository` | Injected into `WatchlistService` |
@@ -31,7 +32,7 @@
 | `App\Backend\Interfaces\PermissionRepositoryInterface` | `App\Backend\Repositories\PermissionRepository` | Injected into `App\Backend\Services\PermissionService` (Admin) |
 | `App\Backend\Interfaces\PermissionServiceInterface` | `App\Backend\Services\PermissionService` | Injected into `App\Backend\Controllers\PermissionController` (Admin) |
 
-> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService`, `CompanyProfileService`, `FundService`, `GoldPriceService`, `MarketOverviewService`, `WatchlistService`, `PortfolioLedgerService`, `StockPriceFreshness` are **not** bound via interfaces — they are injected directly as concrete classes.
+> **Note**: `StockService`, `AiService`, `ExchangeRateService`, `PortfolioService`, `CompanyFinancialService`, `CompanyProfileService`, `FundService`, `GoldPriceService`, `MarketOverviewService`, `WatchlistService`, `PortfolioLedgerService`, `StockPriceFreshness`, `EtfService` are **not** bound via interfaces — they are injected directly as concrete classes.
 
 ## Adding a New Binding
 

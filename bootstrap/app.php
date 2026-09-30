@@ -89,6 +89,12 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping()
             ->runInBackground();
 
+        // ETF / listed-fund roster: changes a few times a year, so weekly is plenty (prices come from sync:stock-prices)
+        $schedule->command('sync:etfs')->weeklyOn(0, '03:30')
+            ->timezone('Asia/Ho_Chi_Minh')
+            ->withoutOverlapping()
+            ->runInBackground();
+
         // Open-ended fund catalog: Fmarket publishes NAV in the evening, one call refreshes all funds
         $schedule->command('sync:funds')->dailyAt('18:30')
             ->withoutOverlapping()

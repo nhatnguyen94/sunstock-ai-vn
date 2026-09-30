@@ -6,6 +6,30 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## ETF_PAGES - September 30, 2026
+
+### Summary
+Owner asked for an ETF page after the vnstock capability survey (idea #8). Explored what the feed really has for ETFs before designing anything.
+
+### What the data allows (verified with the app's key, tier community 60/min)
+- **Available**: roster with Vietnamese/English names (KBS listing, type `fund`, 24 funds on HOSE: 21 ETFs + 3 closed-end funds), 8-year daily history (already stored by the price sync), live board (price, reference, ceiling/floor, volume, value, 3-level bid/ask).
+- **Not available**: NAV, iNAV, holdings, fees, tracked index. `Company` (KBS and VCI) rejects ETFs, and Fmarket lists only the 68 open-end funds. So there is **no premium/discount to NAV** and the page says so instead of inventing it.
+
+### Changes
+- **`py/get_etf_list.py`** + `sync:etfs` (weekly, Sunday 03:30) → `etfs` table (migration `2026_09_30_000001`), model `Etf`; first visit loads it once (`SingleFlight`); a successful sync prunes delisted symbols.
+- **`EtfMeta`** parses manager and tracked index out of the registered name (SSIAM, DCVFM, MAFM, Kim Growth, VinaCapital, … / VN30, VNX50, VNDiamond, VN100, …) — unrecognised names stay null; **`EtfMetrics`** computes 1M/3M/6M/1Y/3Y return, drawdown, volatility, YTD, 52-week range and 20-session average traded value from `stock_prices` (a window the history does not cover is NULL, never silently shortened; YTD is NULL for a fund listed this year).
+- **`EtfService`/`EtfRepository`/`EtfController`**, routes `/etf` and `/etf/{symbol}`, navbar entry under *Cổ phiếu*, Admin Sync Status entry + trigger.
+- **Pages** (reusing the fund look): catalog with kind tabs (ETF / quỹ đóng), index filter, text search, sortable columns (default: liquidity), an "ETF là gì?" explainer, ★ watch buttons and a compare bar that opens the existing `/stock/compare?symbols=` chart; detail with price/liquidity/52-week KPIs, closing-price chart (3T/6T/1N/all with volume), return-and-risk table, and a table of the other funds tracking the same index (which is the useful ETF comparison: same index, different liquidity and tracking).
+- **Fixed on the way**: the compare page still said "2/4 ma" (missing diacritic).
+
+### Tests
+Group `etf`: 53 tests (EtfMeta on the 24 real names, EtfMetrics, EtfService with real SQL, controller/markup, command, schedule, admin). Full suite: 508 passed (was 455).
+
+### Verified / not verified
+Rendered in headless Chrome against real data (list, detail with chart and range switch, compare handoff): no console errors; figures cross-checked (E1VFVN30 +72.3% over 3 years vs the other VN30 ETFs 68–71%). Not verified: behaviour on a day the market snapshot is missing (falls back to last close, covered by a test), and iNAV/NAV-based metrics (no data source).
+
+---
+
 ## CLAUDE_CONFIG_AND_DOCS_REREAD - September 30, 2026
 
 Owner asked to re-read AGENTS.md and every file in `docs/`, and to create a `.claude` folder if useful.

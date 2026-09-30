@@ -115,6 +115,8 @@ resources/
 | `company/show.blade.php` | `css/company/show.css` + `css/shared/charts.css` | `js/company/show.js` |
 | `funds/index.blade.php` | `css/funds/funds.css` | `js/funds/index.js` |
 | `funds/show.blade.php` | `css/funds/funds.css` + `css/shared/charts.css` | `js/funds/show.js` |
+| `etf/index.blade.php` | `css/funds/funds.css` + `css/etf/etf.css` + `css/shared/watchlist.css` | `js/etf/index.js` (+ `js/shared/watchlist-init.js`) |
+| `etf/show.blade.php` | `css/funds/funds.css` + `css/etf/etf.css` + `css/shared/charts.css` + `css/shared/watchlist.css` | `js/etf/show.js` (+ `js/shared/watchlist-init.js`) |
 | `funds/compare.blade.php` | `css/funds/funds.css` + `css/shared/charts.css` | `js/funds/compare.js` |
 | `portfolio/index.blade.php` | `css/portfolio/portfolio.css` | `js/portfolio/index.js` |
 | `portfolio/create.blade.php`, `portfolio/edit.blade.php`, `portfolio/choose.blade.php` | `css/portfolio/portfolio.css` | *(none)* |
@@ -238,6 +240,13 @@ npm run build
 - Extra indicator panes are extra **panes of the same chart** (`chart.addSeries(Series, opts, paneIndex)`), so the time axis and crosshair stay in sync; removing a pane's last series removes the pane.
 - A chart created inside a hidden container is re-fitted automatically on its first real size (`makeChart`).
 - Pure logic (indicators, series helpers) stays DOM-free and is covered by `npm test` (see docs/TESTING.md).
+
+## ETF pages
+
+- The ETF pages reuse the fund look (`fd-*` classes in `css/funds/funds.css`); `css/etf/etf.css` only adds the explainer, the index/manager tags and the detail extras. Do not duplicate the fund styles.
+- Prices are shown in **whole VND**. The embedded chart series is in feed units (thousands), so `js/etf/show.js` multiplies by 1000; the range switch slices client-side with `sliceByDays`.
+- The compare picker sends the ticked symbols to the existing `/stock/compare?symbols=` page (it accepts any listed symbol), instead of a second compare implementation.
+- A Blade directive must not touch a word: `tuần@if(...)` is not parsed as `@if` but its `@endif` is, which is a syntax error — put a space before inline directives.
 
 ## Search autocomplete conventions
 

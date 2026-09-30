@@ -19,6 +19,8 @@
 | GET | `/funds/compare` | `funds.compare` | `FundController` | `compare` |
 | GET | `/funds/{code}` | `funds.show` | `FundController` | `show` |
 | GET | `/funds/{code}/detail` | `funds.detail` | `FundController` | `detail` |
+| GET | `/etf` | `etf.index` | `EtfController` | `index` |
+| GET | `/etf/{symbol}` | `etf.show` | `EtfController` | `show` |
 | GET | `/gold` | `gold.index` | `GoldPriceController` | `index` |
 | GET | `/market/data` | `market.data` | `MarketController` | `data` |
 | GET | `/gold/history/{id}` | `gold.history` | `GoldPriceController` | `history` |
@@ -31,7 +33,7 @@
 | POST | `/ai-chat` | *(none)* | `StockController` | `aiChat` |
 | POST | `/ai-predict` | *(none)* | `AiController` | `predict` |
 
-**Route notes**: `{symbol}` must match `[A-Za-z0-9]{2,10}` and `{code}` `[A-Za-z0-9._-]{2,40}` (route constraints — anything else is a 404 before a controller runs). `/funds/compare` is declared above `/funds/{code}` so it is not swallowed by it. `POST /company/{symbol}/load?force=1` is additionally rate-limited (one forced refresh per symbol per 5 minutes → 429).
+**Route notes**: `/etf/{symbol}` must match `[A-Za-z0-9]{3,12}`; the service additionally rejects anything but `^[A-Z0-9]{3,12}\z` and unknown symbols are 404. `{symbol}` must match `[A-Za-z0-9]{2,10}` and `{code}` `[A-Za-z0-9._-]{2,40}` (route constraints — anything else is a 404 before a controller runs). `/funds/compare` is declared above `/funds/{code}` so it is not swallowed by it. `POST /company/{symbol}/load?force=1` is additionally rate-limited (one forced refresh per symbol per 5 minutes → 429).
 
 **Throttle notes**: the data-heavy group (`/stock*`, `/company/*`, `/funds*`, `/exchange-rate*`) → 30 req/min; `/ai-chat` and `/ai-predict` → 10 req/min; `/login` and `/register` → 5 req/min
 

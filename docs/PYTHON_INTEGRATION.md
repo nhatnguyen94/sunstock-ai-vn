@@ -113,6 +113,14 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 - **Args**: None — `FundService::runListScript()` (`sync:funds`, first catalog visit)
 - **Output**: `{"funds": [...]}` or `{"error"}`
 
+### `py/get_etf_list.py`
+- **Purpose**: The roster of every ETF and listed closed-end fund on HOSE (24 today) — symbol, Vietnamese/English name, exchange
+- **Args**: None — `EtfService::runListScript()` (`sync:etfs`, first `/etf` visit)
+- **Source**: KBS `Listing.symbols_by_exchange()` (~1.5 s), rows whose `type` is `fund`
+- **Output**: `{"etfs": [{symbol, name, name_en, exchange}]}` or `{"error"}`
+- **What vnstock does NOT have for ETFs** (verified with the key, 2026-09-30): no NAV/iNAV, holdings or fee; `Company(...)` (KBS and VCI) rejects them ("chỉ cổ phiếu mới có thông tin"); Fmarket `Fund().listing()` returns only the 68 open-end funds, no ETF. So the pages compute returns, drawdown, volatility and liquidity from the stored `stock_prices` (the nightly price sync already covers ETF symbols) and the market snapshot, and never show a premium/discount to NAV.
+- **Cache**: `etfs` table (roster only), weekly `sync:etfs` (Sunday 03:30 VN); the sync prunes symbols missing from a successful answer.
+
 ### `py/get_fund_detail.py`
 - **Purpose**: One fund's NAV history + asset/industry allocation + top holdings (4 concurrent Fmarket calls)
 - **Args**: Fund short name (regex-validated) — `FundService::runDetailScript()` via `GET /funds/{code}/detail`
@@ -153,6 +161,7 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 | `BackfillStockPrices` (inline mode) | `get_stock.py` | Manual terminal run (`--dispatch` not passed) | 550s |
 | `CompanyProfileService::runScript()` | `get_company_profile.py` | Web request (first-visit loader / forced refresh) + `SyncCompanyProfileJob` (`$timeout=90`) + `sync:company-profiles` | 60s |
 | `FundService::runListScript()` | `get_fund_list.py` | `sync:funds` + first catalog visit | 60s |
+| `EtfService::runListScript()` | `get_etf_list.py` | `sync:etfs` (weekly) + first `/etf` visit | 60s |
 | `FundService::runDetailScript()` | `get_fund_detail.py` | Web request (`GET /funds/{code}/detail`) | 60s |
 | `GoldPriceService::runScript()` | `get_gold_price.py` | Web request (first visit / "Làm mới") + `SyncGoldPricesJob` (`$timeout=90`) + `sync:gold-prices` (every 15 min, 07:00–19:00 VN) | 60s |
 | `MarketOverviewService::runScript()` | `get_market_overview.py` | Web request (first visit only) + `SyncMarketOverviewJob` (`$timeout=90`) + `sync:market-overview` (every 5 min in session, 18:00) | 60s |
