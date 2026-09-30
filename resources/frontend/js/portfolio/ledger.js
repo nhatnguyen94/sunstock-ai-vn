@@ -13,7 +13,7 @@ export function estimateFee(type, qty, price) {
 }
 
 /**
- * @returns {{html: string, tone?: string}|null}
+ * @returns {{html: string, tone?: string, blocked?: boolean}|null}  `blocked`: the trade cannot be done (the form disables Submit)
  *  buy  -> total cost and the new average cost per share (fee included)
  *  sell -> proceeds after fee and the realised P&L against the average cost
  */
@@ -33,8 +33,8 @@ export function tradePreview({ type, qty, price, fee = 0, holding = null }) {
         };
     }
 
-    if (!holding) return { tone: 'warn', html: 'Mã này chưa có trong danh mục nên không thể bán.' };
-    if (qty > holding.qty) return { tone: 'warn', html: `Bạn chỉ đang giữ <b>${fmt(holding.qty)}</b> cp, không thể bán ${fmt(qty)}.` };
+    if (!holding) return { tone: 'warn', blocked: true, html: 'Mã này chưa có trong danh mục nên không thể bán.' };
+    if (qty > holding.qty) return { tone: 'warn', blocked: true, html: `Bạn chỉ đang giữ <b>${fmt(holding.qty)}</b> cp, không thể bán ${fmt(qty)}.` };
 
     const proceeds = qty * price - fee;
     const pnl = proceeds - qty * holding.avg;

@@ -266,6 +266,12 @@ npm run build
 - Destructive actions use Bootstrap **modals** (never `confirm()`), and every handler is attached with `addEventListener` in the page's module — an ES module's functions are not global, so inline `onclick="fn()"` silently does nothing (this is why the old "Cập nhật giá" / edit buttons were dead).
 - Money is **whole VND** everywhere in the UI and DB; the price feed is thousands of VND — convert only through `App\Support\PriceUnit`.
 
+### Portfolio insights (show page)
+- `PortfolioInsightsService::enhance()` runs in the controller and overrides `performance`, `holdings`, `suggestions`; it adds `risk`, `benchmarks`, `sectors`. Every card has an honest empty state (no ledger, fewer than 20 sessions, benchmark history too short) — never a number from too little data.
+- The orange "Nếu mua <index>" line on the performance chart is the SAME cash flows invested in the index (units bought at each buy, sold at each sell), not two return lines: it answers "did my choices beat just buying the index?". `window.__PF__.benchmarks[symbol].series` shares its dates with `performance` (same thinning).
+- Colour a number by its sign, never by its rank: the "best" mover of a losing portfolio is still red.
+- The trade modal disables Submit when `tradePreview()` returns `blocked`; server validation messages are Vietnamese (`storeTransaction`).
+
 ### Market widgets, watchlist and ledger (frontend conventions)
 - **First paint is server-rendered, then JS takes over**: the market section's index cards, breadth and liquidity come from Blade; the movers table and the watchlist card are rendered by `js/market/home.js` from `window.__MARKET__` (JSON) so tabs/exchange chips need no round trip, and the same renderer applies the 60 s poll (`GET /market/data`, only while the market is open and the tab is visible).
 - **★ buttons** are plain `data-watch="SYMBOL"` elements handled by ONE delegated listener in `js/shared/watchlist.js` (`initWatchlistStars({auth, watched})`, `paintStars(root)` after rendering rows, `watchlist:change` event). Stock/company pages load it through `js/shared/watchlist-init.js` + `window.__WATCH__`.

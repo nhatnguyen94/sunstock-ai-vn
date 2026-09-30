@@ -2,6 +2,7 @@
 
 namespace App\Frontend\Controllers;
 
+use App\Frontend\Services\PortfolioInsightsService;
 use App\Frontend\Services\PortfolioLedgerService;
 use App\Frontend\Services\PortfolioService;
 use App\Support\ActivityLogger;
@@ -16,7 +17,8 @@ class PortfolioController extends Controller
 {
     public function __construct(
         private PortfolioService $portfolioService,
-        private PortfolioLedgerService $ledger
+        private PortfolioLedgerService $ledger,
+        private PortfolioInsightsService $insights
     ) {}
 
     /**
@@ -58,7 +60,7 @@ class PortfolioController extends Controller
             abort(404, 'Portfolio không tồn tại hoặc bạn không có quyền truy cập.');
         }
 
-        return view('portfolio.show', $analytics);
+        return view('portfolio.show', $this->insights->enhance($analytics));
     }
 
     /**
@@ -427,6 +429,20 @@ class PortfolioController extends Controller
             'quantity.min' => 'Số lượng phải lớn hơn 0.',
             'price.min' => 'Giá tính theo VNĐ, tối thiểu 100 (ví dụ 85000 chứ không phải 85).',
             'traded_at.before_or_equal' => 'Ngày giao dịch không được vượt quá hôm nay.',
+            'traded_at.required' => 'Hãy chọn ngày giao dịch.',
+            'traded_at.date' => 'Ngày giao dịch không hợp lệ.',
+            'stock_symbol.required' => 'Hãy nhập mã cổ phiếu.',
+            'stock_symbol.max' => 'Mã cổ phiếu tối đa 12 ký tự.',
+            'quantity.required' => 'Hãy nhập số lượng.',
+            'quantity.integer' => 'Số lượng phải là số nguyên.',
+            'quantity.max' => 'Số lượng quá lớn.',
+            'price.required' => 'Hãy nhập giá (VNĐ / cổ phiếu).',
+            'price.numeric' => 'Giá phải là một số.',
+            'price.max' => 'Giá quá lớn, hãy kiểm tra lại (tính theo VNĐ).',
+            'fee.numeric' => 'Phí phải là một số.',
+            'fee.min' => 'Phí không được âm.',
+            'fee.max' => 'Phí quá lớn, hãy kiểm tra lại số lượng và giá.',
+            'notes.max' => 'Ghi chú tối đa 500 ký tự.',
         ]);
 
         $result = $this->ledger->trade($id, Auth::id(), $validated);

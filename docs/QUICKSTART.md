@@ -103,6 +103,12 @@ php artisan queue:work
 | `php artisan config:clear` | Clear config cache |
 | `composer dump-autoload` | Rebuild class autoloader |
 
+## Demo accounts (local only)
+```bash
+php artisan db:seed --class=DemoUsersSeeder   # demo1..demo5@sunstock.test, each with a different sample portfolio
+```
+The shared password is `DemoUsersSeeder::PASSWORD`. It is public on purpose, so the seeder refuses to run outside the local/testing environments. Re-running it changes nothing.
+
 ## Default Admin Credentials
 > Check `database/seeders/AdminUserSeeder.php` for credentials.
 

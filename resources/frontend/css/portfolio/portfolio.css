@@ -215,3 +215,23 @@
     .pf-summary { grid-template-columns: 1fr; }
     .pf-chart { height: 260px; }
 }
+
+/* ── Market comparison, risk and sector cards ─────────────────────────────── */
+.pf-bench-toggle { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-bottom: .8rem; font-size: .82rem; color: var(--text-secondary); }
+.pf-bench-toggle button {
+    background: #fff; border: 1px solid var(--border-color); border-radius: 20px; padding: .25rem .8rem;
+    font-size: .8rem; font-weight: 700; color: var(--text-primary); cursor: pointer;
+}
+.pf-bench-toggle button.active { background: var(--primary-blue); border-color: var(--primary-blue); color: #fff; }
+.pf-stat { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .5rem 0; border-bottom: 1px dashed var(--border-color); font-size: .9rem; }
+.pf-stat:last-of-type { border-bottom: 0; }
+.pf-stat span { color: var(--text-secondary); }
+.pf-stat small { color: var(--text-secondary); font-size: .72rem; }
+.pf-stat strong { font-variant-numeric: tabular-nums; font-size: 1rem; }
+.pf-stat strong.up { color: var(--success-green); }
+.pf-stat strong.down { color: var(--danger-red); }
+.pf-bench-row { margin-top: .4rem; padding-top: .4rem; border-top: 1px solid var(--border-color); }
+.pf-verdict { display: flex; align-items: center; gap: .5rem; font-size: .88rem; border-radius: 10px; padding: .5rem .7rem; margin: .3rem 0; }
+.pf-verdict.good { background: #ecfdf5; color: #047857; }
+.pf-verdict.bad { background: #fef2f2; color: #b91c1c; }
+.pf-hint.warn { background: #fffbeb; color: #92400e; border-radius: 10px; padding: .5rem .7rem; }

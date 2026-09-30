@@ -96,6 +96,11 @@ if (cfg.allocation && $id('pfAllocChart')) {
     donut($id('pfAllocChart'), { ...cfg.allocation, centerLabel: 'Tỷ trọng' });
 }
 
+// ── Sector donut ──────────────────────────────────────────────────────────
+if (cfg.sectors?.series?.length && $id('pfSectorChart')) {
+    donut($id('pfSectorChart'), { ...cfg.sectors, centerLabel: 'Ngành' });
+}
+
 // ── Performance chart ───────────────────────────────────────────────────────
 const perfEl = $id('pfPerfChart');
 if (perfEl && Array.isArray(cfg.performance) && cfg.performance.length > 1) {
@@ -110,8 +115,26 @@ if (perfEl && Array.isArray(cfg.performance) && cfg.performance.length > 1) {
         priceFormat: { type: 'custom', formatter: fmtInt, minMove: 1 },
     });
 
+    // The same cash flows invested in an index instead (hidden until a benchmark is picked)
+    const bench = chart.addSeries(LineSeries, {
+        color: '#f59e0b', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, visible: false,
+        priceFormat: { type: 'custom', formatter: fmtInt, minMove: 1 },
+    });
+    let benchName = '';
+
     value.setData(cleanSeries(cfg.performance.map((p) => ({ time: p.date, value: p.value }))));
     invested.setData(cleanSeries(cfg.performance.map((p) => ({ time: p.date, value: p.invested }))));
+
+    const toggle = $id('pfBenchToggle');
+    toggle?.querySelectorAll('button').forEach((btn) => btn.addEventListener('click', () => {
+        const b = cfg.benchmarks?.[btn.dataset.bench];
+        toggle.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === btn));
+        benchName = b ? b.label : '';
+        $id('pfBenchLegend').hidden = !b;
+        $id('pfBenchName').textContent = benchName ? 'Nếu mua ' + benchName : '';
+        bench.applyOptions({ visible: !!b });
+        if (b) bench.setData(cleanSeries(b.series.map((p) => ({ time: p.date, value: p.value }))));
+    }));
 
     attachLegend(chart, perfEl, (param) => {
         const v = param.seriesData.get(value)?.value;
@@ -119,9 +142,11 @@ if (perfEl && Array.isArray(cfg.performance) && cfg.performance.length > 1) {
         if (v === undefined) return null;
         const pl = i ? ((v / i - 1) * 100) : null;
         const cls = pl === null ? '' : pl >= 0 ? 'up' : 'down';
+        const bv = benchName ? param.seriesData.get(bench)?.value : undefined;
         return `<span class="lwc-date">${param.time.split('-').reverse().join('/')}</span>` +
             `<span>Giá trị <b>${fmtInt(v)} ₫</b></span><span>Vốn <b>${fmtInt(i ?? 0)} ₫</b></span>` +
-            (pl === null ? '' : `<span class="${cls}">${pl >= 0 ? '+' : ''}${pl.toFixed(2).replace('.', ',')}%</span>`);
+            (pl === null ? '' : `<span class="${cls}">${pl >= 0 ? '+' : ''}${pl.toFixed(2).replace('.', ',')}%</span>`) +
+            (bv === undefined ? '' : `<span>${benchName} <b>${fmtInt(bv)} ₫</b></span>`);
     });
 
     chart.timeScale().fitContent();
@@ -154,6 +179,7 @@ if (tradeForm) {
 
         const p = tradePreview({ type, qty, price, fee: parseFloat(el.fee.value) || 0, holding: held[symbol] || null });
         el.info.hidden = !p;
+        el.submit.disabled = !!p?.blocked;   // an impossible sale is explained above the button, not bounced back by the server
         if (p) {
             el.info.className = 'pf-trade-info ' + (p.tone || '');
             el.info.innerHTML = p.html;

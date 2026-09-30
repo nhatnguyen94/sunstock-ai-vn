@@ -75,6 +75,13 @@ test('tradePreview warns about impossible sells and stays quiet without numbers'
     assert.match(plain(tradePreview({ type: 'buy', qty: 0, price: 0, holding: { qty: 100, avg: 80000 } }).html), /Đang giữ <b>100<\/b> cp/);
 });
 
+test('an impossible sale is marked blocked (the form disables Submit); possible trades are not', () => {
+    assert.equal(tradePreview({ type: 'sell', qty: 5, price: 1000, holding: null }).blocked, true);
+    assert.equal(tradePreview({ type: 'sell', qty: 500, price: 90000, holding: { qty: 100, avg: 80000 } }).blocked, true);
+    assert.notEqual(tradePreview({ type: 'sell', qty: 100, price: 90000, holding: { qty: 100, avg: 80000 } }).blocked, true);
+    assert.notEqual(tradePreview({ type: 'buy', qty: 100, price: 90000, holding: null }).blocked, true);
+});
+
 test('exchangeLabel maps the stored codes to what people call the exchanges', () => {
     assert.equal(exchangeLabel('HSX'), 'HOSE');
     assert.equal(exchangeLabel('UPCOM'), 'UPCoM');

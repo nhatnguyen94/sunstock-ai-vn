@@ -17,6 +17,8 @@
             'qty' => $h['quantity'], 'avg' => round($h['buy_price'], 2), 'price' => round($h['current_price']),
         ]])->all(),
         'performance' => $performance,
+        'benchmarks'  => collect($benchmarks)->map(fn ($b) => ['label' => $b['label'], 'series' => array_map(fn ($p) => ['date' => $p['date'], 'value' => $p['value']], $b['series'])])->all(),
+        'sectors'     => ['labels' => array_column($sectors, 'name'), 'series' => array_column($sectors, 'percent')],
         'allocation'  => [
             'labels' => array_column($allocation, 'symbol'),
             'series' => array_map(fn ($a) => round($a['percent'], 2), $allocation),
@@ -106,8 +108,9 @@
             <div class="pf-kpi-label">Mã nổi bật</div>
             @if($best)
                 <div class="pf-kpi-sub" style="margin-top:.35rem">
-                    <span class="up">▲ <strong>{{ $best['symbol'] }}</strong> {{ F::percent($best['pnl_percent'], 1, true) }}</span>
-                    @if($worst)<br><span class="down">▼ <strong>{{ $worst['symbol'] }}</strong> {{ F::percent($worst['pnl_percent'], 1, true) }}</span>@endif
+                    {{-- colour by the sign of the number, not by rank: the "best" mover of a losing portfolio is still a loss --}}
+                    <span class="{{ $best['pnl_percent'] >= 0 ? 'up' : 'down' }}">▲ <strong>{{ $best['symbol'] }}</strong> {{ F::percent($best['pnl_percent'], 1, true) }}</span>
+                    @if($worst)<br><span class="{{ $worst['pnl_percent'] >= 0 ? 'up' : 'down' }}">▼ <strong>{{ $worst['symbol'] }}</strong> {{ F::percent($worst['pnl_percent'], 1, true) }}</span>@endif
                 </div>
             @else
                 <div class="pf-kpi-sub" style="margin-top:.35rem">Thêm cổ phiếu để xem mã tốt nhất / kém nhất.</div>
@@ -144,8 +147,8 @@
                 <div class="pf-kpi-label">Lệnh bán tốt / tệ nhất</div>
                 @if($ls['best'] !== null)
                     <div class="pf-kpi-sub" style="margin-top:.35rem">
-                        <span class="{{ $ls['best'] >= 0 ? 'up' : 'down' }}">▲ <strong>{{ $ls['best'] > 0 ? '+' : '' }}{{ F::number($ls['best']) }}₫</strong></span><br>
-                        <span class="{{ $ls['worst'] >= 0 ? 'up' : 'down' }}">▼ <strong>{{ $ls['worst'] > 0 ? '+' : '' }}{{ F::number($ls['worst']) }}₫</strong></span>
+                        <span class="{{ $ls['best'] >= 0 ? 'up' : 'down' }}">▲ <strong>{{ $ls['best'] > 0 ? '+' : '' }}{{ F::number($ls['best']) }}₫</strong></span>
+                        @if($ls['worst'] !== $ls['best'])<br><span class="{{ $ls['worst'] >= 0 ? 'up' : 'down' }}">▼ <strong>{{ $ls['worst'] > 0 ? '+' : '' }}{{ F::number($ls['worst']) }}₫</strong></span>@endif
                     </div>
                 @else
                     <div class="pf-kpi-sub" style="margin-top:.35rem">Xuất hiện sau lệnh bán đầu tiên.</div>
@@ -169,11 +172,18 @@
                 <div class="pf-card">
                     <div class="pf-card-head">
                         <h2 class="pf-card-title"><i class="bi bi-graph-up-arrow"></i> Hiệu suất danh mục</h2>
-                        <div class="pf-legend-inline"><span><i style="background:#2563eb"></i>Giá trị</span><span><i style="background:#94a3b8"></i>Vốn đã bỏ ra</span></div>
+                        <div class="pf-legend-inline"><span><i style="background:#2563eb"></i>Giá trị</span><span><i style="background:#94a3b8"></i>Vốn đã bỏ ra</span><span id="pfBenchLegend" hidden><i style="background:#f59e0b"></i><b id="pfBenchName"></b></span></div>
                     </div>
                     <div class="pf-card-body">
+                        @if(count($benchmarks))
+                            <div class="pf-bench-toggle" id="pfBenchToggle" role="group" aria-label="So sánh với">
+                                <span>So sánh với:</span>
+                                <button type="button" class="active" data-bench="">Không</button>
+                                @foreach($benchmarks as $sym => $b)<button type="button" data-bench="{{ $sym }}">{{ $b['label'] }}</button>@endforeach
+                            </div>
+                        @endif
                         <div id="pfPerfChart" class="pf-chart"></div>
-                        <p class="pf-hint">Dựng lại từ giá đóng cửa hằng ngày và ngày mua của từng mã, giả định số lượng giữ nguyên từ ngày mua.</p>
+                        <p class="pf-hint">Dựng lại từ sổ giao dịch (mua, bán từng lệnh) và giá đóng cửa hằng ngày. Đường cam, khi bật, là giá trị nếu mỗi lần bạn mua hay bán đã làm đúng như vậy nhưng với chỉ số đã chọn.</p>
                     </div>
                 </div>
             </div>
@@ -181,6 +191,73 @@
                 <div class="pf-card">
                     <div class="pf-card-head"><h2 class="pf-card-title"><i class="bi bi-pie-chart"></i> Tỷ trọng</h2></div>
                     <div class="pf-card-body"><div id="pfAllocChart"></div></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ── Sector, market comparison and risk ── --}}
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="pf-card">
+                    <div class="pf-card-head"><h2 class="pf-card-title"><i class="bi bi-diagram-3"></i> Theo ngành</h2></div>
+                    <div class="pf-card-body">
+                        @if(count($sectors))
+                            <div id="pfSectorChart"></div>
+                            <p class="pf-hint" style="margin-top:.6rem">Nhóm ngành lấy từ danh sách niêm yết; quỹ ETF gom riêng vì đã tự đa dạng hóa bên trong.</p>
+                        @else
+                            <p class="pf-hint">Chưa có dữ liệu giá để chia theo ngành.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="pf-card">
+                    <div class="pf-card-head"><h2 class="pf-card-title"><i class="bi bi-trophy"></i> So với thị trường</h2></div>
+                    <div class="pf-card-body">
+                        @if(! $risk || $risk['total_return'] === null)
+                            <p class="pf-hint">Cần ít nhất vài phiên giao dịch để so sánh.</p>
+                        @else
+                            <div class="pf-stat"><span>Danh mục <small>(đã loại trừ dòng tiền nạp/rút)</small></span><strong class="{{ $risk['total_return'] >= 0 ? 'up' : 'down' }}">{{ F::percent($risk['total_return'], 2, true) }}</strong></div>
+                            @foreach($benchmarks as $sym => $b)
+                                <div class="pf-bench-row">
+                                    <div class="pf-stat"><span>{{ $b['label'] }} cùng kỳ</span><strong class="{{ ($b['return'] ?? 0) >= 0 ? 'up' : 'down' }}">{{ $b['return'] !== null ? F::percent($b['return'], 2, true) : '—' }}</strong></div>
+                                    @if($b['points_diff'] !== null)
+                                        <div class="pf-verdict {{ $b['points_diff'] >= 0 ? 'good' : 'bad' }}">
+                                            <i class="bi bi-{{ $b['points_diff'] >= 0 ? 'arrow-up-right-circle' : 'arrow-down-right-circle' }}"></i>
+                                            {{ $b['points_diff'] >= 0 ? 'Hơn' : 'Kém' }} {{ $b['label'] }} <strong>{{ number_format(abs($b['points_diff']), 2, ',', '.') }}</strong> điểm phần trăm
+                                        </div>
+                                    @endif
+                                    @if($b['value_diff'] !== null)
+                                        <p class="pf-hint" style="margin:.3rem 0 .8rem">Cùng số tiền, cùng ngày mua bán vào {{ $b['label'] }}, hôm nay bạn có <strong>{{ F::number($b['final_value']) }}₫</strong> (danh mục: {{ F::number($portfolio->current_value) }}₫, {{ $b['value_diff'] >= 0 ? 'hơn' : 'kém' }} {{ F::number(abs($b['value_diff'])) }}₫).</p>
+                                    @endif
+                                    @unless($b['covered'])
+                                        <p class="pf-hint warn"><i class="bi bi-info-circle"></i> Lịch sử {{ $b['label'] }} trong hệ thống mới từ {{ F::date($b['history_from']) }}; đang bổ sung nên so sánh có thể chưa đủ kỳ.</p>
+                                    @endunless
+                                </div>
+                            @endforeach
+                        @endif
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="pf-card">
+                    <div class="pf-card-head"><h2 class="pf-card-title"><i class="bi bi-shield-check"></i> Rủi ro</h2></div>
+                    <div class="pf-card-body">
+                        @if(! $risk || $risk['days'] === 0)
+                            <p class="pf-hint">Chưa đủ dữ liệu để tính rủi ro.</p>
+                        @else
+                            <div class="pf-stat" title="Mức dao động của danh mục, quy ra một năm. Càng cao càng 'rung lắc'."><span>Biến động (năm hóa)</span><strong>{{ $risk['volatility'] !== null ? F::percent($risk['volatility'], 1) : '—' }}</strong></div>
+                            <div class="pf-stat" title="Mức sụt giảm lớn nhất từ một đỉnh xuống đáy kế tiếp, không tính việc nạp/rút tiền."><span>Sụt giảm tối đa</span><strong class="down">{{ F::percent($risk['max_drawdown'], 1) }}</strong></div>
+                            <div class="pf-stat" title="Thị trường tăng/giảm 1% thì danh mục thường tăng/giảm khoảng bấy nhiêu %. Trên 1 là mạnh hơn thị trường."><span>Beta so với VN-Index</span><strong>{{ $risk['beta'] !== null ? number_format($risk['beta'], 2, ',', '.') : '—' }}</strong></div>
+                            @if($risk['best_day'])
+                                <div class="pf-stat"><span>Phiên tốt nhất <small>{{ F::date($risk['best_day']['date']) }}</small></span><strong class="up">{{ F::percent($risk['best_day']['percent'], 2, true) }}</strong></div>
+                                <div class="pf-stat"><span>Phiên tệ nhất <small>{{ F::date($risk['worst_day']['date']) }}</small></span><strong class="down">{{ F::percent($risk['worst_day']['percent'], 2, true) }}</strong></div>
+                            @endif
+                            @if($risk['volatility'] === null)
+                                <p class="pf-hint warn"><i class="bi bi-info-circle"></i> Biến động và beta cần ít nhất {{ \App\Support\PortfolioRisk::MIN_OBSERVATIONS }} phiên có dữ liệu; danh mục mới có {{ $risk['days'] }}.</p>
+                            @endif
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
@@ -289,7 +366,7 @@
                     <div class="pf-card-body">
                         @forelse($suggestions as $s)
                             <div class="pf-alert warn" style="margin-bottom:.6rem"><i class="bi bi-pie-chart"></i>
-                                <div><strong>{{ $s['symbol'] }} chiếm {{ F::percent($s['current_percent'], 1) }} danh mục</strong><span>{{ $s['reason'] }} (gợi ý dưới {{ $s['suggested_percent'] }}%).</span></div></div>
+                                <div><strong>{{ $s['title'] ?? ($s['symbol'] . ' chiếm ' . F::percent($s['current_percent'], 1) . ' danh mục') }}</strong><span>{{ $s['reason'] }}</span></div></div>
                         @empty
                             <div class="pf-alert good" style="margin-bottom:.6rem"><i class="bi bi-check2-circle"></i><div><strong>Tỷ trọng cân đối</strong><span>Không có mã nào chiếm quá 30% danh mục.</span></div></div>
                         @endforelse

@@ -6,6 +6,33 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## PORTFOLIO_AUDIT_AND_INSIGHTS - September 30, 2026
+
+### Summary
+Owner: users lose interest in the portfolio feature. Asked to (1) audit its UI/UX and current features, (2) seed 4–5 more accounts, (3) build wave 1 of the suggested improvements (benchmark comparison, risk, sector split).
+
+### Audit (headless Chrome, five demo accounts, desktop and phone)
+Worked: list/detail/create/edit, refresh prices, buy modal prefill + live preview, buy, over-sell refusal, undo, delete confirmation, CSV exports, menu, add-stock + quote endpoint, ownership isolation (404), phone layout without horizontal scroll, no console errors. Found and fixed:
+- **The value line ignored sales.** It was rebuilt from today's holdings ("as if the current quantity had been held since the buy date"), so a partial sale was invisible and a closed position vanished from history. Now replayed from the ledger.
+- **ETF rows showed the ticker twice** (no name in the symbol list). Names now come from the ETF roster.
+- **Concentration advice punished ETFs** (a 36% VN30 ETF was "too concentrated"). ETFs are exempt; overlap between ETFs on one index is reported instead.
+- **"Mã nổi bật" painted a loss green** (▲ for the best of a losing portfolio); best/worst sale shown twice when there was one sale. Colours now follow the sign.
+- **Impossible sale could be submitted**, and the server answered in English about the *fee* field ("The fee field must not be greater than…"). Submit is disabled with the preview's explanation and validation messages are Vietnamese.
+- Not audited deeply / not changed: the portfolio **list** page is bare (no daily change, no chart) and the older `rebalance-suggestions` endpoint still applies the plain 25% cap.
+
+### Changes (wave 1)
+- `PortfolioHistory` (ledger replay) and `PortfolioRisk` (time-weighted returns, volatility, drawdown, beta, benchmark simulation), `PortfolioInsightsService`; new cards on `/portfolio/{id}`: **Theo ngành** (donut), **So với thị trường** (VN-Index and E1VFVN30: return difference in percentage points and "same money, same days in the index" value), **Rủi ro** (volatility, max drawdown, beta, best/worst day) and a chart toggle overlaying the index line.
+- A benchmark whose stored history starts after the portfolio's first trade is flagged and backfilled (one `RefreshStockPricesJob` per symbol per day). Found while testing: the price window began on the first trade date, so a weekend first trade left no close to start from — now 10 days earlier.
+- `DemoUsersSeeder`: `demo1..demo5@sunstock.test` with a shared password and differently shaped portfolios; local/testing only.
+
+### Tests
+Groups `portfolioInsights` (30 PHP + 1 Node) and `demoUsers` (4). Full suite: 542 passed (was 508); Node 37.
+
+### Verified / not verified
+Real numbers on the four demo portfolios (e.g. ETF portfolio −7.57% vs VN-Index −5.46% → "Kém 2,11 điểm phần trăm"; concentrated VIC/VHM portfolio beta 1.76). Not done: wave 2 (email digest, smart alerts) and wave 3 (health score, AI review, dividend income); target-price upside per holding; list-page redesign. Login is throttled to 5 a minute: audits reuse a saved session (clearing the cache also resets the counters).
+
+---
+
 ## ETF_PAGES - September 30, 2026
 
 ### Summary
