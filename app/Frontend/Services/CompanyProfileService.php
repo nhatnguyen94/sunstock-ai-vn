@@ -130,7 +130,28 @@ class CompanyProfileService
 
         Cache::forget($this->missingKey($symbol));
 
-        return ['profile' => $this->repo->upsert($symbol, $result)];
+        return ['profile' => $this->repo->upsert($symbol, $this->keepLastGoodEvents($symbol, $result))];
+    }
+
+    /**
+     * The corporate events come from VCI only. When VCI timed out (the script still returns the KBS
+     * sections), overwriting the stored profile would wipe events we already had, so keep them.
+     *
+     * @param array<string, mixed> $fresh
+     * @return array<string, mixed>
+     */
+    private function keepLastGoodEvents(string $symbol, array $fresh): array
+    {
+        if (! isset($fresh['errors']['vci_events'])) {
+            return $fresh;
+        }
+
+        $previous = $this->repo->find($symbol)?->data['events'] ?? [];
+        if ($previous !== []) {
+            $fresh['events'] = $previous;
+        }
+
+        return $fresh;
     }
 
     /** @return array<string, mixed> decoded profile, or ['error' => string, 'transient' => bool] */

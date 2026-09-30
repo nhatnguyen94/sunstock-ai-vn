@@ -6,6 +6,27 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## COMPANY_PROFILE_QUEUE_FAILURES - October 1, 2026
+
+### Summary
+Admin > Giám sát Queue showed ~44 failed `SyncCompanyProfileJob` after a sync, all with "Không lấy được dữ liệu công ty (nguồn dữ liệu chậm hoặc lỗi kết nối)".
+
+### Root cause
+Not the queue and not load: even a single `sync:company-profiles --symbol=FPT` failed after 61s. Timing each vnstock call separately: KBS answered in 0.2–1.4s, but **VCI (`iq.vietcap.com.vn`) timed out** (30s read timeout, retried 3 times by vnstock = ~95s). `get_company_profile.py` already isolated failing sections, but it waited for every thread, so it outlived `PythonRunner`'s 60s ceiling, was killed, printed nothing, and the job threw — discarding the good KBS data.
+
+### Fix
+- `py/get_company_profile.py`: `DEADLINE_SECONDS = 40`; sections that have not answered are reported in `errors` and everything else is returned; `os._exit(0)` so a stuck retry thread cannot hold the process. With VCI still down FPT now returns in 40s with overview, ownership, officers, subsidiaries from KBS.
+- `CompanyProfileService::sync()`: a partial result (`errors.vci_events`) no longer overwrites the stored corporate events.
+- Restarted the queue workers (they keep old PHP in memory) and retried the failed jobs.
+
+### Tests
+Group `companyProfile`: +3 (events survive a partial refresh, a clean refresh replaces them without reading the old row, the script's deadline is below the PHP timeout and it exits hard). 44 pass. Also fixed a flaky `goldPrice` test that failed when run within 30 minutes after Vietnamese midnight (it used the real clock; now frozen at midday). Full suite: 545 passed.
+
+### Not fixed (outside our control)
+VCI being slow/down: valuation snapshot, events and the long shareholder list are missing from profiles fetched while it is down, and they fill in on a later refresh.
+
+---
+
 ## PORTFOLIO_AUDIT_AND_INSIGHTS - September 30, 2026
 
 ### Summary

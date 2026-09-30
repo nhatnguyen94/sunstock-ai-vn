@@ -31,8 +31,9 @@ import json
 import math
 import re
 import unicodedata
+import os
 import warnings
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 
 warnings.filterwarnings('ignore')
 
@@ -42,6 +43,9 @@ if hasattr(sys.stderr, 'buffer'):
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 MAX_CONCURRENT = 6
+# vnstock retries a dead source 3 x 30s (~95s), longer than the caller's 60s ceiling. Whatever has
+# not answered by this deadline is reported as an error and the rest is returned (KBS alone is enough).
+DEADLINE_SECONDS = 40
 MAX_EVENTS = 60
 MAX_SHAREHOLDERS = 20
 HONORIFIC = re.compile(r'^(ông|bà|mr\.?|mrs\.?|ms\.?)\s+', re.IGNORECASE)
@@ -359,14 +363,20 @@ def main():
         return
 
     results, errors = {}, {}
-    with ThreadPoolExecutor(max_workers=MAX_CONCURRENT) as pool:
-        futures = {name: pool.submit(fn, symbol) for name, fn in TASKS.items()}
-        for name, fut in futures.items():
-            try:
-                results[name] = fut.result()
-            except Exception as exc:  # noqa: BLE001 - per-section isolation is the point
-                results[name] = []
-                errors[name] = str(exc)[:160]
+    pool = ThreadPoolExecutor(max_workers=MAX_CONCURRENT)
+    futures = {name: pool.submit(fn, symbol) for name, fn in TASKS.items()}
+    wait(futures.values(), timeout=DEADLINE_SECONDS)
+    for name, fut in futures.items():
+        if not fut.done():
+            results[name] = []
+            errors[name] = 'timeout: nguồn dữ liệu không phản hồi sau %ds' % DEADLINE_SECONDS
+            continue
+        try:
+            results[name] = fut.result()
+        except Exception as exc:  # noqa: BLE001 - per-section isolation is the point
+            results[name] = []
+            errors[name] = str(exc)[:160]
+    pool.shutdown(wait=False, cancel_futures=True)
 
     overview = build_overview(results['kbs_overview'], results['vci_overview'])
     if overview is None:
@@ -399,3 +409,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # A worker stuck in a retrying request would keep the interpreter alive until it gives up
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)

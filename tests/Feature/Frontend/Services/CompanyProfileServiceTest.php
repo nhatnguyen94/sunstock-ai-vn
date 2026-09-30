@@ -89,6 +89,46 @@ class CompanyProfileServiceTest extends TestCase
     }
 
     #[Group('companyProfile')]
+    public function test_when_vci_times_out_the_stored_events_survive_the_partial_refresh(): void
+    {
+        $events = [['category' => 'DIVIDEND', 'title' => 'Cổ tức 10%']];
+        $partial = ['symbol' => 'FPT', 'overview' => ['name' => 'FPT Corp'], 'events' => [], 'errors' => ['vci_events' => 'timeout: nguồn dữ liệu không phản hồi sau 40s']];
+
+        $repo = Mockery::mock(CompanyProfileRepositoryInterface::class);
+        $repo->shouldReceive('find')->with('FPT')->andReturn($this->profile(['events' => $events]));
+        $repo->shouldReceive('upsert')->once()
+            ->with('FPT', Mockery::on(fn ($d) => $d['events'] === $events && $d['overview']['name'] === 'FPT Corp'))
+            ->andReturn($this->profile());
+
+        $svc = $this->service($repo, fn ($m) => $m->shouldReceive('runScript')->once()->andReturn($partial));
+
+        $this->assertArrayHasKey('profile', $svc->sync('FPT'));
+    }
+
+    #[Group('companyProfile')]
+    public function test_a_clean_refresh_replaces_the_events_and_does_not_even_read_the_old_profile(): void
+    {
+        $fresh = ['symbol' => 'FPT', 'overview' => ['name' => 'FPT Corp'], 'events' => [['title' => 'new']], 'errors' => []];
+
+        $repo = Mockery::mock(CompanyProfileRepositoryInterface::class);
+        $repo->shouldNotReceive('find');
+        $repo->shouldReceive('upsert')->once()->with('FPT', $fresh)->andReturn($this->profile());
+
+        $this->service($repo, fn ($m) => $m->shouldReceive('runScript')->once()->andReturn($fresh))->sync('FPT');
+    }
+
+    #[Group('companyProfile')]
+    public function test_the_python_script_gives_up_on_a_dead_source_before_the_php_timeout(): void
+    {
+        $py = file_get_contents(base_path('py/get_company_profile.py'));
+
+        preg_match('/^DEADLINE_SECONDS = (\d+)/m', $py, $m);
+        $this->assertNotEmpty($m, 'the script must bound its wait: vnstock retries a dead source for ~95s');
+        $this->assertLessThan(60, (int) $m[1]);                 // PYTHON_TIMEOUT in the service
+        $this->assertStringContainsString('os._exit(0)', $py);   // a stuck retry thread must not keep the process alive
+    }
+
+    #[Group('companyProfile')]
     public function test_an_unknown_symbol_is_remembered_so_repeated_requests_do_not_respawn_python(): void
     {
         $repo = Mockery::mock(CompanyProfileRepositoryInterface::class);

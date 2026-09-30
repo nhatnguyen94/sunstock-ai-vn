@@ -9,6 +9,7 @@ use App\Jobs\SyncGoldPricesJob;
 use App\Models\ExchangeRate;
 use App\Models\GoldPrice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
@@ -171,6 +172,9 @@ class GoldPriceServiceTest extends TestCase
     public function test_page_uses_only_the_newest_quote_per_product_and_computes_the_change_since_yesterday(): void
     {
         Queue::fake();
+        // Fixed midday in Vietnam: with the real clock, a run within 30 minutes after Vietnamese
+        // midnight put the "30 minutes ago" quote on yesterday and the change came out wrong.
+        Carbon::setTestNow(Carbon::parse('2026-09-30 12:00:00', 'Asia/Ho_Chi_Minh'));
         $yesterdayClose = now('Asia/Ho_Chi_Minh')->startOfDay()->subHour()->utc();
         $this->quote(['quoted_at' => $yesterdayClose, 'buy_price' => 143_600_000, 'sell_price' => 146_600_000]);
         $this->quote(['quoted_at' => now()->subMinutes(30), 'buy_price' => 144_000_000, 'sell_price' => 147_000_000]);
@@ -182,6 +186,8 @@ class GoldPriceServiceTest extends TestCase
         $this->assertSame(147_600_000, $page['headline']['quote']->sell_price);
         $this->assertSame(1_000_000, $page['headline']['sell_change']);   // vs yesterday's 146.6
         $this->assertSame(1_000_000, $page['headline']['buy_change']);
+
+        Carbon::setTestNow();
     }
 
     #[Group('goldPrice')]
