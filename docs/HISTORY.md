@@ -6,6 +6,16 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## CLAUDE_CONFIG_AND_DOCS_REREAD - September 30, 2026
+
+Owner asked to re-read AGENTS.md and every file in `docs/`, and to create a `.claude` folder if useful.
+
+- **Added** `.claude/settings.json` (shared, committed): allows read-only git, `docker compose ps/logs`, the feature-test and `route:list`/`schedule:list` commands, `npm test`/`npm run build`; **denies** reading `.env*` secret files and destructive commands (`docker compose down -v`, `docker volume rm`, `docker system prune`, force-push, `git reset --hard`) — the volume wipe is the failure mode that already cost this project its containers once. Personal overrides go in `.claude/settings.local.json` (gitignored). `CLAUDE.md` imports `AGENTS.md` so plain Claude Code reads the same rules.
+- **Docs that disagreed with the code, fixed:** AGENTS.md and README still named `llama-3.3-70b-versatile` as the AI model and README listed three retired Groq models; STRUCTURE.md and DOCKER.md said the queue container runs 3 workers (it is 6).
+- **Noticed, not changed (needs a decision):** TESTING.md still says tests must never touch the database and always mock repositories, while most feature tests use `RefreshDatabase`; `goldPrice` row in its groups table has no file column; RBAC.md notes `spatie/laravel-permission` is installed but unused (still in composer.json); DOCKER.md's "Last updated" line is old.
+
+---
+
 ## HISTORY_AND_CHANGELOG_CONDENSED - September 20, 2026
 
 User: one day had too many README changelog rows and `docs/HISTORY.md` had grown to 1,429 lines / 160 KB.

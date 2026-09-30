@@ -31,3 +31,5 @@ Homestead.yaml
 Thumbs.db
 composer.lock
 py/__pycache__/
+# Claude Code: personal overrides stay local, shared .claude/settings.json is committed
+.claude/settings.local.json

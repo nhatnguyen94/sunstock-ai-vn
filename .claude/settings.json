@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose logs:*)",
+      "Bash(docker compose exec -T php php artisan test:*)",
+      "Bash(docker compose exec php php artisan test:*)",
+      "Bash(docker compose exec -T php php artisan route:list:*)",
+      "Bash(docker compose exec -T php php artisan schedule:list:*)",
+      "Bash(docker compose exec -T php php artisan db:backup --list)",
+      "Bash(npm test)",
+      "Bash(npm run build)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.docker)",
+      "Read(./.env.xampp)",
+      "Read(./.env.production)",
+      "Read(./.env.backup)",
+      "Bash(docker compose down -v:*)",
+      "Bash(docker compose down --volumes:*)",
+      "Bash(docker volume rm:*)",
+      "Bash(docker system prune:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)"
+    ]
+  }
+}

@@ -90,7 +90,7 @@
 |---|---|
 | Backend | Laravel 12 (PHP 8.2+) |
 | Data Fetching | Python 3 + vnstock 4.x library |
-| AI | Groq API — `llama-3.3-70b-versatile` (free, 14,400 req/day, ~0.4s response) |
+| AI | Groq API — model chain from `GROQ_MODELS` (default `openai/gpt-oss-120b` first; free tier, sub-second to a few seconds) |
 | Database | MySQL 8 (RANGE-partitioned by year for scale) |
 | Charts | TradingView Lightweight Charts 5 (bundled locally by Vite: candles, area, volume, multi-pane indicators) + in-repo SVG donut/bars |
 | Frontend | Blade Templates + Bootstrap 4.5 (main site, CDN) + Tailwind CSS 4 (Vite, page-specific styles) |
@@ -196,7 +196,7 @@ php artisan serve
 2. Add to `.env`: `GROQ_API_KEY=gsk_...` — keep this out of any committed file
 3. The chat widget appears on the bottom-right of every page
 4. To change the AI models, set `GROQ_MODELS=model-a,model-b` in `.env` (tried in order; empty = built-in defaults in `AiService::DEFAULT_MODELS`). Groq retires models — list the current ones with `GET https://api.groq.com/openai/v1/models`
-5. Available free models: `llama-3.3-70b-versatile`, `llama3-70b-8192`, `gemma2-9b-it`
+5. Available models change over time (the three `llama`/`gemma2` ones formerly listed here were retired): list what your key can use with `GET https://api.groq.com/openai/v1/models`
 
 ## 📁 Project Structure
 
@@ -216,6 +216,7 @@ docs/         Developer documentation
 
 | Date | Update |
 |---|---|
+| 2026-09-30 | **`.claude` project settings and docs re-read** — shared permissions (safe commands allowed, secrets and destructive Docker/git commands denied), `CLAUDE.md`, and stale AI-model / worker-count statements corrected in the docs |
 | 2026-09-20 | **Nine changes in one day** — **Gold price page** (`/gold`) under a new *Thị trường* menu · **Portfolio rework** (money-unit bug fixed, performance chart, allocation, dividends, CSV) · **Market overview, real ticker, watchlist and buy/sell ledger** on the home page · **Stock page first click ~10 s → ~1–3 s** · **Admin redesign** (Tabler 1.5, Ctrl+K palette, dark mode) · **Weekly database backup** outside Docker (`db:backup`) · **AI chat + AI prediction fixed** (retired Groq models, dead popup buttons, answers grounded in real market data) · **vnai stopped editing `AGENTS.md`** · **New screenshots + [website tour](docs/WEBSITE_TOUR.md)** · **changelog/history condensed** |
 | 2026-09-19 | **Company Profile** (`/company/{symbol}`) and **open-end Fund catalog** (`/funds`, detail, compare); charts moved from ApexCharts (CDN) to bundled **TradingView Lightweight Charts** (MA/Bollinger overlays, RSI/MACD panes) · **Search autocomplete redesign** (single highlight, ranked results, repaired 182 garbled company names) · queue monitor "delete all failed jobs" · admin sidebar fixes |
 | 2026-09-17 | **News category management** and **self-service admin password change** (`/admin/news-categories`, `/admin/account`) |
@@ -371,6 +372,7 @@ php artisan serve
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-09-30 | **Cấu hình `.claude` cho project và rà lại docs** — quyền dùng chung (cho phép lệnh an toàn, chặn đọc secret và các lệnh Docker/git nguy hiểm), `CLAUDE.md`, sửa các chỗ docs ghi sai model AI và số worker |
 | 2026-09-20 | **Chín thay đổi trong một ngày** — **Trang giá vàng** (`/gold`) trong menu *Thị trường* mới · **Làm lại Portfolio** (sửa lỗi đơn vị tiền, biểu đồ hiệu suất, tỷ trọng, cổ tức, CSV) · **Tổng quan thị trường, ticker thật, watchlist và sổ giao dịch mua/bán** ở trang chủ · **Trang cổ phiếu lần click đầu ~10 giây → ~1–3 giây** · **Thiết kế lại admin** (Tabler 1.5, palette Ctrl+K, dark mode) · **Backup database hàng tuần** lưu ngoài Docker (`db:backup`) · **Sửa AI chat + AI dự đoán** (model Groq bị gỡ, nút popup chết, câu trả lời dựa trên số liệu thị trường thật) · **vnai không còn sửa `AGENTS.md`** · **Ảnh chụp mới + [tour website](docs/WEBSITE_TOUR.md)** · **gọn lại changelog/history** |
 | 2026-09-19 | **Trang hồ sơ công ty** (`/company/{symbol}`) và **danh mục quỹ mở** (`/funds`, chi tiết, so sánh); đổi biểu đồ từ ApexCharts (CDN) sang **TradingView Lightweight Charts** bundle cục bộ (MA/Bollinger, pane RSI/MACD) · **Làm lại ô tìm kiếm mã** (1 dòng highlight, kết quả xếp hạng, sửa 182 tên công ty lỗi font) · nút "Xoá tất cả" job thất bại · sửa sidebar admin |
 | 2026-09-17 | **Quản lý danh mục tin tức** và **tự đổi mật khẩu admin** (`/admin/news-categories`, `/admin/account`) |

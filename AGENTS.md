@@ -66,7 +66,7 @@ After reading, you MUST output this block verbatim with your own answers filled 
 - **RBAC**: Role constants in `App\Models\Role`; every Gate ability is resolved DB-driven via a single `Gate::before()` in `AppServiceProvider::boot()` against `permissions`/`permission_role` tables — managed from Admin > Vai trò/Quyền hạn, not hardcoded per-ability. See `docs/RBAC.md`.
 - **CRITICAL RULE**: NEVER use default Laravel folders like `app/Http/Controllers`, `app/Services`, `app/Http/Requests`, etc. — ALL code must live in `App\Frontend\*` or `App\Backend\*`
 - **Runtime**: Docker Compose (6 containers) — `https://sunstock-local.dev`. See `docs/DOCKER.md`
-- **AI Provider**: Groq API (`GROQ_API_KEY` in `.env`) — model `llama-3.3-70b-versatile` primary
+- **AI Provider**: Groq API (`GROQ_API_KEY` in `.env`) — model chain from `GROQ_MODELS` (default in `AiService::DEFAULT_MODELS`, `openai/gpt-oss-120b` first; Groq retires models, see `docs/history/`/HISTORY `AI_PREDICT_AND_CHAT_FIX`)
 - **Python**: `/opt/venv/bin/python3` inside PHP container (env var `PYTHON_PATH`)
 
 ---

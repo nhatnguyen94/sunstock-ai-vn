@@ -196,7 +196,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `App\Models\QueueJobLog` - `job_id` (stable per job attempt, from `Job::getJobId()`), `job_class`, `queue`, `summary`, `status` (processing/completed/failed/stale), `started_at`, `finished_at`, `duration_ms`
 - `app/Console/Commands/PruneQueueJobLogs.php` (`queue-logs:prune`, hourly via scheduler) - Marks `processing` rows stuck >20 min as `stale` (a crashed worker never fired the finish event) and deletes finished/stale rows older than 3 days
 - `resources/views/backend/queue-monitor/index.blade.php` - Tabler cards (per-queue counts) + 2 live tables (currently-processing, recently-finished, both rebuilt client-side from the JSON `stats` response every 5s) + failed-jobs table (retry/delete/retry-all/delete-all), vanilla JS `fetch()` — same pattern as `backend/sync-status/index.blade.php`
-- `docker/php/supervisord.conf` (queue container) - 3 `queue:work redis --queue=high,default` processes (plain Laravel, no third-party package — a Horizon-based dashboard was tried and removed, see docs/HISTORY.md QUEUE_MONITOR_CUSTOM_PAGE for why)
+- `docker/php/supervisord.conf` (queue container) - 6 `queue:work redis --queue=high,default` processes (plain Laravel, no third-party package — a Horizon-based dashboard was tried and removed, see docs/HISTORY.md QUEUE_MONITOR_CUSTOM_PAGE for why)
 - `config/queue.php` - `connections.redis.retry_after` (660s) must stay above the workers' `--timeout` (600s), see the comment there
 
 ### Routes (`routes/web.php`)

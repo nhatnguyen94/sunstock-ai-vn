@@ -444,7 +444,7 @@ docker compose exec php /opt/venv/bin/python3 py/get_stock.py VCB
 | `docker-compose.yml` | Định nghĩa toàn bộ stack (6 containers, volumes, networks) |
 | `docker/php/Dockerfile` | Build PHP image: PHP 8.2 + Python + extensions + vnstock |
 | `docker/nginx/default.conf` | Nginx config: HTTPS, HTTP redirect, PHP-FPM proxy |
-| `docker/php/supervisord.conf` | Chạy 3 process `queue:work redis --queue=high,default` (mục "Giám sát Queue" ở trên) |
+| `docker/php/supervisord.conf` | Chạy 6 process `queue:work redis --queue=high,default` (mục "Giám sát Queue" ở trên) |
 | `docker/php/php.ini` | Custom PHP settings |
 | `docker/nginx/ssl/*.pem` | SSL cert (mkcert, trusted, expires 2028-08-30) |
 | `.env.docker` | Base để tạo `.env` khi chạy Docker (`cp .env.docker .env` — xem Bước 0) |
