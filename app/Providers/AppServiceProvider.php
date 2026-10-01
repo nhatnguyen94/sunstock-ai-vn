@@ -70,9 +70,14 @@ use App\Backend\Interfaces\NewsCategoryServiceInterface;
 use App\Backend\Repositories\NewsCategoryRepository;
 use App\Backend\Services\NewsCategoryService;
 use App\Support\QueueJobLogger;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -223,8 +228,63 @@ class AppServiceProvider extends ServiceProvider
         // Định nghĩa Gates cho phân quyền
         $this->defineGates();
 
+        $this->pinRootUrl();
+        $this->defineAuthRateLimiters();
+
         // Ghi log tiến trình xử lý job cho Admin > Giám sát Queue
         $this->registerQueueMonitoring();
+    }
+
+    /**
+     * Every generated URL (password-reset and verification links in e-mails above all) is built from APP_URL, never
+     * from the request's Host header. Otherwise anyone can POST /forgot-password for a victim with
+     * "Host: evil.example" and the victim receives a genuine reset token inside a link to evil.example.
+     */
+    private function pinRootUrl(): void
+    {
+        $root = (string) config('app.url');
+        if ($root === '') {
+            return;
+        }
+
+        URL::forceRootUrl($root);
+        if (str_starts_with($root, 'https://')) {
+            URL::forceScheme('https');
+        }
+    }
+
+    /**
+     * Brute-force limits for the credential endpoints. They apply to the POSTs only (viewing a form is harmless and
+     * used to burn the same 5-a-minute budget), and are keyed three ways:
+     *  - per IP: one machine trying many accounts;
+     *  - per account + IP: one machine hammering one account (the classic 5 tries a minute);
+     *  - per account across all IPs, hourly: a botnet spreading guesses over many addresses.
+     */
+    private function defineAuthRateLimiters(): void
+    {
+        $email = fn (Request $r) => Str::lower(is_string($r->input('email')) ? trim($r->input('email')) : '');
+
+        RateLimiter::for('auth-login', fn (Request $r) => [
+            Limit::perMinute(20)->by('login-ip:' . $r->ip()),
+            Limit::perMinute(5)->by('login-acct-ip:' . $email($r) . '|' . $r->ip()),
+            Limit::perHour(30)->by('login-acct:' . $email($r)),
+        ]);
+
+        RateLimiter::for('auth-register', fn (Request $r) => [
+            Limit::perMinute(5)->by('register-ip:' . $r->ip()),
+            Limit::perHour(20)->by('register-ip-hour:' . $r->ip()),
+        ]);
+
+        // Each request sends an e-mail: also cap per recipient so nobody can flood a victim's inbox.
+        RateLimiter::for('auth-reset-request', fn (Request $r) => [
+            Limit::perMinute(3)->by('reset-req-ip:' . $r->ip()),
+            Limit::perHour(5)->by('reset-req-acct:' . $email($r)),
+        ]);
+
+        RateLimiter::for('auth-reset', fn (Request $r) => [
+            Limit::perMinute(5)->by('reset-ip:' . $r->ip()),
+            Limit::perHour(10)->by('reset-acct:' . $email($r)),
+        ]);
     }
 
     /**

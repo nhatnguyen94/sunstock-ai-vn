@@ -30,7 +30,8 @@ import { initAiChat } from '../shared/ai-chat.js';
             const container = document.getElementById('toastContainer');
             const t = document.createElement('div');
             t.className = `toast-item ${type}`;
-            t.innerHTML = `<i class="bi bi-${icons[type]||icons.info}" style="color:${colors[type]};font-size:1.2rem;flex-shrink:0;"></i><span style="flex:1;">${message}</span><i class="bi bi-x" style="color:var(--text-secondary);flex-shrink:0;"></i>`;
+            t.innerHTML = `<i class="bi bi-${icons[type]||icons.info}" style="color:${colors[type]};font-size:1.2rem;flex-shrink:0;"></i><span style="flex:1;"></span><i class="bi bi-x" style="color:var(--text-secondary);flex-shrink:0;"></i>`;
+            t.querySelector('span').textContent = message;   // never markup: messages can carry user-supplied text
             t.addEventListener('click', () => t.remove());
             container.appendChild(t);
             setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(100px)'; t.style.transition='all 0.3s ease'; setTimeout(() => t.remove(), 300); }, duration);

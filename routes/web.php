@@ -86,18 +86,18 @@ Route::middleware('throttle:10,1')->group(function () {
     Route::post('/ai-predict', [AiController::class, 'predict']);
 });
 
-Route::middleware('throttle:5,1')->group(function () {
+// Credential endpoints. Showing a form is cheap and harmless (generous limit); only the POSTs, which can be used to
+// guess passwords or send e-mail, get the strict per-IP / per-account limiters from AppServiceProvider.
+Route::middleware('throttle:60,1')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
-
-    // Password reset
     Route::get('/forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
-    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
 });
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-login');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-register');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->middleware('throttle:auth-reset-request')->name('password.email');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:auth-reset')->name('password.update');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Email Verification routes
@@ -107,7 +107,9 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:3,1')
         ->name('verification.send');
 });
-Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])->middleware(['auth', 'signed'])->name('verification.verify');
+// No `auth` here on purpose: login refuses unverified accounts, so requiring a session to verify would be a dead end.
+// The signed URL plus the e-mail hash inside it is the proof (see EmailVerificationController::verify).
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])->middleware(['signed', 'throttle:10,1'])->whereNumber('id')->name('verification.verify');
 
 // Profile routes (requires authentication and verified email)
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -155,10 +157,8 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
 // Admin routes
 Route::prefix('admin')->name('admin.')->group(function () {
     // Admin Authentication (không cần middleware)
-    Route::middleware('throttle:5,1')->group(function () {
-        Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
-        Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
-    });
+    Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->middleware('throttle:60,1')->name('login');
+    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:auth-login')->name('login.post');
     
     // Admin routes (cần middleware 'admin' để kiểm tra quyền truy cập backend)
     Route::middleware(['auth:web', 'admin'])->group(function () {

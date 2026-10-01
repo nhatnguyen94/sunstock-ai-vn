@@ -5,9 +5,11 @@ namespace App\Backend\Controllers;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\AuthRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class AdminAuthController extends Controller
 {
@@ -29,9 +31,11 @@ class AdminAuthController extends Controller
      */
     public function login(Request $request)
     {
+        $request->merge(['email' => AuthRules::normalizeEmail($request->input('email'))]);
+
         $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
+            'email' => 'required|string|email|max:255',
+            'password' => 'required|string|max:255',
         ], [
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không hợp lệ.',
@@ -39,30 +43,32 @@ class AdminAuthController extends Controller
         ]);
 
         $credentials = $request->only('email', 'password');
-        $remember = $request->filled('remember');
+        $remember = $request->boolean('remember');
 
         // Thử đăng nhập
         if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
-            
             $user = Auth::user();
-            
-            // Kiểm tra user có quyền truy cập backend không
+
+            // A valid account without backend rights is answered exactly like a wrong password, so this form
+            // cannot be used to learn that someone's frontend credentials are right.
             if (!$user->canAccessBackend()) {
                 Auth::logout();
-                return back()->withErrors([
-                    'email' => 'Tài khoản này không có quyền truy cập khu vực quản trị.',
-                ])->onlyInput('email');
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            } else {
+                $request->session()->regenerate();
+
+                // Đăng nhập thành công
+                ActivityLogger::log('admin_login', "Admin đăng nhập: {$user->name}");
+
+                return redirect()->intended(route('admin.dashboard'))
+                    ->with('success', "Chào mừng {$user->name}, bạn đã đăng nhập thành công!");
             }
-
-            // Đăng nhập thành công
-            ActivityLogger::log('admin_login', "Admin đăng nhập: {$user->name}");
-
-            return redirect()->intended(route('admin.dashboard'))
-                ->with('success', "Chào mừng {$user->name}, bạn đã đăng nhập thành công!");
         }
 
         // Đăng nhập thất bại
+        Log::warning('Admin login failed', ['email' => $credentials['email'], 'ip' => $request->ip()]);
+
         return back()->withErrors([
             'email' => 'Thông tin đăng nhập không chính xác.',
         ])->onlyInput('email');

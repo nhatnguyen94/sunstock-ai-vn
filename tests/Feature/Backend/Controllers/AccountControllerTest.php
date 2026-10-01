@@ -51,13 +51,13 @@ class AccountControllerTest extends TestCase
 
         $response = $this->put('/admin/account', [
             'current_password' => 'old-password-123',
-            'password' => 'brand-new-password',
-            'password_confirmation' => 'brand-new-password',
+            'password' => 'brand-new-password1',
+            'password_confirmation' => 'brand-new-password1',
         ]);
 
         $response->assertRedirect(route('admin.account.edit'));
         $response->assertSessionHas('success');
-        $this->assertTrue(Hash::check('brand-new-password', $user->fresh()->password));
+        $this->assertTrue(Hash::check('brand-new-password1', $user->fresh()->password));
     }
 
     #[Group('adminAccount')]
@@ -67,8 +67,8 @@ class AccountControllerTest extends TestCase
 
         $response = $this->put('/admin/account', [
             'current_password' => 'totally-wrong',
-            'password' => 'brand-new-password',
-            'password_confirmation' => 'brand-new-password',
+            'password' => 'brand-new-password1',
+            'password_confirmation' => 'brand-new-password1',
         ]);
 
         $response->assertSessionHasErrors('current_password');
@@ -82,7 +82,7 @@ class AccountControllerTest extends TestCase
 
         $response = $this->put('/admin/account', [
             'current_password' => 'old-password-123',
-            'password' => 'brand-new-password',
+            'password' => 'brand-new-password1',
             'password_confirmation' => 'does-not-match',
         ]);
 

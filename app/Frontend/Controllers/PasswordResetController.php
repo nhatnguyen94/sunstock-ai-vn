@@ -3,6 +3,7 @@
 namespace App\Frontend\Controllers;
 
 use App\Models\User;
+use App\Support\AuthRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -23,8 +24,10 @@ class PasswordResetController extends Controller
      */
     public function sendResetLink(Request $request)
     {
+        $request->merge(['email' => AuthRules::normalizeEmail($request->input('email'))]);
+
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string|email|max:255',
         ], [
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không hợp lệ.',
@@ -54,16 +57,16 @@ class PasswordResetController extends Controller
      */
     public function reset(Request $request)
     {
+        $request->merge(['email' => AuthRules::normalizeEmail($request->input('email'))]);
+
         $request->validate([
-            'token' => 'required|string',
-            'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
-        ], [
+            'token' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255',
+            'password' => ['required', 'string', AuthRules::password(), 'confirmed'],
+        ], AuthRules::messages() + [
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không hợp lệ.',
             'password.required' => 'Vui lòng nhập mật khẩu mới.',
-            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
-            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
         ]);
 
         $status = Password::reset(
@@ -71,6 +74,10 @@ class PasswordResetController extends Controller
             function (User $user, string $password) {
                 $user->password = Hash::make($password);
                 $user->setRememberToken(Str::random(60));
+                // Receiving the reset mail proves the mailbox is theirs, so an unverified account is verified too
+                if (! $user->hasVerifiedEmail()) {
+                    $user->markEmailAsVerified();
+                }
                 $user->save();
             }
         );
@@ -93,7 +100,9 @@ class PasswordResetController extends Controller
     public function translateStatus(string $status): string
     {
         return match ($status) {
-            Password::INVALID_USER => 'Không tìm thấy tài khoản với email này.',
+            // Unknown e-mail and bad token get the SAME answer: a distinct "no such account" message here let
+            // anyone test which addresses are registered (the forgot-password form is careful about that too).
+            Password::INVALID_USER,
             Password::INVALID_TOKEN => 'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu link mới.',
             Password::RESET_THROTTLED => 'Bạn vừa yêu cầu đặt lại mật khẩu, vui lòng thử lại sau ít phút.',
             default => 'Có lỗi xảy ra khi đặt lại mật khẩu. Vui lòng thử lại.',

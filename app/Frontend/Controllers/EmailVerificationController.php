@@ -5,7 +5,6 @@ namespace App\Frontend\Controllers;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,13 +25,25 @@ class EmailVerificationController extends Controller
     /**
      * Xác thực email từ link trong email
      */
-    public function verify(EmailVerificationRequest $request)
+    public function verify(Request $request, int $id, string $hash)
     {
-        $request->fulfill();
+        $user = User::findOrFail($id);
 
-        event(new Verified($request->user()));
+        // `signed` already proved the URL came from us; the hash binds it to the address it was issued for, so a
+        // link for an old e-mail address stops working once the address changes.
+        if (! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+            abort(403, 'Link xác thực không hợp lệ.');
+        }
 
-        return redirect('/')->with('success', 'Email đã được xác thực thành công! Chào mừng bạn đến với Stock App.');
+        if (! $user->hasVerifiedEmail() && $user->markEmailAsVerified()) {
+            event(new Verified($user));
+        }
+
+        if (Auth::check()) {
+            return redirect('/')->with('success', 'Email đã được xác thực thành công! Chào mừng bạn đến với Stock App.');
+        }
+
+        return redirect()->route('login')->with('success', 'Email đã được xác thực thành công! Bạn có thể đăng nhập ngay bây giờ.');
     }
 
     /**

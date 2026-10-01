@@ -5,6 +5,7 @@ namespace App\Frontend\Controllers;
 use App\Frontend\Interfaces\UserProfileRepositoryInterface;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Support\AuthRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -54,19 +55,18 @@ class ProfileController extends Controller
 
         $request->validate([
             'username' => [
-                'required', 'string', 'max:255',
+                ...AuthRules::username(),
                 Rule::unique('user_profiles', 'username')->ignore($profile?->id),
             ],
-            'mobile' => 'nullable|string|max:20',
+            'mobile' => AuthRules::mobile(),
             'birthday' => 'nullable|date|before_or_equal:today',
             'gender' => 'nullable|in:male,female,other',
             'address' => 'nullable|string|max:255',
             'bio' => 'nullable|string|max:1000',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'current_password' => 'nullable|string',
-            'password' => 'nullable|string|min:8|confirmed',
-        ], [
-            'username.required' => 'Tên người dùng là bắt buộc.',
+            'current_password' => 'nullable|string|max:255',
+            'password' => ['nullable', 'string', AuthRules::password(), 'confirmed'],
+        ], AuthRules::messages() + [
             'username.unique' => 'Tên người dùng đã tồn tại.',
             'birthday.date' => 'Ngày sinh không hợp lệ.',
             'birthday.before_or_equal' => 'Ngày sinh không được ở tương lai.',
@@ -75,8 +75,6 @@ class ProfileController extends Controller
             'avatar.image' => 'Ảnh đại diện phải là file ảnh.',
             'avatar.mimes' => 'Ảnh đại diện phải có định dạng jpeg, png, jpg, gif hoặc webp.',
             'avatar.max' => 'Ảnh đại diện không được quá 2MB.',
-            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
-            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
         ]);
 
         try {
@@ -104,10 +102,15 @@ class ProfileController extends Controller
 
                 $user->password = Hash::make($request->password);
                 $user->save();
+
+                // Signs every OTHER device/session out and refreshes this session's stored password hash
+                Auth::logoutOtherDevices($request->password);
             }
 
             return redirect()->route('profile.show')->with('success', 'Cập nhật profile thành công!');
         } catch (\Exception $e) {
+            report($e);
+
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật profile.'])
                 ->withInput();
         }

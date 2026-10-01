@@ -6,6 +6,39 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## AUTH_SECURITY_AUDIT - October 1, 2026
+
+### Summary
+Owner asked for a full security review of login/register (XSS, CSRF, SQL injection, brute force…), a check of existing tests, a double-check in the browser, simulated attacks, and fixes. The comment feature mentioned afterwards does not exist in the codebase (no model, route or view), so there is nothing to audit there yet.
+
+### Method
+Read every auth controller/route/middleware/config, then attacked the running stack with `curl` (isolated cases, limiter reset between them), then re-ran the same attacks after the fixes, then confirmed in the browser pane (reflected payload shown as text, no script executed). Throw-away accounts used for the attacks were deleted afterwards.
+
+### Already safe (verified live and now covered by tests)
+CSRF is enforced on every credential POST (419); SQL-injection payloads in e-mail/password/username/token never authenticate and never break the query (Eloquent bindings, array/JSON inputs rejected); mass assignment on register ignored (`role`, `email_verified_at`, `id`…); output is HTML-escaped everywhere user text is shown; session cookie is `Secure`, `HttpOnly`, `SameSite=Lax`; session id regenerated on login; open-redirect parameters ignored; spoofed `X-Forwarded-For` does not reset limits; 1 MB passwords cost 0.3 s (no hashing DoS).
+
+### Vulnerabilities found and fixed
+1. **Password-reset poisoning (critical).** URLs in e-mails were built from the request `Host` header: `POST /forgot-password` with `Host: evil.test` made the victim receive a real reset token in a link to evil.test (same for the verification link). Now every URL is pinned to `APP_URL` (`pinRootUrl`), plus `trustHosts` for non-local environments.
+2. **Account enumeration on `/reset-password`**: an unknown address answered "Không tìm thấy tài khoản", a known one "Link không hợp lệ". Same message now. The admin login also told a non-admin with a correct password that the account "has no admin rights"; now identical to a wrong password.
+3. **Brute force protection was weak**: a single `throttle:5,1` shared by GET pages and POSTs per IP (two page views locked a person out) and nothing per account (a botnet could try unlimited passwords). Replaced by named limiters (per IP, per account+IP, per account per hour) on the POSTs only; forgot-password is also capped per recipient (inbox flooding).
+4. **Stored XSS payloads were accepted** as username/mobile (`<script>` was saved). Output escaping stopped it from firing, but the data reached logs/e-mails/exports. Username and mobile are now whitelisted (`AuthRules`), in register and profile; toast helper uses `textContent`.
+5. **Weak passwords / unbounded length**: min 8 only. Now 8–128 with a letter and a digit (register, reset, profile, admin account).
+6. **Sessions survived a password change.** `authenticateSessions()` added: changing or resetting the password signs every other device out; the profile/admin password forms re-stamp the current session.
+7. **No security headers.** Added `SecurityHeaders` middleware (frame-ancestors/clickjacking, nosniff, Referrer-Policy — `no-referrer` on reset URLs, Permissions-Policy, HSTS, form-action/base-uri/object-src CSP, `no-store` on auth pages); nginx `server_tokens off`; `expose_php = Off`. A full script-src CSP needs a nonce rollout (the site uses CDN and inline page-data scripts) and is not done.
+8. **Registration was not atomic** (user could exist without profile/role) and failures were swallowed silently: now one transaction and `report($e)`.
+9. **Verification dead end (functional)**: login refuses unverified accounts but the verify link required being logged in, so a new user could never verify. The link now works from a signed URL (+ hash of the current e-mail) without a session, and completing a password reset also verifies the mailbox. Login no longer creates a session (or remember cookie) for an unverified account.
+10. Failed logins are now logged with IP.
+
+### Not changed / for the owner
+- Registration still says "Email đã được sử dụng" (needed for usability; mitigated by the register limiter).
+- No CAPTCHA, no 2FA, no compromised-password check (needs an outbound call).
+- `APP_DEBUG=true` / `APP_ENV=local` in `.env`: must be `false` / `production` when deployed (stack traces leak otherwise). `.env` was not touched.
+- Guests who lost the verification e-mail cannot request another one (resend needs a session); an admin can still verify them.
+
+### Tests
+Group `authSecurity`: 120 tests (CSRF, SQLi, brute force variants, enumeration, mass assignment, XSS, Host poisoning, token/verification abuse, admin probing, headers, session invalidation, rule boundaries). Two fixtures in `AccountControllerTest` used a password without a digit and were updated; the old test that asserted the leaking message was replaced. Full suite: 665 passed.
+
+---
 ## COMPANY_PROFILE_QUEUE_FAILURES - October 1, 2026
 
 ### Summary

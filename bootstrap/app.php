@@ -24,6 +24,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(
             fn ($request) => $request->is('admin*') ? route('admin.login') : route('login')
         );
+
+        $middleware->web(append: [\App\Http\Middleware\SecurityHeaders::class]);
+
+        // A session remembers a hash of the password it was created with: changing or resetting the password
+        // therefore signs every other device out, which is the point of resetting after a suspected theft.
+        $middleware->authenticateSessions();
+
+        // Only the configured host may serve the app. Laravel ignores this while APP_ENV=local, which is why
+        // links in e-mails are ALSO pinned to APP_URL (AppServiceProvider::pinRootUrl) instead of the Host header.
+        $middleware->trustHosts(at: fn () => array_filter([parse_url((string) config('app.url'), PHP_URL_HOST)]));
     })
     ->withSchedule(function (Schedule $schedule): void {
         // Pre-populate exchange rates before users visit (Vietcombank updates ~7-8 AM)

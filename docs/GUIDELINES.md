@@ -56,6 +56,15 @@ When adding ANY new feature (or changing an existing one):
 - Role constants live in `App\Models\Role`: `Role::ADMIN`, `Role::WEBADMIN`, `Role::ADMIN_SUPPORT`, `Role::USER` — these 4 are the system roles (can't be deleted from the UI); any additional role is created via **Admin > Vai trò**, not a new constant.
 - Never check roles with raw strings like `$user->hasRole('admin')` — use `Role::ADMIN` constant. Never check a new feature permission with a raw string typo either — the name you `Gate::authorize()` in code must exactly match the `permissions.name` row created in the admin UI.
 
+### Authentication security (rules learned the hard way)
+- **Never build a URL from the Host header.** `AppServiceProvider::pinRootUrl()` pins every generated URL to `APP_URL`; otherwise `POST /forgot-password` with a forged `Host` mails a victim a genuine reset token inside a link to the attacker. `trustHosts` alone is not enough: Laravel disables it while `APP_ENV=local`.
+- **One answer for everything that could reveal an account**: wrong password, unknown e-mail, bad reset token, unknown e-mail on reset, and a non-admin on the admin login all return the same message.
+- **Throttle POSTs, not pages**, with named limiters (`auth-login`, …) keyed per IP, per account+IP and per account. A bare `throttle:5,1` shared by GET and POST locked people out after two page views and did nothing against a botnet.
+- In `Auth::attempt([... , fn ($query) => ...])` the closure receives the **query builder**, not the user. Use it for `whereNotNull('email_verified_at')`; do role checks after the attempt.
+- `Auth::logoutOtherDevices($password)` (Laravel 12) does not change the password: set the new one first, then call it with that same plain password. It re-stamps this session; `authenticateSessions()` signs every other device out.
+- Validate every free-text account field with `AuthRules` (whitelist). Output is escaped by Blade, but a stored `<script>` still reaches e-mails, exports and any future `innerHTML`.
+- Tests that must exercise CSRF set `$this->app['env'] = 'local'` (the middleware is skipped under `testing`).
+
 ### Email Verification
 - `User` model implements `MustVerifyEmail` — new users must verify before accessing protected routes
 - Routes requiring verification use `middleware(['auth', 'verified'])`

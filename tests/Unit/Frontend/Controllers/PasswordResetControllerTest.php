@@ -15,11 +15,15 @@ use PHPUnit\Framework\TestCase;
 class PasswordResetControllerTest extends TestCase
 {
     #[Group('auth')]
-    public function test_translates_invalid_user_status(): void
+    public function test_an_unknown_account_gets_the_same_answer_as_a_bad_token_so_emails_cannot_be_enumerated(): void
     {
-        $message = (new PasswordResetController())->translateStatus(Password::INVALID_USER);
+        $controller = new PasswordResetController();
 
-        $this->assertStringContainsString('Không tìm thấy tài khoản', $message);
+        $this->assertSame(
+            $controller->translateStatus(Password::INVALID_TOKEN),
+            $controller->translateStatus(Password::INVALID_USER)
+        );
+        $this->assertStringNotContainsString('Không tìm thấy tài khoản', $controller->translateStatus(Password::INVALID_USER));
     }
 
     #[Group('auth')]

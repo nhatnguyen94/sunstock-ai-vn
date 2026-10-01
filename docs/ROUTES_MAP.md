@@ -35,7 +35,7 @@
 
 **Route notes**: `/etf/{symbol}` must match `[A-Za-z0-9]{3,12}`; the service additionally rejects anything but `^[A-Z0-9]{3,12}\z` and unknown symbols are 404. `{symbol}` must match `[A-Za-z0-9]{2,10}` and `{code}` `[A-Za-z0-9._-]{2,40}` (route constraints — anything else is a 404 before a controller runs). `/funds/compare` is declared above `/funds/{code}` so it is not swallowed by it. `POST /company/{symbol}/load?force=1` is additionally rate-limited (one forced refresh per symbol per 5 minutes → 429).
 
-**Throttle notes**: the data-heavy group (`/stock*`, `/company/*`, `/funds*`, `/exchange-rate*`) → 30 req/min; `/ai-chat` and `/ai-predict` → 10 req/min; `/login` and `/register` → 5 req/min
+**Throttle notes**: the data-heavy group (`/stock*`, `/company/*`, `/funds*`, `/exchange-rate*`) → 30 req/min; `/ai-chat` and `/ai-predict` → 10 req/min; credential POSTs use the named limiters from `AppServiceProvider::defineAuthRateLimiters()` (see "Auth rate limits" below); showing the forms is 60 req/min
 
 ## Auth Routes
 
@@ -47,7 +47,18 @@
 | POST | `/register` | *(none)* | `AuthController` | `register` |
 | POST | `/logout` | `logout` | `AuthController` | `logout` |
 
-## Password Reset Routes (throttled 5/min, same group as login/register)
+### Auth rate limits (POST only; a 429 is returned once any bucket is empty)
+
+| Limiter | Routes | Buckets |
+|---|---|---|
+| `auth-login` | `POST /login`, `POST /admin/login` | 20/min per IP · 5/min per account+IP · 30/hour per account (any IP) |
+| `auth-register` | `POST /register` | 5/min and 20/hour per IP |
+| `auth-reset-request` | `POST /forgot-password` | 3/min per IP · 5/hour per e-mail address |
+| `auth-reset` | `POST /reset-password` | 5/min per IP · 10/hour per e-mail address |
+
+The frontend and admin login share buckets, so switching door gives an attacker no fresh guesses. Forwarded-for headers are ignored (no trusted proxies configured). Reset all counters with `php artisan cache:clear`.
+
+## Password Reset Routes
 
 | Method | URI | Route Name | Controller | Action |
 |---|---|---|---|---|
@@ -56,13 +67,13 @@
 | GET | `/reset-password/{token}` | `password.reset` | `PasswordResetController` | `showResetForm` |
 | POST | `/reset-password` | `password.update` | `PasswordResetController` | `reset` |
 
-## Email Verification Routes (middleware: `auth`)
+## Email Verification Routes (`notice`/`send` need `auth`; `verify` needs only a valid signature — login refuses unverified accounts, so requiring a session there was a dead end)
 
 | Method | URI | Route Name | Controller | Action |
 |---|---|---|---|---|
 | GET | `/email/verify` | `verification.notice` | `EmailVerificationController` | `notice` |
 | POST | `/email/verification-notification` | `verification.send` | `EmailVerificationController` | `resend` |
-| GET | `/email/verify/{id}/{hash}` | `verification.verify` | `EmailVerificationController` | `verify` |
+| GET | `/email/verify/{id}/{hash}` | `verification.verify` | `EmailVerificationController` | `verify` *(middleware `signed`, `throttle:10,1`; `id` numeric; the hash must match the user's current e-mail)* |
 
 ## User Protected Routes (middleware: `auth` + `verified`)
 

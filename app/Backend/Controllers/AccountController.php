@@ -3,6 +3,7 @@
 namespace App\Backend\Controllers;
 
 use App\Support\ActivityLogger;
+use App\Support\AuthRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,13 +29,11 @@ class AccountController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $request->validate([
-            'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
-        ], [
+            'current_password' => 'required|string|max:255',
+            'password' => ['required', 'string', AuthRules::password(), 'confirmed'],
+        ], AuthRules::messages() + [
             'current_password.required' => 'Vui lòng nhập mật khẩu hiện tại.',
             'password.required' => 'Vui lòng nhập mật khẩu mới.',
-            'password.min' => 'Mật khẩu mới phải có ít nhất 8 ký tự.',
-            'password.confirmed' => 'Xác nhận mật khẩu mới không khớp.',
         ]);
 
         $user = Auth::user();
@@ -44,6 +43,9 @@ class AccountController extends Controller
         }
 
         $user->update(['password' => Hash::make($request->input('password'))]);
+
+        // Signs every OTHER device/session out and refreshes this session's stored password hash
+        Auth::logoutOtherDevices($request->input('password'));
 
         ActivityLogger::log('admin_action', "Admin đổi mật khẩu: {$user->name}");
 
