@@ -15,7 +15,7 @@ class UserRepository implements UserRepositoryInterface
         return User::with(['roles', 'profile'])
             ->when($filters['search'] ?? null, function ($q, $search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             })
             ->latest()
             ->paginate($perPage)
@@ -29,14 +29,16 @@ class UserRepository implements UserRepositoryInterface
 
     public function create(array $data): User
     {
-        $user = User::create([
-            'name'              => $data['name'],
-            'email'             => $data['email'],
-            'password'          => Hash::make($data['password']),
-            'email_verified_at' => $data['email_verified_at'] ?? null,
+        $user = new User([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
         ]);
+        // status is not mass-assignable; applyStatus also keeps the e-mail confirmation consistent with it
+        $user->applyStatus((int) ($data['status'] ?? User::STATUS_ACTIVE));
+        $user->save();
 
-        if (!empty($data['roles'])) {
+        if (! empty($data['roles'])) {
             $user->syncRoles($data['roles']);
         }
 
@@ -50,12 +52,13 @@ class UserRepository implements UserRepositoryInterface
 
     public function update(User $user, array $data): void
     {
-        $user->update([
-            'name'              => $data['name'],
-            'email'             => $data['email'],
-            'password'          => isset($data['password']) ? Hash::make($data['password']) : $user->password,
-            'email_verified_at' => $data['email_verified_at'],
+        $user->fill([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => isset($data['password']) ? Hash::make($data['password']) : $user->password,
         ]);
+        $user->applyStatus((int) $data['status']);
+        $user->save();
 
         if (isset($data['roles'])) {
             $user->syncRoles($data['roles']);

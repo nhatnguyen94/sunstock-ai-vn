@@ -3,6 +3,9 @@
 namespace Tests\Feature\Frontend;
 
 use App\Frontend\Services\AiService;
+use App\Frontend\Services\MarketOverviewService;
+use App\Models\User;
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
@@ -27,12 +30,12 @@ class AiFeaturesTest extends TestCase
         Cache::flush();
     }
 
-    private function ok(string $text = 'Thị trường đi ngang.'): \GuzzleHttp\Promise\PromiseInterface
+    private function ok(string $text = 'Thị trường đi ngang.'): PromiseInterface
     {
         return Http::response(['choices' => [['message' => ['content' => $text]]]]);
     }
 
-    private function retired(string $model): \GuzzleHttp\Promise\PromiseInterface
+    private function retired(string $model): PromiseInterface
     {
         return Http::response(['error' => ['code' => 'model_decommissioned', 'message' => "The model `$model` has been decommissioned"]], 400);
     }
@@ -158,7 +161,7 @@ class AiFeaturesTest extends TestCase
     #[Group('aiFeatures')]
     public function test_the_prediction_prompt_carries_the_real_market_snapshot_so_the_model_does_not_invent_levels(): void
     {
-        $this->mock(\App\Frontend\Services\MarketOverviewService::class, fn ($m) => $m->shouldReceive('overview')->andReturn($this->snapshot()));
+        $this->mock(MarketOverviewService::class, fn ($m) => $m->shouldReceive('overview')->andReturn($this->snapshot()));
         Http::fake([self::URL => $this->ok('ok')]);
 
         app(AiService::class)->predictMarket('Dự đoán tuần này');
@@ -178,10 +181,10 @@ class AiFeaturesTest extends TestCase
     #[Group('aiFeatures')]
     public function test_without_a_snapshot_the_prompt_is_sent_as_is_and_a_broken_market_service_cannot_break_the_ai(): void
     {
-        $this->mock(\App\Frontend\Services\MarketOverviewService::class, fn ($m) => $m->shouldReceive('overview')->andReturn(['has_data' => false]));
+        $this->mock(MarketOverviewService::class, fn ($m) => $m->shouldReceive('overview')->andReturn(['has_data' => false]));
         $this->assertSame('', app(AiService::class)->marketContext());
 
-        $this->mock(\App\Frontend\Services\MarketOverviewService::class, fn ($m) => $m->shouldReceive('overview')->andThrow(new \RuntimeException('db down')));
+        $this->mock(MarketOverviewService::class, fn ($m) => $m->shouldReceive('overview')->andThrow(new \RuntimeException('db down')));
         $this->assertSame('', app(AiService::class)->marketContext());
 
         Http::fake([self::URL => $this->ok('ok')]);
@@ -208,6 +211,7 @@ class AiFeaturesTest extends TestCase
     #[Group('aiFeatures')]
     public function test_predict_endpoint_returns_the_result(): void
     {
+        $this->actingAs(User::factory()->create());   // the AI endpoints are for signed-in users
         Http::fake([self::URL => $this->ok('Nhận định tuần')]);
 
         $this->postJson('/ai-predict')->assertOk()->assertJson(['result' => 'Nhận định tuần']);
@@ -216,6 +220,7 @@ class AiFeaturesTest extends TestCase
     #[Group('aiFeatures')]
     public function test_predict_endpoint_reports_a_503_with_a_message_instead_of_an_error_disguised_as_a_result(): void
     {
+        $this->actingAs(User::factory()->create());   // the AI endpoints are for signed-in users
         Http::fake([self::URL => $this->retired('x')]);
 
         $this->postJson('/ai-predict')->assertStatus(503)->assertJsonPath('error', true)->assertJsonMissingPath('result')
@@ -225,6 +230,7 @@ class AiFeaturesTest extends TestCase
     #[Group('aiFeatures')]
     public function test_chat_endpoint_answers_in_the_requested_language(): void
     {
+        $this->actingAs(User::factory()->create());   // the AI endpoints are for signed-in users
         Http::fake([self::URL => $this->ok('VN-Index is the benchmark.')]);
 
         $this->postJson('/ai-chat', ['message' => 'What is VN-Index?', 'lang' => 'en'])->assertOk()->assertJson(['answer' => 'VN-Index is the benchmark.']);
@@ -235,6 +241,7 @@ class AiFeaturesTest extends TestCase
     #[Group('aiFeatures')]
     public function test_chat_endpoint_reports_503_when_the_provider_is_down_in_the_users_language(): void
     {
+        $this->actingAs(User::factory()->create());   // the AI endpoints are for signed-in users
         Http::fake([self::URL => $this->retired('x')]);
 
         $this->postJson('/ai-chat', ['message' => 'hi', 'lang' => 'en'])->assertStatus(503)
@@ -245,6 +252,7 @@ class AiFeaturesTest extends TestCase
     #[Group('aiFeatures')]
     public function test_chat_endpoint_validates_the_message(): void
     {
+        $this->actingAs(User::factory()->create());   // the AI endpoints are for signed-in users
         Http::fake();
 
         $this->postJson('/ai-chat', ['message' => ''])->assertStatus(422);
@@ -266,7 +274,7 @@ class AiFeaturesTest extends TestCase
         $this->assertNotSame('', $popup, 'chat popup markup not found');
         $this->assertStringNotContainsString('onclick=', $popup, 'app.js is an ES module: inline onclick cannot reach its functions');
         foreach (['aiChatOpenBtn', 'aiChatClose', 'aiChatSend', 'aiChatClear', 'aiChatInput', 'aiChatMessages', 'aiLangSelect', 'aiFlagIcon'] as $id) {
-            $this->assertStringContainsString('id="' . $id . '"', $popup);
+            $this->assertStringContainsString('id="'.$id.'"', $popup);
         }
         $this->assertGreaterThanOrEqual(3, substr_count($popup, 'data-ai-question='));
     }

@@ -30,12 +30,12 @@
 | GET | `/news/category/{categorySlug}` | `news.category` | `NewsController` (Frontend) | `index` |
 | GET | `/exchange-rate` | `exchange-rate.index` | `ExchangeRateController` | `index` |
 | GET | `/exchange-rate/search` | `exchange-rate.search` | `ExchangeRateController` | `search` |
-| POST | `/ai-chat` | *(none)* | `StockController` | `aiChat` |
-| POST | `/ai-predict` | *(none)* | `AiController` | `predict` |
+| POST | `/ai-chat` | *(none)* | `StockController` | `aiChat` *(middleware `auth`, `throttle:ai-chat`)* |
+| POST | `/ai-predict` | *(none)* | `AiController` | `predict` *(middleware `auth`, `throttle:ai-predict`)* |
 
 **Route notes**: `/etf/{symbol}` must match `[A-Za-z0-9]{3,12}`; the service additionally rejects anything but `^[A-Z0-9]{3,12}\z` and unknown symbols are 404. `{symbol}` must match `[A-Za-z0-9]{2,10}` and `{code}` `[A-Za-z0-9._-]{2,40}` (route constraints — anything else is a 404 before a controller runs). `/funds/compare` is declared above `/funds/{code}` so it is not swallowed by it. `POST /company/{symbol}/load?force=1` is additionally rate-limited (one forced refresh per symbol per 5 minutes → 429).
 
-**Throttle notes**: the data-heavy group (`/stock*`, `/company/*`, `/funds*`, `/exchange-rate*`) → 30 req/min; `/ai-chat` and `/ai-predict` → 10 req/min; credential POSTs use the named limiters from `AppServiceProvider::defineAuthRateLimiters()` (see "Auth rate limits" below); showing the forms is 60 req/min
+**Throttle notes**: the data-heavy group (`/stock*`, `/company/*`, `/funds*`, `/exchange-rate*`) → 30 req/min; `/ai-chat` and `/ai-predict` need a signed-in user and are limited **per account** (not per IP) by the `ai-chat` / `ai-predict` limiters — defaults: 5 questions per 5 minutes and one prediction per 15 minutes, tunable with `AI_CHAT_MAX_QUESTIONS`, `AI_CHAT_WINDOW_MINUTES`, `AI_PREDICT_INTERVAL_MINUTES` in `.env` (see `config/ai_limits.php`); guests get a 401 JSON with a login hint, a limited user a 429 JSON with a Vietnamese message and `retry_after`; credential POSTs use the named limiters from `AppServiceProvider::defineAuthRateLimiters()` (see "Auth rate limits" below); showing the forms is 60 req/min
 
 ## Auth Routes
 
@@ -67,12 +67,12 @@ The frontend and admin login share buckets, so switching door gives an attacker 
 | GET | `/reset-password/{token}` | `password.reset` | `PasswordResetController` | `showResetForm` |
 | POST | `/reset-password` | `password.update` | `PasswordResetController` | `reset` |
 
-## Email Verification Routes (`notice`/`send` need `auth`; `verify` needs only a valid signature — login refuses unverified accounts, so requiring a session there was a dead end)
+## Email Verification Routes (`notice` needs `auth`; `verify` needs only a valid signature and `send` only an e-mail address — login refuses pending accounts, so requiring a session there was a dead end)
 
 | Method | URI | Route Name | Controller | Action |
 |---|---|---|---|---|
 | GET | `/email/verify` | `verification.notice` | `EmailVerificationController` | `notice` |
-| POST | `/email/verification-notification` | `verification.send` | `EmailVerificationController` | `resend` |
+| POST | `/email/verification-notification` | `verification.send` | `EmailVerificationController` | `resend` *(public, body `email`, `throttle:auth-reset-request`; mails only a pending account, same answer for every address)* |
 | GET | `/email/verify/{id}/{hash}` | `verification.verify` | `EmailVerificationController` | `verify` *(middleware `signed`, `throttle:10,1`; `id` numeric; the hash must match the user's current e-mail)* |
 
 ## User Protected Routes (middleware: `auth` + `verified`)
@@ -105,6 +105,9 @@ The frontend and admin login share buckets, so switching door gives an attacker 
 | POST | `/watchlist` | `watchlist.store` | `WatchlistController` | `store` |
 | DELETE | `/watchlist/{symbol}` | `watchlist.destroy` | `WatchlistController` | `destroy` |
 | GET | `/portfolio/{id}/rebalance-suggestions` | `portfolio.rebalance-suggestions` | `PortfolioController` | `getRebalanceSuggestions` |
+
+### Admin-only writes
+The `users`, `roles` and `permissions` route groups carry `can:manage-*` **and** `admin.only`: reading follows the permission, everything that changes data (and the `create`/`edit` forms) needs the `admin` role. `roles` and `permissions` no longer expose a `show` route. Route parameters `id`, `itemId`, `transactionId`, `user`, `role`, `permission`, `stock`, `portfolio`, `news_category` must be 1–18 digits (`Route::pattern`), so oversized ids are a clean 404.
 
 ## Backend / Admin Routes (prefix: `/admin`, middleware: `auth:web` + `admin`)
 

@@ -8,77 +8,78 @@
 
 namespace App\Providers;
 
+use App\Backend\Interfaces\ActivityLogRepositoryInterface;
+use App\Backend\Interfaces\NewsCategoryRepositoryInterface;
+use App\Backend\Interfaces\NewsCategoryServiceInterface;
 use App\Backend\Interfaces\NewsRepositoryInterface as BackendNewsRepositoryInterface;
 use App\Backend\Interfaces\NewsServiceInterface as BackendNewsServiceInterface;
+use App\Backend\Interfaces\PermissionRepositoryInterface;
+use App\Backend\Interfaces\PermissionServiceInterface;
+use App\Backend\Interfaces\QueueMonitorRepositoryInterface;
+use App\Backend\Interfaces\QueueMonitorServiceInterface;
+use App\Backend\Interfaces\RoleRepositoryInterface;
+use App\Backend\Interfaces\RoleServiceInterface;
 use App\Backend\Interfaces\StockRepositoryInterface as BackendStockRepositoryInterface;
 use App\Backend\Interfaces\StockServiceInterface as BackendStockServiceInterface;
 use App\Backend\Interfaces\UserRepositoryInterface as BackendUserRepositoryInterface;
 use App\Backend\Interfaces\UserServiceInterface as BackendUserServiceInterface;
-use App\Backend\Interfaces\ActivityLogRepositoryInterface;
 use App\Backend\Repositories\ActivityLogRepository;
+use App\Backend\Repositories\NewsCategoryRepository;
 use App\Backend\Repositories\NewsRepository as BackendNewsRepository;
+use App\Backend\Repositories\PermissionRepository;
+use App\Backend\Repositories\QueueMonitorRepository;
+use App\Backend\Repositories\RoleRepository;
 use App\Backend\Repositories\StockRepository as BackendStockRepository;
 use App\Backend\Repositories\UserRepository as BackendUserRepository;
+use App\Backend\Services\NewsCategoryService;
 use App\Backend\Services\NewsService as BackendNewsService;
+use App\Backend\Services\PermissionService;
+use App\Backend\Services\QueueMonitorService;
+use App\Backend\Services\RoleService;
 use App\Backend\Services\StockService as BackendStockService;
 use App\Backend\Services\UserService as BackendUserService;
-use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
 use App\Frontend\Interfaces\CompanyFinancialRepositoryInterface;
 use App\Frontend\Interfaces\CompanyProfileRepositoryInterface;
-use App\Frontend\Interfaces\FundRepositoryInterface;
 use App\Frontend\Interfaces\EtfRepositoryInterface;
+use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
+use App\Frontend\Interfaces\FundRepositoryInterface;
 use App\Frontend\Interfaces\GoldPriceRepositoryInterface;
 use App\Frontend\Interfaces\MarketSnapshotRepositoryInterface;
-use App\Frontend\Interfaces\PortfolioTransactionRepositoryInterface;
-use App\Frontend\Interfaces\WatchlistRepositoryInterface;
 use App\Frontend\Interfaces\NewsRepositoryInterface as FrontendNewsRepositoryInterface;
 use App\Frontend\Interfaces\NewsServiceInterface;
 use App\Frontend\Interfaces\PortfolioRepositoryInterface;
+use App\Frontend\Interfaces\PortfolioTransactionRepositoryInterface;
 use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Frontend\Interfaces\UserProfileRepositoryInterface;
+use App\Frontend\Interfaces\WatchlistRepositoryInterface;
 use App\Frontend\Repositories\CompanyFinancialRepository;
 use App\Frontend\Repositories\CompanyProfileRepository;
-use App\Frontend\Repositories\FundRepository;
 use App\Frontend\Repositories\EtfRepository;
+use App\Frontend\Repositories\ExchangeRateRepository;
+use App\Frontend\Repositories\FundRepository;
 use App\Frontend\Repositories\GoldPriceRepository;
 use App\Frontend\Repositories\MarketSnapshotRepository;
-use App\Frontend\Repositories\PortfolioTransactionRepository;
-use App\Frontend\Repositories\WatchlistRepository;
-use App\Frontend\Repositories\ExchangeRateRepository;
 use App\Frontend\Repositories\NewsRepository as FrontendNewsRepository;
 use App\Frontend\Repositories\PortfolioRepository;
+use App\Frontend\Repositories\PortfolioTransactionRepository;
 use App\Frontend\Repositories\StockRepository;
 use App\Frontend\Repositories\UserProfileRepository;
+use App\Frontend\Repositories\WatchlistRepository;
 use App\Frontend\Services\CompanyProfileService;
 use App\Frontend\Services\NewsService;
 use App\Frontend\Services\PortfolioLedgerService;
 use App\Frontend\Services\PortfolioService;
-use App\Backend\Interfaces\RoleRepositoryInterface;
-use App\Backend\Interfaces\RoleServiceInterface;
-use App\Backend\Interfaces\PermissionRepositoryInterface;
-use App\Backend\Interfaces\PermissionServiceInterface;
-use App\Backend\Repositories\RoleRepository;
-use App\Backend\Repositories\PermissionRepository;
-use App\Backend\Services\RoleService;
-use App\Backend\Services\PermissionService;
-use App\Backend\Interfaces\QueueMonitorRepositoryInterface;
-use App\Backend\Interfaces\QueueMonitorServiceInterface;
-use App\Backend\Repositories\QueueMonitorRepository;
-use App\Backend\Services\QueueMonitorService;
-use App\Backend\Interfaces\NewsCategoryRepositoryInterface;
-use App\Backend\Interfaces\NewsCategoryServiceInterface;
-use App\Backend\Repositories\NewsCategoryRepository;
-use App\Backend\Services\NewsCategoryService;
 use App\Support\QueueJobLogger;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -223,13 +224,14 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrapFive();
 
         // "2 giờ trước" instead of "2 hours ago" in every diffForHumans() (admin and frontend)
-        \Illuminate\Support\Carbon::setLocale('vi');
+        Carbon::setLocale('vi');
 
         // Định nghĩa Gates cho phân quyền
         $this->defineGates();
 
         $this->pinRootUrl();
         $this->defineAuthRateLimiters();
+        $this->defineAiRateLimiters();
 
         // Ghi log tiến trình xử lý job cho Admin > Giám sát Queue
         $this->registerQueueMonitoring();
@@ -265,26 +267,67 @@ class AppServiceProvider extends ServiceProvider
         $email = fn (Request $r) => Str::lower(is_string($r->input('email')) ? trim($r->input('email')) : '');
 
         RateLimiter::for('auth-login', fn (Request $r) => [
-            Limit::perMinute(20)->by('login-ip:' . $r->ip()),
-            Limit::perMinute(5)->by('login-acct-ip:' . $email($r) . '|' . $r->ip()),
-            Limit::perHour(30)->by('login-acct:' . $email($r)),
+            Limit::perMinute(20)->by('login-ip:'.$r->ip()),
+            Limit::perMinute(5)->by('login-acct-ip:'.$email($r).'|'.$r->ip()),
+            Limit::perHour(30)->by('login-acct:'.$email($r)),
         ]);
 
         RateLimiter::for('auth-register', fn (Request $r) => [
-            Limit::perMinute(5)->by('register-ip:' . $r->ip()),
-            Limit::perHour(20)->by('register-ip-hour:' . $r->ip()),
+            Limit::perMinute(5)->by('register-ip:'.$r->ip()),
+            Limit::perHour(20)->by('register-ip-hour:'.$r->ip()),
         ]);
 
         // Each request sends an e-mail: also cap per recipient so nobody can flood a victim's inbox.
         RateLimiter::for('auth-reset-request', fn (Request $r) => [
-            Limit::perMinute(3)->by('reset-req-ip:' . $r->ip()),
-            Limit::perHour(5)->by('reset-req-acct:' . $email($r)),
+            Limit::perMinute(3)->by('reset-req-ip:'.$r->ip()),
+            Limit::perHour(5)->by('reset-req-acct:'.$email($r)),
         ]);
 
         RateLimiter::for('auth-reset', fn (Request $r) => [
-            Limit::perMinute(5)->by('reset-ip:' . $r->ip()),
-            Limit::perHour(10)->by('reset-acct:' . $email($r)),
+            Limit::perMinute(5)->by('reset-ip:'.$r->ip()),
+            Limit::perHour(10)->by('reset-acct:'.$email($r)),
         ]);
+    }
+
+    /**
+     * AI chat and market prediction: signed-in users only, limited PER ACCOUNT (config/ai_limits.php, tuned from
+     * .env). Prediction is one request per interval; chat is N questions per window. The 429 body carries a message
+     * the front end shows as is.
+     */
+    private function defineAiRateLimiters(): void
+    {
+        $key = fn (Request $r, string $name) => $name.':'.($r->user()?->getAuthIdentifier() ?? $r->ip());
+
+        RateLimiter::for('ai-predict', function (Request $r) use ($key) {
+            $minutes = (int) config('ai_limits.predict.interval_minutes');
+
+            return Limit::perMinutes($minutes, 1)->by($key($r, 'ai-predict'))->response(function (Request $request, array $headers) use ($minutes) {
+                $retry = (int) ($headers['Retry-After'] ?? 60);
+                $wait = max(1, (int) ceil($retry / 60));
+
+                return response()->json([
+                    'error' => true,
+                    'message' => "Mỗi tài khoản chỉ được dự đoán 1 lần mỗi {$minutes} phút. Vui lòng thử lại sau khoảng {$wait} phút.",
+                    'retry_after' => $retry,
+                ], 429, $headers);
+            });
+        });
+
+        RateLimiter::for('ai-chat', function (Request $r) use ($key) {
+            $minutes = (int) config('ai_limits.chat.window_minutes');
+            $max = (int) config('ai_limits.chat.max_questions');
+
+            return Limit::perMinutes($minutes, $max)->by($key($r, 'ai-chat'))->response(function (Request $request, array $headers) use ($minutes, $max) {
+                $retry = (int) ($headers['Retry-After'] ?? 60);
+                $wait = max(1, (int) ceil($retry / 60));
+
+                return response()->json([
+                    'error' => true,
+                    'message' => "Bạn đã hỏi tối đa {$max} câu trong {$minutes} phút. Vui lòng thử lại sau khoảng {$wait} phút.",
+                    'retry_after' => $retry,
+                ], 429, $headers);
+            });
+        });
     }
 
     /**

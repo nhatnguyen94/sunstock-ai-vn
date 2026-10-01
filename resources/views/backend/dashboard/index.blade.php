@@ -135,6 +135,7 @@
 </div>
 
 <div class="row row-deck row-cards g-3 mb-3">
+    @can('manage-users')
     <div class="col-lg-6">
         <div class="card">
             <div class="card-header">
@@ -159,6 +160,8 @@
             </div>
         </div>
     </div>
+    @endcan
+    @can('manage-features')
     <div class="col-lg-6">
         <div class="card">
             <div class="card-header">
@@ -181,9 +184,11 @@
             </div>
         </div>
     </div>
+    @endcan
 </div>
 
 <div class="row row-deck row-cards g-3">
+    @can('view-timeline')
     <div class="col-lg-7">
         <div class="card">
             <div class="card-header">
@@ -206,6 +211,7 @@
             </div>
         </div>
     </div>
+    @endcan
     <div class="col-lg-5">
         <div class="card h-100">
             <div class="card-header"><h3 class="card-title">Hành động nhanh</h3><span class="text-secondary small d-none d-md-inline"><kbd>Ctrl</kbd> + <kbd>K</kbd></span></div>

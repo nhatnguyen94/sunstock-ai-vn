@@ -17,9 +17,9 @@ use App\Frontend\Controllers\AiController;
 use App\Frontend\Controllers\AuthController;
 use App\Frontend\Controllers\CompanyProfileController;
 use App\Frontend\Controllers\EmailVerificationController;
+use App\Frontend\Controllers\EtfController;
 use App\Frontend\Controllers\ExchangeRateController;
 use App\Frontend\Controllers\FundController;
-use App\Frontend\Controllers\EtfController;
 use App\Frontend\Controllers\GoldPriceController;
 use App\Frontend\Controllers\MarketController;
 use App\Frontend\Controllers\NewsController as FrontendNewsController;
@@ -29,6 +29,11 @@ use App\Frontend\Controllers\ProfileController;
 use App\Frontend\Controllers\StockController;
 use App\Frontend\Controllers\WatchlistController;
 use Illuminate\Support\Facades\Route;
+
+// Numeric ids only, and short enough to fit a bigint: "/portfolio/99999999999999999999" used to overflow into a 500
+foreach (['id', 'itemId', 'transactionId', 'user', 'role', 'permission', 'stock', 'portfolio', 'news_category'] as $param) {
+    Route::pattern($param, '[0-9]{1,18}');
+}
 
 Route::get('/', [StockController::class, 'home'])->name('home');
 
@@ -81,9 +86,10 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::get('/news/category/{categorySlug}', [FrontendNewsController::class, 'index'])->name('news.category');
 });
 
-Route::middleware('throttle:10,1')->group(function () {
-    Route::post('/ai-chat', [StockController::class, 'aiChat']);
-    Route::post('/ai-predict', [AiController::class, 'predict']);
+// AI features are for signed-in users and limited per account (AI_CHAT_* / AI_PREDICT_* in .env, see config/ai_limits.php)
+Route::middleware('auth')->group(function () {
+    Route::post('/ai-chat', [StockController::class, 'aiChat'])->middleware('throttle:ai-chat');
+    Route::post('/ai-predict', [AiController::class, 'predict'])->middleware('throttle:ai-predict');
 });
 
 // Credential endpoints. Showing a form is cheap and harmless (generous limit); only the POSTs, which can be used to
@@ -103,10 +109,12 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Email Verification routes
 Route::middleware('auth')->group(function () {
     Route::get('/email/verify', [EmailVerificationController::class, 'notice'])->name('verification.notice');
-    Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
-        ->middleware('throttle:3,1')
-        ->name('verification.send');
 });
+// A pending account cannot sign in, so asking for a new link must not need a session. Same limiter as forgot-password
+// (per IP and per address) and the same answer whether or not the address exists.
+Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
+    ->middleware('throttle:auth-reset-request')
+    ->name('verification.send');
 // No `auth` here on purpose: login refuses unverified accounts, so requiring a session to verify would be a dead end.
 // The signed URL plus the e-mail hash inside it is the proof (see EmailVerificationController::verify).
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])->middleware(['signed', 'throttle:10,1'])->whereNumber('id')->name('verification.verify');
@@ -159,7 +167,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Admin Authentication (không cần middleware)
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->middleware('throttle:60,1')->name('login');
     Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:auth-login')->name('login.post');
-    
+
     // Admin routes (cần middleware 'admin' để kiểm tra quyền truy cập backend)
     Route::middleware(['auth:web', 'admin'])->group(function () {
         // Dashboard
@@ -172,9 +180,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Timeline - Admin, Webadmin, AdminSupport
         Route::get('/timeline', [TimelineController::class, 'index'])->name('timeline');
         Route::get('/timeline/stats', [TimelineController::class, 'stats'])->name('timeline.stats');
-        
+
         // Users Management — Admin only
-        Route::middleware('can:manage-users')->group(function () {
+        Route::middleware(['can:manage-users', 'admin.only'])->group(function () {
             Route::resource('users', UserController::class);
             Route::post('/users/{user}/verify', [EmailVerificationController::class, 'adminVerify'])->name('users.verify');
             Route::post('/users/{user}/unverify', [EmailVerificationController::class, 'adminUnverify'])->name('users.unverify');
@@ -182,11 +190,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Roles & Permissions Management — Admin only (self-service phân quyền,
         // xem docs/RBAC.md)
-        Route::middleware('can:manage-roles')->group(function () {
-            Route::resource('roles', RoleController::class);
+        Route::middleware(['can:manage-roles', 'admin.only'])->group(function () {
+            Route::resource('roles', RoleController::class)->except(['show']);
         });
-        Route::middleware('can:manage-permissions')->group(function () {
-            Route::resource('permissions', PermissionController::class);
+        Route::middleware(['can:manage-permissions', 'admin.only'])->group(function () {
+            Route::resource('permissions', PermissionController::class)->except(['show']);
         });
 
         // Stock, News, Portfolio — Admin + AdminSupport only
@@ -204,7 +212,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('/portfolios/{portfolio}', [AdminPortfolioController::class, 'destroy'])->name('portfolios.destroy');
             Route::get('/portfolios-stats', [AdminPortfolioController::class, 'stats'])->name('portfolios.stats');
         });
-        
+
         // Sync Status — manage-features
         Route::middleware('can:manage-features')->group(function () {
             Route::get('/sync-status', [SyncStatusController::class, 'index'])->name('sync-status');

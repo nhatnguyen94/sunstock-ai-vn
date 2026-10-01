@@ -54,18 +54,21 @@ class DemoUsersSeeder extends Seeder
                 $this->portfolio($user, $portfolioName, $holdings, $sell);
             }
 
-            $this->command?->info(sprintf('%-6s %s%s', $username, "{$username}@" . self::DOMAIN, $portfolioName ? "  ({$portfolioName})" : '  (chưa có danh mục)'));
+            $this->command?->info(sprintf('%-6s %s%s', $username, "{$username}@".self::DOMAIN, $portfolioName ? "  ({$portfolioName})" : '  (chưa có danh mục)'));
         }
 
-        $this->command?->info('Mật khẩu chung của 5 tài khoản: ' . self::PASSWORD);
+        $this->command?->info('Mật khẩu chung của 5 tài khoản: '.self::PASSWORD);
     }
 
     private function account(string $username, string $name): User
     {
         $user = User::firstOrCreate(
-            ['email' => "{$username}@" . self::DOMAIN],
+            ['email' => "{$username}@".self::DOMAIN],
             ['name' => $name, 'password' => Hash::make(self::PASSWORD), 'email_verified_at' => now()]
         );
+        if ($user->wasRecentlyCreated) {
+            $user->forceFill(['status' => User::STATUS_ACTIVE])->save();   // status is not mass-assignable
+        }
         UserProfile::firstOrCreate(['user_id' => $user->id], ['username' => $username, 'mobile' => null]);
         if (! $user->hasRole(Role::USER)) {
             $user->assignRole(Role::USER);

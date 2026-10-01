@@ -25,6 +25,9 @@ MAIL_FROM_ADDRESS=noreply@yourdomain.com
 QUEUE_CONNECTION=database  # For async stock sync jobs
 
 GROQ_API_KEY=your_own_groq_api_key   # Required for the AI chat feature — free key at console.groq.com
+AI_PREDICT_INTERVAL_MINUTES=15       # one market prediction per account every N minutes
+AI_CHAT_WINDOW_MINUTES=5             # AI chat: AI_CHAT_MAX_QUESTIONS questions per N minutes per account
+AI_CHAT_MAX_QUESTIONS=5
 ```
 
 ## 2. Install Dependencies
@@ -104,6 +107,11 @@ php artisan queue:work
 | `composer dump-autoload` | Rebuild class autoloader |
 
 ## Demo accounts (local only)
+```bash
+php artisan db:seed --class=DemoStaffSeeder   # webadmin@ / support@ (can open /admin, are NOT admins), pending@ / inactive@ / blocked@sunstock.test
+```
+Same password as below. Statuses you change while testing are not reset by re-running it.
+
 ```bash
 php artisan db:seed --class=DemoUsersSeeder   # demo1..demo5@sunstock.test, each with a different sample portfolio
 ```

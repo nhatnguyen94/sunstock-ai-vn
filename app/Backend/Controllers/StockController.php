@@ -22,7 +22,7 @@ class StockController extends Controller
      */
     public function index(Request $request): View|RedirectResponse
     {
-        $stocks    = $this->stockService->listStocks($request->only('search', 'exchange', 'status'));
+        $stocks = $this->stockService->listStocks($request->only('search', 'exchange', 'status'));
         $exchanges = $this->stockService->getExchanges();
 
         return view('backend.stocks.index', compact('stocks', 'exchanges'));
@@ -47,8 +47,8 @@ class StockController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'symbol'    => 'required|string|max:10|unique:stocks',
-            'name'      => 'required|string|max:255',
+            'symbol' => ['required', 'string', 'regex:/\A[A-Z0-9]{2,10}\z/', 'unique:stocks'],
+            'name' => 'required|string|max:255',
             'is_active' => 'boolean',
         ]);
 
@@ -89,8 +89,8 @@ class StockController extends Controller
     public function update(Request $request, Stock $stock): RedirectResponse
     {
         $validated = $request->validate([
-            'symbol'    => 'required|string|max:10|unique:stocks,symbol,' . $stock->id,
-            'name'      => 'required|string|max:255',
+            'symbol' => ['required', 'string', 'regex:/\A[A-Z0-9]{2,10}\z/', 'unique:stocks,symbol,'.$stock->id],
+            'name' => 'required|string|max:255',
             'is_active' => 'boolean',
         ]);
 

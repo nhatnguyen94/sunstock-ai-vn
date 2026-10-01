@@ -9,7 +9,9 @@
 @endsection
 
 @section('page_actions')
+    @if(auth()->user()->hasRole(\App\Models\Role::ADMIN))
     <a href="{{ route('admin.users.create') }}" class="btn btn-primary"><i class="ti ti-user-plus me-1"></i> Tạo User mới</a>
+    @endif
 @endsection
 
 @section('content')
@@ -52,11 +54,11 @@
                             </div>
                         </td>
                         <td>
+                            <span class="ad-dot {{ $user->status === \App\Models\User::STATUS_ACTIVE ? 'ok' : ($user->status === \App\Models\User::STATUS_PENDING ? 'warn' : 'bad') }}">{{ $user->statusLabel() }}</span>
                             @if($user->email_verified_at)
-                                <span class="ad-dot ok">Đã xác thực</span>
-                                <div class="small text-secondary">{{ $user->email_verified_at->format('d/m/Y H:i') }}</div>
+                                <div class="small text-secondary">Email xác thực {{ $user->email_verified_at->format('d/m/Y H:i') }}</div>
                             @else
-                                <span class="ad-dot warn">Chưa xác thực</span>
+                                <div class="small text-secondary">Email chưa xác thực</div>
                             @endif
                         </td>
                         <td>
@@ -68,8 +70,10 @@
                         <td class="text-end">
                             <div class="table-row-actions">
                                 <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-icon btn-ghost-secondary" title="Xem chi tiết"><i class="ti ti-eye"></i></a>
+                                @if(auth()->user()->hasRole(\App\Models\Role::ADMIN))
                                 <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-icon btn-ghost-secondary" title="Chỉnh sửa"><i class="ti ti-pencil"></i></a>
-                                @if($user->id !== auth()->id())
+                                @endif
+                                @if($user->id !== auth()->id() && auth()->user()->hasRole(\App\Models\Role::ADMIN))
                                 <div class="dropdown d-inline-block">
                                     <button type="button" class="btn btn-sm btn-icon btn-ghost-secondary" data-bs-toggle="dropdown" aria-label="Thêm thao tác"><i class="ti ti-dots-vertical"></i></button>
                                     <div class="dropdown-menu dropdown-menu-end">

@@ -23,7 +23,7 @@ use Tests\TestCase;
  */
 class MarketHomeAndWatchlistTest extends TestCase
 {
-    use RefreshDatabase, BuildsMarketPayload;
+    use BuildsMarketPayload, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -164,15 +164,25 @@ class MarketHomeAndWatchlistTest extends TestCase
     // ── watchlist endpoints ─────────────────────────────────────────────────
 
     #[Group('watchlist')]
-    public function test_the_watchlist_needs_a_signed_in_user_but_not_a_verified_email(): void
+    public function test_the_watchlist_needs_a_signed_in_active_user(): void
     {
         $this->get('/watchlist')->assertRedirect(route('login'));
         $this->postJson('/watchlist', ['symbol' => 'FPT'])->assertUnauthorized();
         $this->getJson('/watchlist/data')->assertUnauthorized();
 
         $this->seedMarketSnapshot();
-        $this->actingAs(User::factory()->unverified()->create());
+        $this->actingAs(User::factory()->create());
         $this->get('/watchlist')->assertOk()->assertSee('Danh sách theo dõi');
+    }
+
+    #[Group('watchlist')]
+    public function test_an_account_that_is_not_active_cannot_hold_a_session_even_for_the_watchlist(): void
+    {
+        foreach ([User::factory()->unverified()->create(), User::factory()->blocked()->create(), User::factory()->inactive()->create()] as $user) {
+            $this->actingAs($user)->get('/watchlist')->assertRedirect(route('login'));
+            $this->app['auth']->forgetGuards();
+            $this->flushSession();
+        }
     }
 
     #[Group('watchlist')]

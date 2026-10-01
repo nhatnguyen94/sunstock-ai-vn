@@ -33,20 +33,23 @@ class AuthController extends Controller
             'password' => 'required|string|max:255',
         ]);
 
-        // The e-mail check is part of the attempt itself, so an unverified account never gets a session
-        // (not even a short-lived one) and no "remember me" cookie is ever issued for it.
-        $verified = fn ($query) => $query->whereNotNull('email_verified_at');
+        // The status and e-mail checks are part of the attempt itself, so an account that may not enter never gets a
+        // session (not even a short-lived one) and no "remember me" cookie is ever issued for it.
+        $mayEnter = fn ($query) => $query->where('status', User::STATUS_ACTIVE)->whereNotNull('email_verified_at');
 
-        if (Auth::attempt($credentials + [$verified], $request->boolean('remember'))) {
+        if (Auth::attempt($credentials + [$mayEnter], $request->boolean('remember'))) {
             $request->session()->regenerate();
 
             return redirect()->intended('/')->with('success', 'Đăng nhập thành công!');
         }
 
-        // Only someone who already knows the right password learns that the account is merely unverified.
+        // Only someone who already knows the right password learns why the account may not enter
+        // (unverified, switched off or blocked).
         if (Auth::validate($credentials)) {
+            $account = Auth::getProvider()->retrieveByCredentials(['email' => $credentials['email']]);
+
             return back()->withErrors([
-                'email' => 'Bạn cần xác thực email trước khi đăng nhập. Kiểm tra hòm thư để xác thực tài khoản.',
+                'email' => $account instanceof User ? $account->accessDeniedMessage() : 'Thông tin đăng nhập không chính xác.',
             ])->onlyInput('email');
         }
 
@@ -89,7 +92,8 @@ class AuthController extends Controller
                     'name' => $request->username,
                     'email' => $request->email,
                     'password' => Hash::make($request->password),
-                    // email_verified_at stays null: the address must be confirmed before the first login
+                    // email_verified_at stays null and users.status keeps its default (pending): the address must be
+                    // confirmed before the first login
                 ]);
 
                 UserProfile::create([

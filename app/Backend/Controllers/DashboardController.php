@@ -18,41 +18,42 @@ use App\Models\WatchlistItem;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $stats = [
-            'total_users'        => User::count(),
-            'total_portfolios'   => Portfolio::count(),
-            'total_stocks'       => Stock::count(),
-            'active_portfolios'  => Portfolio::where('is_active', true)->count(),
-            'total_news'         => News::count(),
-            'news_last_sync'     => News::max('synced_at'),
+            'total_users' => User::count(),
+            'total_portfolios' => Portfolio::count(),
+            'total_stocks' => Stock::count(),
+            'active_portfolios' => Portfolio::where('is_active', true)->count(),
+            'total_news' => News::count(),
+            'news_last_sync' => News::max('synced_at'),
             'exchange_rate_rows' => ExchangeRate::count(),
             'exchange_last_sync' => ExchangeRate::max('updated_at'),
             // COUNT(*) over the 5M-row price table is the slowest thing on this page: it is a headline, not a ledger
-            'stock_price_rows'   => Cache::remember('admin:stock-price-rows', 600, fn () => StockPrice::count()),
-            'stock_last_sync'    => StockPrice::max('date'),
-            'hot_industry_rows'  => HotIndustry::count(),
-            'financials_rows'    => CompanyFinancial::count(),
-            'activity_today'     => ActivityLog::whereDate('created_at', today())->count(),
-            'watchlist_items'    => WatchlistItem::count(),
-            'transactions'       => PortfolioTransaction::count(),
-            'unverified_users'   => User::whereNull('email_verified_at')->count(),
-            'failed_jobs'        => $this->failedJobs(),
+            'stock_price_rows' => Cache::remember('admin:stock-price-rows', 600, fn () => StockPrice::count()),
+            'stock_last_sync' => StockPrice::max('date'),
+            'hot_industry_rows' => HotIndustry::count(),
+            'financials_rows' => CompanyFinancial::count(),
+            'activity_today' => ActivityLog::whereDate('created_at', today())->count(),
+            'watchlist_items' => WatchlistItem::count(),
+            'transactions' => PortfolioTransaction::count(),
+            'unverified_users' => User::whereNull('email_verified_at')->count(),
+            'failed_jobs' => $this->failedJobs(),
         ];
 
-        $recent_users = User::with('roles')->latest()->take(5)->get();
+        // Names, e-mails and owners are only loaded for roles that may see them elsewhere in the admin area: the
+        // dashboard used to show them to every backend account, bypassing manage-users / manage-features / view-timeline.
+        $recent_users = Gate::allows('manage-users') ? User::with('roles')->latest()->take(5)->get() : collect();
 
-        $recent_portfolios = Portfolio::with('user')
-            ->where('is_active', true)
-            ->latest()
-            ->take(5)
-            ->get();
+        $recent_portfolios = Gate::allows('manage-features')
+            ? Portfolio::with('user')->where('is_active', true)->latest()->take(5)->get()
+            : collect();
 
-        $recent_activity = ActivityLog::orderByDesc('created_at')->take(8)->get();
+        $recent_activity = Gate::allows('view-timeline') ? ActivityLog::orderByDesc('created_at')->take(8)->get() : collect();
 
         $sources = $this->sources($stats);
 

@@ -63,13 +63,14 @@
                 <div class="row">
                     <div class="col-md-12">
                         <div class="mb-3">
-                            <label class="form-label">Xác thực email</label>
-                            <label class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="email_verified" value="1"
-                                       {{ old('email_verified', '1') ? 'checked' : '' }}>
-                                <span class="form-check-label">Đánh dấu email đã xác thực ngay</span>
-                            </label>
-                            <small class="form-hint">Bỏ chọn nếu muốn user phải tự xác thực qua email.</small>
+                            <label class="form-label required">Trạng thái tài khoản</label>
+                            <select name="status" class="form-select @error('status') is-invalid @enderror" required>
+                                @foreach(\App\Models\User::statusLabels() as $value => $label)
+                                    <option value="{{ $value }}" @selected((string) old('status', \App\Models\User::STATUS_ACTIVE) === (string) $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <small class="form-hint">Hoạt động: đăng nhập được ngay (email coi như đã xác thực). Chờ xác thực: user phải bấm link trong email. Ngưng hoạt động / Bị chặn: không đăng nhập được.</small>
                         </div>
                     </div>
                 </div>

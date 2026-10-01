@@ -133,23 +133,18 @@
                         <div class="mb-3">
                             <label class="form-label">Trạng thái tài khoản</label>
                             <div class="form-selectgroup">
-                                <label class="form-selectgroup-item">
-                                    <input type="radio" name="status" value="active" 
-                                           class="form-selectgroup-input" {{ $user->email_verified_at ? 'checked' : '' }}>
-                                    <span class="form-selectgroup-label">
-                                        <span class="form-selectgroup-check"></span>
-                                        Hoạt động
-                                    </span>
-                                </label>
-                                <label class="form-selectgroup-item">
-                                    <input type="radio" name="status" value="inactive" 
-                                           class="form-selectgroup-input" {{ !$user->email_verified_at ? 'checked' : '' }}>
-                                    <span class="form-selectgroup-label">
-                                        <span class="form-selectgroup-check"></span>
-                                        Chưa kích hoạt
-                                    </span>
-                                </label>
+                                @foreach(\App\Models\User::statusLabels() as $value => $label)
+                                    <label class="form-selectgroup-item">
+                                        <input type="radio" name="status" value="{{ $value }}"
+                                               class="form-selectgroup-input" {{ (string) old('status', $user->status) === (string) $value ? 'checked' : '' }}>
+                                        <span class="form-selectgroup-label">
+                                            <span class="form-selectgroup-check"></span>
+                                            {{ $label }}
+                                        </span>
+                                    </label>
+                                @endforeach
                             </div>
+                            <small class="form-hint">Chỉ tài khoản "Hoạt động" mới đăng nhập được; đổi sang trạng thái khác sẽ đăng xuất user ngay. "Chờ xác thực" sẽ xoá xác nhận email.</small>
                         </div>
                     </div>
                 </div>

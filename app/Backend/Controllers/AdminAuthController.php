@@ -8,7 +8,6 @@ use App\Support\ActivityLogger;
 use App\Support\AuthRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class AdminAuthController extends Controller
@@ -45,13 +44,17 @@ class AdminAuthController extends Controller
         $credentials = $request->only('email', 'password');
         $remember = $request->boolean('remember');
 
+        // Only an active account with a confirmed e-mail may enter (a blocked or switched-off administrator is
+        // answered like a wrong password: this form must not reveal what state an account is in)
+        $mayEnter = fn ($query) => $query->where('status', User::STATUS_ACTIVE)->whereNotNull('email_verified_at');
+
         // Thử đăng nhập
-        if (Auth::attempt($credentials, $remember)) {
+        if (Auth::attempt($credentials + [$mayEnter], $remember)) {
             $user = Auth::user();
 
             // A valid account without backend rights is answered exactly like a wrong password, so this form
             // cannot be used to learn that someone's frontend credentials are right.
-            if (!$user->canAccessBackend()) {
+            if (! $user->canAccessBackend()) {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
@@ -94,7 +97,7 @@ class AdminAuthController extends Controller
     public function activeSessions()
     {
         // Chỉ Admin mới có quyền xem
-        if (!Auth::user()->hasRole(Role::ADMIN)) {
+        if (! Auth::user()->hasRole(Role::ADMIN)) {
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Bạn không có quyền truy cập tính năng này.');
         }

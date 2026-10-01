@@ -21,7 +21,8 @@ class RoleControllerTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * The role name must be one of the 3 hardcoded backend-access roles
+     * The role must be the admin role: writes to users, roles and permissions are admin-only (AdminOnlyForChanges), on top of
+     * the permission under test. It is also one of the 3 hardcoded backend-access roles
      * (AdminAccess middleware / User::canAccessBackend() still checks role
      * NAME, unchanged by this feature — see docs/RBAC.md) so the request
      * actually reaches the `can:manage-roles` gate under test, rather than
@@ -29,9 +30,9 @@ class RoleControllerTest extends TestCase
      */
     private function actingAsUserWithPermissions(array $permissionNames): User
     {
-        $role = Role::create(['name' => Role::WEBADMIN, 'display_name' => 'Web Admin']);
+        $role = Role::create(['name' => Role::ADMIN, 'display_name' => 'Admin']);
 
-        if (!empty($permissionNames)) {
+        if (! empty($permissionNames)) {
             $ids = collect($permissionNames)->map(
                 fn ($name) => Permission::create(['name' => $name, 'display_name' => $name])->id
             );
@@ -123,13 +124,13 @@ class RoleControllerTest extends TestCase
     public function test_cannot_destroy_a_system_role(): void
     {
         $this->actingAsUserWithPermissions(['manage-roles']);
-        $adminRole = Role::create(['name' => Role::ADMIN, 'display_name' => 'Admin']);
+        $systemRole = Role::create(['name' => Role::WEBADMIN, 'display_name' => 'Web Admin']);   // the acting user already holds admin
 
-        $response = $this->delete("/admin/roles/{$adminRole->id}");
+        $response = $this->delete("/admin/roles/{$systemRole->id}");
 
         $response->assertRedirect(route('admin.roles.index'));
         $response->assertSessionHas('error');
-        $this->assertDatabaseHas('roles', ['id' => $adminRole->id]);
+        $this->assertDatabaseHas('roles', ['id' => $systemRole->id]);
     }
 
     #[Group('permissions')]

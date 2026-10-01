@@ -52,7 +52,7 @@ class PasswordResetAndVerificationSecurityTest extends TestCase
         Notification::assertSentTo($victim, ResetPassword::class, function (ResetPassword $n) use ($victim) {
             $url = $n->toMail($victim)->actionUrl;
 
-            $this->assertStringStartsWith(rtrim((string) config('app.url'), '/') . '/reset-password/', $url);
+            $this->assertStringStartsWith(rtrim((string) config('app.url'), '/').'/reset-password/', $url);
             $this->assertStringNotContainsString('evil.test', $url);
 
             return true;
@@ -140,7 +140,7 @@ class PasswordResetAndVerificationSecurityTest extends TestCase
 
         $this->post('/forgot-password', ['email' => "' OR 1=1 --@x.com"])->assertSessionHasErrors('email');
         $this->post('/forgot-password', ['email' => ['victim@example.test']])->assertSessionHasErrors('email');
-        $this->post('/forgot-password', ['email' => str_repeat('a', 300) . '@example.test'])->assertSessionHasErrors('email');
+        $this->post('/forgot-password', ['email' => str_repeat('a', 300).'@example.test'])->assertSessionHasErrors('email');
 
         Notification::assertNothingSent();
     }
@@ -221,9 +221,9 @@ class PasswordResetAndVerificationSecurityTest extends TestCase
     }
 
     #[Group('authSecurity')]
-    public function test_reset_rotates_the_remember_token_and_verifies_a_previously_unverified_mailbox(): void
+    public function test_reset_rotates_the_remember_token_and_activates_a_pending_account(): void
     {
-        $user = $this->user(['email_verified_at' => null, 'remember_token' => 'stolen-remember-token']);
+        $user = $this->user(['email_verified_at' => null, 'status' => User::STATUS_PENDING, 'remember_token' => 'stolen-remember-token']);
         $token = $this->resetToken($user);
 
         $this->post('/reset-password', ['token' => $token, 'email' => 'victim@example.test', 'password' => 'Brand-new-pass-7', 'password_confirmation' => 'Brand-new-pass-7'])->assertRedirect('/login');
@@ -231,6 +231,22 @@ class PasswordResetAndVerificationSecurityTest extends TestCase
         $fresh = $user->fresh();
         $this->assertNotSame('stolen-remember-token', $fresh->remember_token);
         $this->assertNotNull($fresh->email_verified_at);
+        $this->assertSame(User::STATUS_ACTIVE, $fresh->status);
+    }
+
+    #[Group('authSecurity')]
+    public function test_a_password_reset_never_undoes_a_block_or_a_deactivation(): void
+    {
+        foreach ([User::STATUS_BLOCKED, User::STATUS_INACTIVE] as $i => $status) {
+            $user = $this->user(['email' => "held$i@example.test", 'status' => $status]);
+            $token = $this->resetToken($user);
+
+            $this->post('/reset-password', ['token' => $token, 'email' => "held$i@example.test", 'password' => 'Brand-new-pass-7', 'password_confirmation' => 'Brand-new-pass-7']);
+            $this->assertSame($status, $user->fresh()->status);
+
+            $this->post('/login', ['email' => "held$i@example.test", 'password' => 'Brand-new-pass-7'])->assertSessionHasErrors('email');
+            $this->assertGuest();
+        }
     }
 
     #[Group('authSecurity')]
@@ -286,8 +302,8 @@ class PasswordResetAndVerificationSecurityTest extends TestCase
         $good = $this->link($user);
 
         $this->get(route('verification.verify', ['id' => $user->id, 'hash' => sha1($user->email)]))->assertStatus(403);   // no signature at all
-        $this->get($good . '&extra=1')->assertStatus(403);                                                                    // signature no longer matches
-        $this->get(preg_replace('/signature=[a-f0-9]+/', 'signature=' . str_repeat('0', 64), $good))->assertStatus(403);      // forged signature
+        $this->get($good.'&extra=1')->assertStatus(403);                                                                    // signature no longer matches
+        $this->get(preg_replace('/signature=[a-f0-9]+/', 'signature='.str_repeat('0', 64), $good))->assertStatus(403);      // forged signature
 
         $this->travel(61)->minutes();
         $this->get($good)->assertStatus(403);                                                                                   // expired
@@ -327,20 +343,41 @@ class PasswordResetAndVerificationSecurityTest extends TestCase
     }
 
     #[Group('authSecurity')]
-    public function test_resending_the_verification_mail_needs_a_session_and_is_limited_to_three_a_minute(): void
+    public function test_resend_works_without_a_session_and_only_mails_an_account_that_is_really_pending(): void
     {
         Notification::fake();
-        $user = $this->user(['email_verified_at' => null]);
+        $pending = $this->user(['email' => 'pending@example.test', 'email_verified_at' => null, 'status' => User::STATUS_PENDING]);
+        $active = $this->user(['email' => 'active@example.test']);
+        $blocked = $this->user(['email' => 'blocked@example.test', 'status' => User::STATUS_BLOCKED, 'email_verified_at' => null]);
 
-        $this->post('/email/verification-notification')->assertRedirect('/login');
-
-        foreach (range(1, 3) as $i) {
-            $this->actingAs($user)->post('/email/verification-notification')->assertStatus(302);
+        $answers = [];
+        foreach (['pending@example.test', 'active@example.test', 'blocked@example.test', 'nobody@example.test'] as $i => $email) {
+            $this->withServerVariables(['REMOTE_ADDR' => "198.51.100.$i"])->post('/email/verification-notification', ['email' => $email])->assertRedirect();
+            $answers[] = session('success');
         }
-        $this->actingAs($user)->post('/email/verification-notification')->assertStatus(429);
-        Notification::assertSentToTimes($user, VerifyEmail::class, 3);
+
+        $this->assertCount(1, array_unique($answers));   // identical answer for every address: nothing to enumerate
+        Notification::assertSentTo($pending, VerifyEmail::class);
+        Notification::assertNotSentTo($active, VerifyEmail::class);
+        Notification::assertNotSentTo($blocked, VerifyEmail::class);
+        Notification::assertCount(1);
     }
 
+    #[Group('authSecurity')]
+    public function test_resend_is_limited_per_address_and_per_recipient_and_validates_its_input(): void
+    {
+        Notification::fake();
+        $user = $this->user(['email_verified_at' => null, 'status' => User::STATUS_PENDING]);
+
+        $this->post('/email/verification-notification', ['email' => ['x']])->assertSessionHasErrors('email');
+        $this->post('/email/verification-notification', ['email' => "' OR 1=1 --"])->assertSessionHasErrors('email');
+
+        foreach (range(1, 5) as $i) {
+            $this->withServerVariables(['REMOTE_ADDR' => "198.51.100.$i"])->post('/email/verification-notification', ['email' => 'victim@example.test'])->assertStatus(302);
+        }
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.99'])->post('/email/verification-notification', ['email' => 'victim@example.test'])->assertStatus(429);
+        Notification::assertSentToTimes($user, VerifyEmail::class, 5);
+    }
     // ── Admin login ─────────────────────────────────────────────────────────
 
     private function admin(): User

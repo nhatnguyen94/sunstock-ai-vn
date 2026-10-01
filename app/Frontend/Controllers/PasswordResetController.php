@@ -74,9 +74,10 @@ class PasswordResetController extends Controller
             function (User $user, string $password) {
                 $user->password = Hash::make($password);
                 $user->setRememberToken(Str::random(60));
-                // Receiving the reset mail proves the mailbox is theirs, so an unverified account is verified too
-                if (! $user->hasVerifiedEmail()) {
-                    $user->markEmailAsVerified();
+                // Receiving the reset mail proves the mailbox is theirs, so a pending account becomes active.
+                // Blocked / switched-off accounts stay as they are: a reset must never undo an admin's decision.
+                if ($user->status === User::STATUS_PENDING) {
+                    $user->applyStatus(User::STATUS_ACTIVE);
                 }
                 $user->save();
             }

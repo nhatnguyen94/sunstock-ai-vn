@@ -5,6 +5,7 @@ namespace App\Backend\Services;
 use App\Backend\Interfaces\PermissionRepositoryInterface;
 use App\Backend\Interfaces\PermissionServiceInterface;
 use App\Models\Permission;
+use App\Support\AdminGuard;
 use Illuminate\Support\Collection;
 
 class PermissionService implements PermissionServiceInterface
@@ -14,10 +15,7 @@ class PermissionService implements PermissionServiceInterface
      * cho xoá, admin có thể tự khoá mình khỏi Admin > Vai trò/Quyền hạn và
      * không còn cách nào cấp lại quyền ngoài việc sửa DB trực tiếp.
      */
-    private const CORE_PERMISSIONS = [
-        'manage-roles',
-        'manage-permissions',
-    ];
+    private const CORE_PERMISSIONS = AdminGuard::CORE_PERMISSIONS;
 
     public function __construct(
         protected PermissionRepositoryInterface $permissionRepository

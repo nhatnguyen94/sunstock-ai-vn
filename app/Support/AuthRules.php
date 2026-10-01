@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
@@ -26,16 +27,22 @@ final class AuthRules
         return Password::min(8)->max(128)->letters()->numbers();
     }
 
-    /** @return list<string|\Illuminate\Contracts\Validation\Rule> */
+    /** @return list<string|Rule> */
     public static function username(): array
     {
-        return ['required', 'string', 'min:3', 'max:100', 'regex:' . self::USERNAME_REGEX];
+        return ['required', 'string', 'min:3', 'max:100', 'regex:'.self::USERNAME_REGEX];
+    }
+
+    /** A person's display name in the admin forms: same character whitelist as the username, 2–255 characters. */
+    public static function displayName(): array
+    {
+        return ['required', 'string', 'min:2', 'max:255', 'regex:'.self::USERNAME_REGEX];
     }
 
     /** @return list<string> */
     public static function mobile(): array
     {
-        return ['nullable', 'string', 'regex:' . self::MOBILE_REGEX];
+        return ['nullable', 'string', 'regex:'.self::MOBILE_REGEX];
     }
 
     /** Lower-cased, trimmed e-mail; anything that is not a string is left alone for the validator to reject. */

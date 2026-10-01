@@ -3,7 +3,9 @@
 namespace App\Backend\Controllers;
 
 use App\Models\Portfolio;
+use App\Models\PortfolioItem;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -16,7 +18,7 @@ class PortfolioController extends Controller
     public function index(Request $request)
     {
         // Kiểm tra quyền
-        if (!Gate::allows('manage-features')) {
+        if (! Gate::allows('manage-features')) {
             return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
         }
 
@@ -55,11 +57,12 @@ class PortfolioController extends Controller
      */
     public function show(Portfolio $portfolio)
     {
-        if (!Gate::allows('manage-features')) {
+        if (! Gate::allows('manage-features')) {
             return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
         }
 
         $portfolio->load('user', 'items.stock');
+
         return view('backend.portfolios.show', compact('portfolio'));
     }
 
@@ -68,16 +71,18 @@ class PortfolioController extends Controller
      */
     public function toggleStatus(Portfolio $portfolio)
     {
-        if (!Gate::allows('manage-features')) {
+        if (! Gate::allows('manage-features')) {
             return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
         }
 
         $portfolio->update([
-            'is_active' => !$portfolio->is_active
+            'is_active' => ! $portfolio->is_active,
         ]);
 
         $status = $portfolio->is_active ? 'kích hoạt' : 'vô hiệu hóa';
-        
+
+        ActivityLogger::log('admin_action', "Portfolio #{$portfolio->id} đã được {$status}", ['portfolio_id' => $portfolio->id, 'owner_id' => $portfolio->user_id]);
+
         return redirect()->route('admin.portfolios.index')
             ->with('success', "Portfolio đã được {$status} thành công!");
     }
@@ -87,9 +92,11 @@ class PortfolioController extends Controller
      */
     public function destroy(Portfolio $portfolio)
     {
-        if (!Gate::allows('manage-features')) {
+        if (! Gate::allows('manage-features')) {
             return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
         }
+
+        ActivityLogger::log('admin_action', "Xóa portfolio #{$portfolio->id}", ['portfolio_id' => $portfolio->id, 'owner_id' => $portfolio->user_id, 'name' => $portfolio->name]);
 
         $portfolio->delete();
 
@@ -102,7 +109,7 @@ class PortfolioController extends Controller
      */
     public function stats()
     {
-        if (!Gate::allows('manage-features')) {
+        if (! Gate::allows('manage-features')) {
             return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
         }
 
@@ -119,7 +126,7 @@ class PortfolioController extends Controller
             'invested' => $invested,
             'profit_percent' => $invested > 0 ? (($value - $invested) / $invested) * 100 : 0,
             // What users actually hold: the ten most common symbols across all portfolios
-            'top_symbols' => \App\Models\PortfolioItem::selectRaw('stock_symbol, COUNT(DISTINCT portfolio_id) as portfolios, SUM(quantity * current_price) as value')
+            'top_symbols' => PortfolioItem::selectRaw('stock_symbol, COUNT(DISTINCT portfolio_id) as portfolios, SUM(quantity * current_price) as value')
                 ->groupBy('stock_symbol')
                 ->orderByDesc('portfolios')
                 ->orderByDesc('value')

@@ -6,6 +6,7 @@ use App\Backend\Interfaces\RoleRepositoryInterface;
 use App\Backend\Interfaces\RoleServiceInterface;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\AdminGuard;
 use Illuminate\Support\Collection;
 
 class RoleService implements RoleServiceInterface
@@ -15,12 +16,7 @@ class RoleService implements RoleServiceInterface
      * rải rác trong code (vd AdminAuthController, EmailVerificationController,
      * RoleSeeder). Xoá các role này sẽ làm hỏng những chỗ đó nên bị chặn.
      */
-    private const SYSTEM_ROLES = [
-        Role::ADMIN,
-        Role::WEBADMIN,
-        Role::ADMIN_SUPPORT,
-        Role::USER,
-    ];
+    private const SYSTEM_ROLES = AdminGuard::SYSTEM_ROLES;
 
     public function __construct(
         protected RoleRepositoryInterface $roleRepository

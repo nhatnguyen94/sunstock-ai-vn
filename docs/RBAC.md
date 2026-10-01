@@ -85,6 +85,59 @@ Unchanged. File: `app/Http/Middleware/AdminAccess.php`, registered in `bootstrap
 
 Applied on all admin routes: `middleware(['auth:web', 'admin'])`. Feature-level gates (`can:manage-users`, `can:manage-roles`, ...) are layered on top of this inside `routes/web.php`.
 
+## Who may CHANGE users, roles and permissions: the `admin` role only
+
+`can:manage-users|manage-roles|manage-permissions` still decides who may **see** those screens (so the permission can be
+delegated for read-only access), but every route in those three groups also carries the `admin.only` middleware
+(`App\Http\Middleware\AdminOnlyForChanges`): anything that is not a plain read — store/update/delete, verify/unverify,
+and even the `create`/`edit` forms — answers 403 unless the signed-in user has the `admin` role. Without it, a delegated
+`manage-users` holder could promote themselves to admin and a `manage-roles` holder could grant their own role anything.
+The users list hides the edit/delete/create controls for non-admins.
+
+`App\Support\AdminGuard` then protects the admin role from a careless or malicious administrator (each rule returns a
+Vietnamese message that the controller flashes as an error):
+
+| Rule | Why |
+|---|---|
+| An admin cannot remove their own admin role, block/deactivate/un-verify themselves or delete themselves | self lock-out |
+| The last *effective* admin (admin role + active + confirmed e-mail) cannot be demoted, blocked, un-verified or deleted | nobody could manage the system any more |
+| The four system roles (`admin`, `webadmin`, `adminsupport`, `user`) cannot be renamed (display name and permissions can still be edited) | `canAccessBackend()`, registration and the seeders refer to them by name |
+| The core permissions (`manage-roles`, `manage-permissions`) cannot be renamed, and the `admin` role cannot lose them | the screens that manage permissions would become unreachable |
+
+## Account status (`users.status`)
+
+| Value | Constant | Meaning | Can sign in? |
+|---|---|---|---|
+| `0` | `User::STATUS_INACTIVE` | switched off by an admin | no |
+| `1` | `User::STATUS_ACTIVE` | normal | yes (also needs a confirmed e-mail) |
+| `2` | `User::STATUS_PENDING` | registered, waiting for the e-mail link (the default for new rows) | no |
+| `4` | `User::STATUS_BLOCKED` | blocked by an admin | no |
+
+(3 is intentionally unused.) Rules, all enforced in code and covered by the `accountStatus` tests:
+- Login (`/login` and `/admin/login`) only lets in `status = 1` with a confirmed e-mail. The frontend form tells the *reason*
+  (verify e-mail / inactive / blocked) **only after the right password was given**; the admin form always answers like a wrong password.
+- `EnsureUserIsActive` (in the `web` group) ends the session of an account that stops being active while signed in
+  (redirect to the right login page, or 401 JSON for AJAX), so blocking someone takes effect on their next request.
+- A verification link or a password reset turns **pending → active**; it never touches `blocked` / `inactive`.
+- In the admin, `User::applyStatus()` keeps the e-mail confirmation consistent: choosing *Active* confirms the address
+  (an admin vouches for it), *Pending* clears the confirmation, *Blocked/Inactive* keep what is already confirmed.
+  "Hủy xác thực" on an active user sends them back to *Pending*.
+- `status` is not mass-assignable: it is only set through `applyStatus()` / `forceFill()`, never from request input.
+- Existing accounts were back-filled by the migration: confirmed e-mail → 1, otherwise 2.
+
+## Admin audit trail
+
+Every change made in the admin is written to `activity_logs` (shown in Admin > Timeline) with the actor, IP and a
+`properties` JSON (target id, before/after roles and status, whether a password changed — never the password itself):
+user create/update/delete, verify/unverify, role and permission create/update/delete, portfolio toggle/delete, queue
+retry/delete, manual sync, password change. Refused actions are not logged as done.
+
+## The dashboard follows the same permissions
+
+`/admin` is open to every backend account, but its "latest users" (needs `manage-users`), "active portfolios"
+(`manage-features`) and "recent activity" (`view-timeline`) blocks are only loaded and rendered for roles holding that
+permission; the numbers-only cards are shown to everyone.
+
 ## Backend admin UI
 
 - **Admin > Hệ thống > Vai trò** (`admin.roles.*`, gate `manage-roles`) — `App\Backend\Controllers\RoleController`. Create/edit a role's name + display name + which permissions it has (checkbox grid grouped by `permissions.group`). Delete is blocked for system roles and for any role still assigned to a user.

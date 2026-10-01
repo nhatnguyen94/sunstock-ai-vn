@@ -48,12 +48,12 @@
                     <div class="list-group-item">
                         <div class="row align-items-center">
                             <div class="col-auto">
-                                <span class="status-dot {{ $user->email_verified_at ? 'd-block' : 'status-dot-animated bg-red' }}"></span>
+                                <span class="status-dot {{ $user->status === \App\Models\User::STATUS_ACTIVE ? 'd-block' : 'status-dot-animated bg-red' }}"></span>
                             </div>
                             <div class="col text-truncate">
                                 <strong>Trạng thái</strong>
                                 <div class="d-block text-muted text-truncate">
-                                    {{ $user->email_verified_at ? 'Đã xác thực' : 'Chưa xác thực' }}
+                                    {{ $user->statusLabel() }} · {{ $user->email_verified_at ? 'email đã xác thực' : 'email chưa xác thực' }}
                                 </div>
                             </div>
                         </div>

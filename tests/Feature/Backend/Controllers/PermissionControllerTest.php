@@ -21,9 +21,9 @@ class PermissionControllerTest extends TestCase
     /** @see RoleControllerTest::actingAsUserWithPermissions() for why the role name matters. */
     private function actingAsUserWithPermissions(array $permissionNames): User
     {
-        $role = Role::create(['name' => Role::WEBADMIN, 'display_name' => 'Web Admin']);
+        $role = Role::create(['name' => Role::ADMIN, 'display_name' => 'Admin']);
 
-        if (!empty($permissionNames)) {
+        if (! empty($permissionNames)) {
             $ids = collect($permissionNames)->map(
                 fn ($name) => Permission::create(['name' => $name, 'display_name' => $name])->id
             );

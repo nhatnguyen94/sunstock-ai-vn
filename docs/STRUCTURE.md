@@ -162,17 +162,24 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `app/Support/Mojibake.php` - `repairCp437()`: inverse of "UTF-8 bytes shown as Windows console CP437" (`C├┤ng ty` → `Công ty`); returns null unless the result is valid UTF-8 and differs. Used by migration `2026_09_19_000003_repair_mojibake_in_stock_symbol_names` (182 `stock_symbols.name` rows)
 - `app/Support/PriceUnit.php` - **The** conversion between the vnstock feed's price unit (thousands of VND: ACB `22.05` = 22,050 ₫) and whole VND. Anything stored in a VND column (portfolio buy/current/target/stop-loss) must go through it — copying a feed price straight in is what produced a `-99.97%` loss
 - `app/Support/PortfolioHistory.php` - Pure: replays the LEDGER (buys and sells) against daily closes → `[date, value, invested (cost basis of shares held), flow (cash in/out)]`. Correct after partial sales and closed positions, which `PortfolioPerformance` (current holdings only) cannot be
+- `app/Support/AdminGuard.php` - Pure rules (return a message or null) that keep the admin role from being locked or hijacked: no self-demotion/self-block/self-delete, last effective admin protected, system role names and core permissions immutable
 - `app/Support/AuthRules.php` - The one place for account-field rules: password (8–128, letter + digit), username whitelist (letters of any language, digits, space . _ -), mobile, e-mail normalisation, Vietnamese messages. Used by register, profile, reset and the admin password change
 - `app/Support/PortfolioRisk.php` - Pure: `dailyReturns()` (time-weighted: the day's flow is removed first), `stats()` (total return, annualised volatility ≥ 20 observations, max drawdown, best/worst day), `beta()`, `priceReturns()`, `priceReturnBetween()` (null when the history starts after the start date), `simulate()` (same flows invested in a benchmark)
 - `app/Support/PortfolioPerformance.php` - Pure: rebuilds a portfolio's value-over-time from holdings' buy dates + daily closes (buy-date gating, carry-forward across gaps, buy-price fallback, thinning to ≤400 points). Powers the performance chart without a snapshot table
 
+### Config
+- `config/ai_limits.php` - Per-account AI limits read from `.env`: `AI_PREDICT_INTERVAL_MINUTES` (15), `AI_CHAT_WINDOW_MINUTES` (5), `AI_CHAT_MAX_QUESTIONS` (5); values are floored at 1 so a typo cannot switch the limiter off. The `ai-chat` / `ai-predict` limiters are defined in `AppServiceProvider::defineAiRateLimiters()`
+
 ### Seeders
+- `database/seeders/DemoStaffSeeder.php` - `php artisan db:seed --class=DemoStaffSeeder` (local only): `webadmin@` (role webadmin), `support@` (adminsupport), and `pending@` / `inactive@` / `blocked@sunstock.test` (role user, status 2 / 0 / 4), all with the shared demo password. None is an admin
 - `database/seeders/DemoUsersSeeder.php` - `php artisan db:seed --class=DemoUsersSeeder`: five verified accounts `demo1..demo5@sunstock.test` (shared password in `DemoUsersSeeder::PASSWORD`, public by design) each with a different portfolio built from real stored prices (long-term banks, growth with a partial sale, ETF investor, concentrated, none). **Refuses to run outside the local/testing environments.** Idempotent
 
 ### Notifications
 - `app/Notifications/PortfolioAlertNotification.php` - `ShouldQueue` mail notification; sent once when a `PortfolioItem` crosses `target_price` or `stop_loss_price`. Always queued `onQueue('high')` so it isn't delayed by heavy `default`-queue sync jobs.
 
 ### Middleware
+- `app/Http/Middleware/EnsureUserIsActive.php` - In the `web` group: ends the session (redirect, or 401 JSON for AJAX) of an account that is no longer `active` with a confirmed e-mail
+- `app/Http/Middleware/AdminOnlyForChanges.php` - Alias `admin.only`: only the `admin` role may do anything but read in the users/roles/permissions admin areas
 - `app/Http/Middleware/SecurityHeaders.php` - Appended to the `web` group: `X-Frame-Options`, `nosniff`, `Referrer-Policy` (`no-referrer` on reset/verify URLs), `Permissions-Policy`, HSTS over HTTPS, a script-independent CSP (`frame-ancestors/base-uri/form-action 'self'; object-src 'none'`), `no-store` on login/register/reset pages
 - `app/Http/Middleware/AdminAccess.php` - Blocks non-backend users; registered as alias `admin` in `bootstrap/app.php`
 

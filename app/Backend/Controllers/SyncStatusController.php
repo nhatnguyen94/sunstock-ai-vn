@@ -4,18 +4,17 @@ namespace App\Backend\Controllers;
 
 use App\Models\CompanyFinancial;
 use App\Models\CompanyProfile;
-use App\Models\Fund;
 use App\Models\Etf;
-use App\Models\GoldPrice;
-use App\Models\MarketSnapshot;
 use App\Models\ExchangeRate;
+use App\Models\Fund;
+use App\Models\GoldPrice;
 use App\Models\HotIndustry;
+use App\Models\MarketSnapshot;
 use App\Models\News;
 use App\Models\StockPrice;
 use App\Models\StockSymbol;
 use App\Support\ActivityLogger;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -27,17 +26,17 @@ class SyncStatusController extends Controller
      * args_array uses the same format as Artisan::call() second argument.
      */
     private const ALLOWED_COMMANDS = [
-        'sync:news'              => ['sync:news',              []],
-        'sync:exchange-rates'    => ['sync:exchange-rates',    []],
-        'sync:hot-industries'    => ['sync:hot-industries',    []],
-        'sync:stock-prices'      => ['sync:stock-prices',      []],
-        'sync:stock-data'        => ['sync:stock-data',        []],
-        'sync:company-financials'=> ['sync:company-financials', ['--stale' => true, '--dispatch' => true]],
-        'sync:funds'             => ['sync:funds',             []],
-        'sync:etfs'              => ['sync:etfs',              []],
-        'sync:gold-prices'       => ['sync:gold-prices',       []],
-        'sync:market-overview'   => ['sync:market-overview',   []],
-        'sync:company-profiles'  => ['sync:company-profiles',  ['--seed' => true, '--limit' => 50, '--dispatch' => true]],
+        'sync:news' => ['sync:news',              []],
+        'sync:exchange-rates' => ['sync:exchange-rates',    []],
+        'sync:hot-industries' => ['sync:hot-industries',    []],
+        'sync:stock-prices' => ['sync:stock-prices',      []],
+        'sync:stock-data' => ['sync:stock-data',        []],
+        'sync:company-financials' => ['sync:company-financials', ['--stale' => true, '--dispatch' => true]],
+        'sync:funds' => ['sync:funds',             []],
+        'sync:etfs' => ['sync:etfs',              []],
+        'sync:gold-prices' => ['sync:gold-prices',       []],
+        'sync:market-overview' => ['sync:market-overview',   []],
+        'sync:company-profiles' => ['sync:company-profiles',  ['--seed' => true, '--limit' => 50, '--dispatch' => true]],
     ];
 
     public function index(): View
@@ -46,102 +45,102 @@ class SyncStatusController extends Controller
 
         $sources = [
             [
-                'key'         => 'sync:news',
-                'label'       => 'Tin tức (RSS)',
-                'icon'        => 'news',
-                'color'       => 'purple',
-                'row_count'   => News::count(),
-                'last_sync'   => News::max('synced_at'),
+                'key' => 'sync:news',
+                'label' => 'Tin tức (RSS)',
+                'icon' => 'news',
+                'color' => 'purple',
+                'row_count' => News::count(),
+                'last_sync' => News::max('synced_at'),
                 'description' => '5 nguồn RSS: VnExpress, CafeF, Dân Trí — chạy mỗi 30 phút',
             ],
             [
-                'key'         => 'sync:exchange-rates',
-                'label'       => 'Tỷ giá ngoại tệ',
-                'icon'        => 'currency',
-                'color'       => 'green',
-                'row_count'   => ExchangeRate::count(),
-                'last_sync'   => ExchangeRate::max('updated_at'),
+                'key' => 'sync:exchange-rates',
+                'label' => 'Tỷ giá ngoại tệ',
+                'icon' => 'currency',
+                'color' => 'green',
+                'row_count' => ExchangeRate::count(),
+                'last_sync' => ExchangeRate::max('updated_at'),
                 'description' => 'VCB exchange rates — chạy hàng ngày lúc 07:30',
             ],
             [
-                'key'         => 'sync:hot-industries',
-                'label'       => 'Ngành hot',
-                'icon'        => 'flame',
-                'color'       => 'orange',
-                'row_count'   => HotIndustry::count(),
-                'last_sync'   => HotIndustry::max('updated_at'),
+                'key' => 'sync:hot-industries',
+                'label' => 'Ngành hot',
+                'icon' => 'flame',
+                'color' => 'orange',
+                'row_count' => HotIndustry::count(),
+                'last_sync' => HotIndustry::max('updated_at'),
                 'description' => 'Ngân hàng, BĐS, CNTT — chạy hàng ngày lúc 07:45',
             ],
             [
-                'key'         => 'sync:stock-prices',
-                'label'       => 'Giá cổ phiếu',
-                'icon'        => 'trending-up',
-                'color'       => 'blue',
-                'row_count'   => StockPrice::count(),
-                'last_sync'   => StockPrice::max('date'),
+                'key' => 'sync:stock-prices',
+                'label' => 'Giá cổ phiếu',
+                'icon' => 'trending-up',
+                'color' => 'blue',
+                'row_count' => StockPrice::count(),
+                'last_sync' => StockPrice::max('date'),
                 'description' => 'Giá lịch sử hàng ngày — chạy lúc 15:30 sau khi thị trường đóng cửa',
             ],
             [
-                'key'         => 'sync:stock-data',
-                'label'       => 'Danh sách cổ phiếu',
-                'icon'        => 'database',
-                'color'       => 'cyan',
-                'row_count'   => StockSymbol::count(),
-                'last_sync'   => StockSymbol::max('updated_at'),
+                'key' => 'sync:stock-data',
+                'label' => 'Danh sách cổ phiếu',
+                'icon' => 'database',
+                'color' => 'cyan',
+                'row_count' => StockSymbol::count(),
+                'last_sync' => StockSymbol::max('updated_at'),
                 'description' => 'Symbol list từ vnstock — chạy mỗi thứ Hai lúc 07:00',
             ],
             [
-                'key'         => 'sync:company-financials',
-                'label'       => 'Tài chính doanh nghiệp',
-                'icon'        => 'report',
-                'color'       => 'indigo',
-                'row_count'   => CompanyFinancial::count(),
-                'last_sync'   => CompanyFinancial::max('synced_at'),
+                'key' => 'sync:company-financials',
+                'label' => 'Tài chính doanh nghiệp',
+                'icon' => 'report',
+                'color' => 'indigo',
+                'row_count' => CompanyFinancial::count(),
+                'last_sync' => CompanyFinancial::max('synced_at'),
                 'description' => 'Income/Balance/Cashflow/Ratio — chạy hàng tháng (ngày 5 lúc 02:00)',
             ],
             [
-                'key'         => 'sync:company-profiles',
-                'label'       => 'Hồ sơ công ty',
-                'icon'        => 'building',
-                'color'       => 'cyan',
-                'row_count'   => CompanyProfile::count(),
-                'last_sync'   => CompanyProfile::max('synced_at'),
+                'key' => 'sync:company-profiles',
+                'label' => 'Hồ sơ công ty',
+                'icon' => 'building',
+                'color' => 'cyan',
+                'row_count' => CompanyProfile::count(),
+                'last_sync' => CompanyProfile::max('synced_at'),
                 'description' => 'Cổ đông, ban lãnh đạo, công ty con, sự kiện — cache khi có người xem; làm mới Chủ nhật 03:00 (nút này: làm mới hồ sơ cũ + nạp thêm 50 mã)',
             ],
             [
-                'key'         => 'sync:market-overview',
-                'label'       => 'Tổng quan thị trường',
-                'icon'        => 'chart-line',
-                'color'       => 'blue',
-                'row_count'   => MarketSnapshot::count(),
-                'last_sync'   => MarketSnapshot::max('synced_at'),
+                'key' => 'sync:market-overview',
+                'label' => 'Tổng quan thị trường',
+                'icon' => 'chart-line',
+                'color' => 'blue',
+                'row_count' => MarketSnapshot::count(),
+                'last_sync' => MarketSnapshot::max('synced_at'),
                 'description' => 'VN-Index/VN30/HNX/UPCoM, độ rộng thị trường, thanh khoản, top tăng/giảm và giá mọi mã (bảng giá KBS, 1 lần gọi ~4s) — mỗi 5 phút trong phiên giao dịch, 1 lần lúc 18:00',
             ],
             [
-                'key'         => 'sync:gold-prices',
-                'label'       => 'Giá vàng (SJC, BTMC)',
-                'icon'        => 'currency',
-                'color'       => 'yellow',
-                'row_count'   => GoldPrice::count(),
-                'last_sync'   => GoldPrice::max('synced_at'),
+                'key' => 'sync:gold-prices',
+                'label' => 'Giá vàng (SJC, BTMC)',
+                'icon' => 'currency',
+                'color' => 'yellow',
+                'row_count' => GoldPrice::count(),
+                'last_sync' => GoldPrice::max('synced_at'),
                 'description' => 'Vàng SJC/BTMC, bạc và giá vàng thế giới — chụp snapshot mỗi 15 phút (7h–19h giờ VN) để tự dựng biểu đồ lịch sử',
             ],
             [
-                'key'         => 'sync:funds',
-                'label'       => 'Quỹ mở (Fmarket)',
-                'icon'        => 'chart-pie',
-                'color'       => 'pink',
-                'row_count'   => Fund::count(),
-                'last_sync'   => Fund::max('synced_at'),
+                'key' => 'sync:funds',
+                'label' => 'Quỹ mở (Fmarket)',
+                'icon' => 'chart-pie',
+                'color' => 'pink',
+                'row_count' => Fund::count(),
+                'last_sync' => Fund::max('synced_at'),
                 'description' => 'NAV + lợi suất toàn bộ quỹ mở (1 lần gọi) — chạy hàng ngày lúc 18:30',
             ],
             [
-                'key'         => 'sync:etfs',
-                'label'       => 'Quỹ ETF (KBS)',
-                'icon'        => 'chart-arrows',
-                'color'       => 'cyan',
-                'row_count'   => Etf::count(),
-                'last_sync'   => Etf::max('synced_at'),
+                'key' => 'sync:etfs',
+                'label' => 'Quỹ ETF (KBS)',
+                'icon' => 'chart-arrows',
+                'color' => 'cyan',
+                'row_count' => Etf::count(),
+                'last_sync' => Etf::max('synced_at'),
                 'description' => 'Danh sách ETF và quỹ đóng niêm yết (mã + tên) — chạy hàng tuần Chủ nhật 03:30; giá lấy từ sync:stock-prices',
             ],
         ];
@@ -165,7 +164,7 @@ class SyncStatusController extends Controller
 
         try {
             Artisan::call($cmd, $args);
-            $output   = Artisan::output();
+            $output = Artisan::output();
 
             ActivityLogger::log('admin_action', "Manual sync triggered: {$key}", ['output' => trim(mb_substr($output, 0, 300))]);
 
@@ -174,7 +173,9 @@ class SyncStatusController extends Controller
                 'message' => trim($output) ?: 'Sync hoàn tất.',
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            report($e);
+
+            return response()->json(['error' => 'Sync thất bại, xem chi tiết trong log hệ thống.'], 500);
         }
     }
 }

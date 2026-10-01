@@ -4,6 +4,8 @@ namespace App\Backend\Controllers;
 
 use App\Backend\Interfaces\PermissionServiceInterface;
 use App\Models\Permission;
+use App\Support\ActivityLogger;
+use App\Support\AdminGuard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -29,15 +31,17 @@ class PermissionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'         => 'required|string|max:255|alpha_dash|unique:permissions,name',
+            'name' => 'required|string|max:255|alpha_dash|unique:permissions,name',
             'display_name' => 'required|string|max:255',
-            'group'        => 'nullable|string|max:255',
+            'group' => 'nullable|string|max:255',
         ], [
             'name.alpha_dash' => 'Tên quyền chỉ được chứa chữ, số, gạch ngang và gạch dưới (không dấu, không khoảng trắng) — vd: manage-alerts.',
-            'name.unique'      => 'Tên quyền này đã tồn tại.',
+            'name.unique' => 'Tên quyền này đã tồn tại.',
         ]);
 
-        $this->permissionService->createPermission($validated);
+        $permission = $this->permissionService->createPermission($validated);
+
+        ActivityLogger::log('admin_action', "Tạo quyền {$permission->name}", ['permission_id' => $permission->id]);
 
         return redirect()->route('admin.permissions.index')
             ->with('success', 'Quyền hạn đã được tạo thành công!');
@@ -53,15 +57,23 @@ class PermissionController extends Controller
     public function update(Request $request, Permission $permission): RedirectResponse
     {
         $validated = $request->validate([
-            'name'         => 'required|string|max:255|alpha_dash|unique:permissions,name,' . $permission->id,
+            'name' => 'required|string|max:255|alpha_dash|unique:permissions,name,'.$permission->id,
             'display_name' => 'required|string|max:255',
-            'group'        => 'nullable|string|max:255',
+            'group' => 'nullable|string|max:255',
         ], [
             'name.alpha_dash' => 'Tên quyền chỉ được chứa chữ, số, gạch ngang và gạch dưới (không dấu, không khoảng trắng) — vd: manage-alerts.',
-            'name.unique'      => 'Tên quyền này đã tồn tại.',
+            'name.unique' => 'Tên quyền này đã tồn tại.',
         ]);
 
+        if ($problem = AdminGuard::permissionProblem($permission, $validated['name'])) {
+            return back()->withInput()->with('error', $problem);
+        }
+
+        $oldName = $permission->name;
+
         $this->permissionService->updatePermission($permission, $validated);
+
+        ActivityLogger::log('admin_action', "Cập nhật quyền {$oldName}", ['permission_id' => $permission->id, 'new_name' => $validated['name']]);
 
         return redirect()->route('admin.permissions.index')
             ->with('success', 'Quyền hạn đã được cập nhật thành công!');
@@ -71,8 +83,10 @@ class PermissionController extends Controller
     {
         if ($this->permissionService->isCorePermission($permission)) {
             return redirect()->route('admin.permissions.index')
-                ->with('error', 'Không thể xoá quyền hạn lõi (' . $permission->display_name . ') — hệ thống dùng nó để tự bảo vệ.');
+                ->with('error', 'Không thể xoá quyền hạn lõi ('.$permission->display_name.') — hệ thống dùng nó để tự bảo vệ.');
         }
+
+        ActivityLogger::log('admin_action', "Xoá quyền {$permission->name}", ['permission_id' => $permission->id]);
 
         $this->permissionService->deletePermission($permission);
 

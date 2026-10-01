@@ -129,6 +129,15 @@
                 </a>
             </div>
 
+            <details style="margin-top:1rem;text-align:center;">
+                <summary style="color:#6b7280;font-size:0.8rem;cursor:pointer;">Chưa nhận được email xác thực?</summary>
+                <form method="POST" action="{{ route('verification.send') }}" style="margin-top:0.75rem;display:flex;gap:8px;">
+                    @csrf
+                    <input type="email" name="email" class="auth-input" required maxlength="255" placeholder="Email đã đăng ký" style="flex:1;">
+                    <button type="submit" class="auth-submit-btn" style="width:auto;padding:0 1rem;">Gửi lại</button>
+                </form>
+            </details>
+
             <div style="text-align:center;margin-top:1rem;">
                 <a href="{{ url('/') }}" style="color:#9ca3af;font-size:0.8rem;text-decoration:none;">
                     <i class="bi bi-house"></i> Về trang chủ

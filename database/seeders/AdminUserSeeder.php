@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserProfile;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -27,6 +26,10 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
+        if ($admin->wasRecentlyCreated) {
+            $admin->forceFill(['status' => User::STATUS_ACTIVE])->save();   // status is not mass-assignable
+        }
+
         // Tạo profile cho admin
         UserProfile::firstOrCreate(
             ['user_id' => $admin->id],
@@ -39,7 +42,7 @@ class AdminUserSeeder extends Seeder
 
         // Gán role admin
         $adminRole = Role::where('name', Role::ADMIN)->first();
-        if ($adminRole && !$admin->hasRole(Role::ADMIN)) {
+        if ($adminRole && ! $admin->hasRole(Role::ADMIN)) {
             $admin->roles()->syncWithoutDetaching([$adminRole->id]);
         }
 

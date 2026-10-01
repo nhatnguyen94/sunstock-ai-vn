@@ -37,6 +37,7 @@ class QueueMonitorController extends Controller
     public function retry(string $uuid): JsonResponse
     {
         $ok = $this->queueMonitorService->retryFailedJob($uuid);
+        ActivityLogger::log('admin_action', 'Retry job lỗi '.$uuid, ['uuid' => $uuid, 'found' => $ok]);
 
         return response()->json(
             $ok ? ['success' => true, 'message' => 'Đã đưa job vào lại queue.']
@@ -48,6 +49,7 @@ class QueueMonitorController extends Controller
     public function destroy(string $uuid): JsonResponse
     {
         $ok = $this->queueMonitorService->deleteFailedJob($uuid);
+        ActivityLogger::log('admin_action', 'Xoá job lỗi '.$uuid, ['uuid' => $uuid, 'found' => $ok]);
 
         return response()->json(
             $ok ? ['success' => true, 'message' => 'Đã xoá job khỏi danh sách fail.']
@@ -71,6 +73,8 @@ class QueueMonitorController extends Controller
     public function retryAll(): JsonResponse
     {
         $count = $this->queueMonitorService->retryAllFailedJobs();
+
+        ActivityLogger::log('admin_action', "Retry toàn bộ job lỗi: {$count} job");
 
         return response()->json([
             'success' => true,

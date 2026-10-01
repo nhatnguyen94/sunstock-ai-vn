@@ -65,6 +65,13 @@ When adding ANY new feature (or changing an existing one):
 - Validate every free-text account field with `AuthRules` (whitelist). Output is escaped by Blade, but a stored `<script>` still reaches e-mails, exports and any future `innerHTML`.
 - Tests that must exercise CSRF set `$this->app['env'] = 'local'` (the middleware is skipped under `testing`).
 
+### Authorization and account status (rules learned the hard way)
+- **Delegating `manage-users` / `manage-roles` / `manage-permissions` is read-only by design**: writes need the `admin` role (`admin.only`). New admin write routes for these areas must sit inside those groups; do not add "special" routes outside them.
+- Add the `AdminGuard` check to any new code that changes a user's roles/status or a role/permission, and write an `ActivityLogger::log('admin_action', ...)` entry with ids, before/after and **never** a password or token.
+- Account state lives in `users.status` (0/1/2/4, see docs/RBAC.md). Never write `email_verified_at` or `status` from request input; use `User::applyStatus()`. A new place that lets people in must check `canSignIn()` (or rely on `EnsureUserIsActive`).
+- AI endpoints (`/ai-chat`, `/ai-predict`) are per-account limited; any new endpoint that costs money or spawns a process should get a named limiter keyed by user id, not a bare `throttle:N,M` by IP.
+- Tests that act as several users in one test must call `forgetGuards()` + `flushSession()` between actors, otherwise `AuthenticateSession` sees the previous actor's password stamp and signs the next one out.
+
 ### Email Verification
 - `User` model implements `MustVerifyEmail` — new users must verify before accessing protected routes
 - Routes requiring verification use `middleware(['auth', 'verified'])`

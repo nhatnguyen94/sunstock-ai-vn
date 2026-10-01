@@ -1,9 +1,15 @@
 <?php
 
+use App\Http\Middleware\AdminAccess;
+use App\Http\Middleware\AdminOnlyForChanges;
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\SecurityHeaders;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,7 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Đăng ký middleware AdminAccess với alias 'admin'
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminAccess::class,
+            'admin' => AdminAccess::class,
+            'admin.only' => AdminOnlyForChanges::class,
         ]);
 
         // auth:web runs before the 'admin' alias on /admin/* routes, so an
@@ -25,7 +32,11 @@ return Application::configure(basePath: dirname(__DIR__))
             fn ($request) => $request->is('admin*') ? route('admin.login') : route('login')
         );
 
-        $middleware->web(append: [\App\Http\Middleware\SecurityHeaders::class]);
+        $middleware->web(append: [
+            SecurityHeaders::class,
+            // ends the session of an account that was blocked / switched off / un-verified while it was signed in
+            EnsureUserIsActive::class,
+        ]);
 
         // A session remembers a hash of the password it was created with: changing or resetting the password
         // therefore signs every other device out, which is the point of resetting after a suspected theft.
@@ -128,5 +139,14 @@ return Application::configure(basePath: dirname(__DIR__))
             ->runInBackground();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // AJAX callers (AI chat / prediction) get a readable message instead of Laravel's English default
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Vui lòng đăng nhập để sử dụng tính năng này.',
+                    'login_url' => route('login'),
+                ], 401);
+            }
+        });
     })->create();

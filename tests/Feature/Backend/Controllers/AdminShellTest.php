@@ -35,7 +35,7 @@ class AdminShellTest extends TestCase
     /** @param string[] $permissions */
     private function actingAsAdminWith(array $permissions, string $role = Role::WEBADMIN): User
     {
-        $r = Role::create(['name' => $role, 'display_name' => 'Vai trò ' . $role]);
+        $r = Role::create(['name' => $role, 'display_name' => 'Vai trò '.$role]);
         $r->permissions()->sync(collect($permissions)->map(fn ($n) => Permission::firstOrCreate(['name' => $n], ['display_name' => $n])->id));
 
         $user = User::factory()->create(['name' => 'Ngô Quản Trị']);
@@ -84,7 +84,7 @@ class AdminShellTest extends TestCase
             $this->assertContains($t, $titles, "palette should offer {$t}");
         }
         foreach (['Tổng quan', 'Hệ thống', 'Nội dung & dữ liệu'] as $g) {
-            $this->assertStringContainsString('ad-nav-label">' . htmlspecialchars($g, ENT_QUOTES) . '<', $html);
+            $this->assertStringContainsString('ad-nav-label">'.htmlspecialchars($g, ENT_QUOTES).'<', $html);
         }
     }
 
@@ -155,7 +155,7 @@ class AdminShellTest extends TestCase
         $r->assertSee('Chào mừng trở lại');
         $r->assertSee('name="email"', false);
         $r->assertSee('name="password"', false);
-        $r->assertSee('action="' . route('admin.login') . '"', false);
+        $r->assertSee('action="'.route('admin.login').'"', false);
         $r->assertDontSee('cdn.jsdelivr.net/npm/@tabler', false);      // bundled locally now, no CDN
     }
 
@@ -164,7 +164,7 @@ class AdminShellTest extends TestCase
     #[Group('adminShell')]
     public function test_the_dashboard_shows_kpis_and_a_status_for_every_data_source(): void
     {
-        $this->actingAsAdminWith(['manage-features', 'manage-users']);
+        $this->actingAsAdminWith(['manage-features', 'manage-users', 'view-timeline']);
         News::query()->count();
         ExchangeRate::create(['currency_code' => 'USD', 'currency_name' => 'US DOLLAR', 'buy_cash' => '1', 'buy_transfer' => '1', 'sell' => '1', 'date' => now()->toDateString()]);
         GoldPrice::create(['source' => 'SJC', 'metal' => 'gold', 'product' => 'X', 'branch' => '', 'unit' => 'luong', 'buy_price' => 1, 'sell_price' => 2, 'quoted_at' => now(), 'synced_at' => now()]);
@@ -260,7 +260,7 @@ class AdminShellTest extends TestCase
     #[Group('adminShell')]
     public function test_destructive_actions_ask_through_the_confirm_dialog_not_window_confirm(): void
     {
-        $this->actingAsAdminWith(['manage-users', 'manage-features']);
+        $this->actingAsAdminWith(['manage-users', 'manage-features'], Role::ADMIN);   // delete/edit controls are admin-only
         User::factory()->create(['name' => 'Người Bị Xóa']);
 
         $html = $this->get('/admin/users')->getContent();
