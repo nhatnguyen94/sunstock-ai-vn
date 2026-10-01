@@ -4,6 +4,7 @@ namespace App\Frontend\Interfaces;
 
 use App\Models\Portfolio;
 use App\Models\PortfolioItem;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -69,5 +70,5 @@ interface PortfolioRepositoryInterface
     /**
      * Persist a target/stop-loss alert timestamp column (or clear it with null) on one item.
      */
-    public function setAlertFlag(PortfolioItem $item, string $column, ?\DateTimeInterface $value): void;
+    public function setAlertFlag(PortfolioItem $item, string $column, ?DateTimeInterface $value): void;
 }

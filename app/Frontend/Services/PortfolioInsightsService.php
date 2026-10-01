@@ -14,6 +14,7 @@ use App\Support\PortfolioPerformance;
 use App\Support\PortfolioRisk;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * What the portfolio page shows beyond the plain holdings: a ledger-accurate value line, risk figures, the
@@ -263,7 +264,7 @@ class PortfolioInsightsService
             if (Cache::add("pf-benchmark-backfill:{$symbol}", 1, 86400)) {
                 RefreshStockPricesJob::dispatch([$symbol], date('Y-m-d', strtotime($from . ' -10 days')));
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('PortfolioInsights: benchmark backfill not queued', ['symbol' => $symbol, 'error' => $e->getMessage()]);
         }
     }

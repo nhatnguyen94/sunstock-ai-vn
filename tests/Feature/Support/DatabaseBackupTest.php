@@ -3,8 +3,10 @@
 namespace Tests\Feature\Support;
 
 use App\Support\DatabaseBackup;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\Group;
+use RuntimeException;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -55,7 +57,7 @@ class DatabaseBackupTest extends TestCase
             {
                 $this->dumps++;
                 if ($this->fail) {
-                    throw new \RuntimeException('mysqldump lỗi: Access denied');
+                    throw new RuntimeException('mysqldump lỗi: Access denied');
                 }
                 file_put_contents($target, $this->sql);
             }
@@ -180,7 +182,7 @@ class DatabaseBackupTest extends TestCase
         try {
             $b->run(Carbon::parse('2026-09-20'));
             $this->fail('a truncated dump must not be accepted');
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             $this->assertStringContainsString('bị cụt', $e->getMessage());
         }
 
@@ -192,7 +194,7 @@ class DatabaseBackupTest extends TestCase
     #[Group('dbBackup')]
     public function test_an_empty_dump_is_an_error(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('rỗng');
 
         $this->backup('')->run(Carbon::parse('2026-09-20'));
@@ -201,7 +203,7 @@ class DatabaseBackupTest extends TestCase
     #[Group('dbBackup')]
     public function test_a_failing_mysqldump_is_an_error_with_its_message(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Access denied');
 
         $this->backup(fail: true)->run(Carbon::parse('2026-09-20'));
@@ -215,7 +217,7 @@ class DatabaseBackupTest extends TestCase
 
         try {
             $this->backup(fail: true)->run(Carbon::parse('2026-09-21'));
-        } catch (\RuntimeException) {
+        } catch (RuntimeException) {
         }
 
         $this->assertFileExists($old);
@@ -277,7 +279,7 @@ class DatabaseBackupTest extends TestCase
     {
         $this->artisan('schedule:list')->expectsOutputToContain('db:backup')->assertExitCode(0);
 
-        $event = collect($this->app->make(\Illuminate\Console\Scheduling\Schedule::class)->events())
+        $event = collect($this->app->make(Schedule::class)->events())
             ->first(fn ($e) => str_contains($e->command, 'db:backup'));
 
         $this->assertNotNull($event, 'db:backup must be scheduled');

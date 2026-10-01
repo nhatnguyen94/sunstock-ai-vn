@@ -1,4 +1,5 @@
 @extends('layouts.app')
+@use('Carbon\Carbon')
 
 @php
     // (guarded: a view is compiled to a plain PHP file, so a second render in the same process would redeclare it)
@@ -231,8 +232,8 @@
         <div class="mb-4">
             <h5 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 1rem;">
                 <i class="bi bi-calendar-date"></i>
-                {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
-                @if(\Carbon\Carbon::parse($date)->isToday())
+                {{ Carbon::parse($date)->format('d/m/Y') }}
+                @if(Carbon::parse($date)->isToday())
                     <span class="badge badge-primary ml-2">Hôm nay</span>
                 @endif
             </h5>

@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('Illuminate\Support\Str')
 
 @section('title', 'Quản lý Cổ phiếu')
 @section('page_pretitle', 'Dữ liệu')
@@ -74,7 +75,7 @@
                         <td class="text-end tabular-nums">
                             @if($stock->latestPrice)
                                 <div class="fw-bold">{{ number_format($stock->latestPrice->close * 1000, 0, ',', '.') }} đ</div>
-                                <div class="text-secondary small">{{ \Illuminate\Support\Str::of((string) $stock->latestPrice->date)->substr(0, 10) }}</div>
+                                <div class="text-secondary small">{{ Str::of((string) $stock->latestPrice->date)->substr(0, 10) }}</div>
                             @else
                                 <span class="text-secondary">N/A</span>
                             @endif

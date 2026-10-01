@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('Carbon\Carbon')
 
 @section('title', 'Chi tiết: {{ $stock->symbol }}')
 @section('page_pretitle', 'Dữ liệu')
@@ -110,7 +111,7 @@
                         <div class="datagrid-item">
                             <div class="datagrid-title">Ngày giao dịch gần nhất</div>
                             <div class="datagrid-content">
-                                {{ $latestPrice ? \Carbon\Carbon::parse($latestPrice->date)->format('d/m/Y') : '—' }}
+                                {{ $latestPrice ? Carbon::parse($latestPrice->date)->format('d/m/Y') : '—' }}
                             </div>
                         </div>
                         <div class="datagrid-item">
@@ -120,7 +121,7 @@
                         <div class="datagrid-item">
                             <div class="datagrid-title">Dữ liệu từ ngày</div>
                             <div class="datagrid-content">
-                                {{ $oldestDate ? \Carbon\Carbon::parse($oldestDate)->format('d/m/Y') : '—' }}
+                                {{ $oldestDate ? Carbon::parse($oldestDate)->format('d/m/Y') : '—' }}
                             </div>
                         </div>
                     </div>
@@ -149,7 +150,7 @@
                 <tbody>
                     @forelse($stock->prices()->orderByDesc('date')->limit(30)->get() as $price)
                     <tr>
-                        <td>{{ \Carbon\Carbon::parse($price->date)->format('d/m/Y') }}</td>
+                        <td>{{ Carbon::parse($price->date)->format('d/m/Y') }}</td>
                         <td class="text-end">{{ number_format($price->open, 0, ',', '.') }}</td>
                         <td class="text-end text-success">{{ number_format($price->high, 0, ',', '.') }}</td>
                         <td class="text-end text-danger">{{ number_format($price->low, 0, ',', '.') }}</td>

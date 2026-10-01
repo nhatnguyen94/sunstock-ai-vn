@@ -5,6 +5,7 @@ namespace App\Frontend\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class AiService
 {
@@ -97,7 +98,7 @@ class AiService
                 }
 
                 Log::warning('AiService: empty content from model', ['model' => $attemptModel]);
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 Log::warning('AiService: exception', ['model' => $attemptModel, 'error' => $e->getMessage()]);
             }
         }
@@ -137,7 +138,7 @@ class AiService
     {
         try {
             $d = app(MarketOverviewService::class)->overview();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return '';
         }
         if (empty($d['has_data'])) {

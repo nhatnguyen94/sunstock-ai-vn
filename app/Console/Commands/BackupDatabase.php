@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Support\DatabaseBackup;
 use Illuminate\Console\Command;
+use Throwable;
 
 class BackupDatabase extends Command
 {
@@ -45,7 +46,7 @@ class BackupDatabase extends Command
 
         try {
             $r = $backup->run();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->error('Backup thất bại: ' . $e->getMessage());
 
             return 1;

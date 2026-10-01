@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('App\Models\ActivityLog')
 
 @section('title', 'Dashboard')
 @section('page_pretitle', 'Tổng quan hệ thống')
@@ -202,7 +203,7 @@
             </div>
             <div class="list-group list-group-flush">
                 @forelse($recent_activity as $log)
-                    @php $cfg = \App\Models\ActivityLog::iconConfig()[$log->event_type] ?? ['color' => 'gray']; @endphp
+                    @php $cfg = ActivityLog::iconConfig()[$log->event_type] ?? ['color' => 'gray']; @endphp
                     <div class="list-group-item d-flex align-items-start gap-3">
                         <span class="badge bg-{{ $cfg['color'] }}-lt mt-1" style="width:.7rem;height:.7rem;padding:0;border-radius:50%"></span>
                         <div class="flex-fill overflow-hidden">

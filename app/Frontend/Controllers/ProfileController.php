@@ -6,6 +6,7 @@ use App\Frontend\Interfaces\UserProfileRepositoryInterface;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Support\AuthRules;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -108,7 +109,7 @@ class ProfileController extends Controller
             }
 
             return redirect()->route('profile.show')->with('success', 'Cập nhật profile thành công!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             report($e);
 
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật profile.'])

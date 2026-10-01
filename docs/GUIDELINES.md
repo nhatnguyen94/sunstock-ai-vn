@@ -65,6 +65,11 @@ When adding ANY new feature (or changing an existing one):
 - Validate every free-text account field with `AuthRules` (whitelist). Output is escaped by Blade, but a stored `<script>` still reaches e-mails, exports and any future `innerHTML`.
 - Tests that must exercise CSRF set `$this->app['env'] = 'local'` (the middleware is skipped under `testing`).
 
+### Imports (mandatory — see AGENTS.md "Imports")
+- `use` the class at the top, use the short name in the body. No `\App\Models\User::STATUS_ACTIVE`, no `new \RuntimeException`, no `@var \Foo\Bar`, in any file type — **including Blade (`@use(...)`) and tests**.
+- Same short name twice → alias one with `as`. Function calls/constants like `\count()` / `\PHP_EOL` are exempt.
+- `pint.json` makes Pint add the imports (`fully_qualified_strict_types` + `import_symbols`); `tests/Unit/CodeStyle/NoInlineFullyQualifiedNamesTest.php` (group `codeStyle`) fails on any violation. Run `php artisan test --group=codeStyle`.
+
 ### Authorization and account status (rules learned the hard way)
 - **Delegating `manage-users` / `manage-roles` / `manage-permissions` is read-only by design**: writes need the `admin` role (`admin.only`). New admin write routes for these areas must sit inside those groups; do not add "special" routes outside them.
 - Add the `AdminGuard` check to any new code that changes a user's roles/status or a role/permission, and write an `ActivityLogger::log('admin_action', ...)` entry with ids, before/after and **never** a password or token.

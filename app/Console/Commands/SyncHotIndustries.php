@@ -7,6 +7,7 @@ use App\Models\HotIndustry;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class SyncHotIndustries extends Command
 {
@@ -55,7 +56,7 @@ class SyncHotIndustries extends Command
             Log::info('sync:hot-industries: synced ' . count($rows) . ' records');
 
             return 0;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->error('Failed: ' . $e->getMessage());
             Log::error('sync:hot-industries error', ['msg' => $e->getMessage()]);
             return 1;

@@ -4,6 +4,7 @@ namespace Tests\Feature\Support;
 
 use App\Support\SingleFlight;
 use PHPUnit\Framework\Attributes\Group;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -82,9 +83,9 @@ class SingleFlightTest extends TestCase
     public function test_the_lock_is_released_even_when_the_producer_throws(): void
     {
         try {
-            SingleFlight::run('k4', fn () => null, fn () => throw new \RuntimeException('boom'));
+            SingleFlight::run('k4', fn () => null, fn () => throw new RuntimeException('boom'));
             $this->fail('exception should propagate');
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             $this->assertSame('boom', $e->getMessage());
         }
 

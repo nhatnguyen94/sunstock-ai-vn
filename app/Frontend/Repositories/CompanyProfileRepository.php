@@ -4,6 +4,7 @@ namespace App\Frontend\Repositories;
 
 use App\Frontend\Interfaces\CompanyProfileRepositoryInterface;
 use App\Models\CompanyProfile;
+use Illuminate\Database\Eloquent\Collection;
 
 class CompanyProfileRepository implements CompanyProfileRepositoryInterface
 {
@@ -12,7 +13,7 @@ class CompanyProfileRepository implements CompanyProfileRepositoryInterface
         return CompanyProfile::where('symbol', $symbol)->first();
     }
 
-    public function findMany(array $symbols): \Illuminate\Database\Eloquent\Collection
+    public function findMany(array $symbols): Collection
     {
         return CompanyProfile::whereIn('symbol', $symbols)->get();
     }

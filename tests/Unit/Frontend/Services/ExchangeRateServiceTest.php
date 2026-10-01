@@ -4,6 +4,7 @@ namespace Tests\Unit\Frontend\Services;
 
 use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
 use App\Frontend\Services\ExchangeRateService;
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +25,7 @@ class ExchangeRateServiceTest extends TestCase
 
     private function service(): ExchangeRateService
     {
-        return new ExchangeRateService(\Mockery::mock(ExchangeRateRepositoryInterface::class));
+        return new ExchangeRateService(Mockery::mock(ExchangeRateRepositoryInterface::class));
     }
 
     #[Group('exchangeRate')]

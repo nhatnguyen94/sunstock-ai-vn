@@ -7,6 +7,7 @@
 @endsection
 
 @use('App\Support\VnFormat', 'F')
+@use('Illuminate\Support\Str')
 
 @php
     $returns = [
@@ -23,8 +24,8 @@
             <div class="col-lg-8">
                 <div class="fd-badge"><i class="bi bi-pie-chart"></i> {{ $fund->type_label }}</div>
                 <h1 class="fd-title"><span class="fd-symbol">{{ $fund->short_name }}</span></h1>
-                <p class="fd-subtitle">{{ \Illuminate\Support\Str::title(mb_strtolower($fund->name)) }}</p>
-                <p class="fd-owner"><i class="bi bi-building"></i> {{ \Illuminate\Support\Str::title(mb_strtolower((string) $fund->fund_owner_name)) }}</p>
+                <p class="fd-subtitle">{{ Str::title(mb_strtolower($fund->name)) }}</p>
+                <p class="fd-owner"><i class="bi bi-building"></i> {{ Str::title(mb_strtolower((string) $fund->fund_owner_name)) }}</p>
             </div>
             <div class="col-lg-4 text-lg-right fd-header-actions">
                 <a href="{{ route('funds.index') }}" class="fd-btn"><i class="bi bi-collection"></i> Tất cả quỹ</a>

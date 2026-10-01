@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 /**
  * Incremental price refresh of a few symbols, queued by StockPriceFreshness when a stock page finds its history
@@ -41,7 +42,7 @@ class RefreshStockPricesJob implements ShouldQueue
         if ($result['stored'] === 0 && isset($result['errors']['*'])) {
             Log::warning('RefreshStockPricesJob failed', ['symbols' => $this->symbols, 'error' => $result['errors']['*']]);
 
-            throw new \RuntimeException((string) $result['errors']['*']);
+            throw new RuntimeException((string) $result['errors']['*']);
         }
     }
 }

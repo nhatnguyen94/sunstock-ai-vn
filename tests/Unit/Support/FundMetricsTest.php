@@ -3,6 +3,7 @@
 namespace Tests\Unit\Support;
 
 use App\Support\FundMetrics;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
@@ -15,7 +16,7 @@ class FundMetricsTest extends TestCase
     private function daily(string $start, int $days, float $base = 100.0, float $step = 0.5): array
     {
         $nav = [];
-        $d = new \DateTimeImmutable($start);
+        $d = new DateTimeImmutable($start);
         for ($i = 0; $i < $days; $i++) {
             $nav[] = [$d->modify("+{$i} days")->format('Y-m-d'), $base + $i * $step];
         }
@@ -77,14 +78,14 @@ class FundMetricsTest extends TestCase
         $steady = [];
         $v = 100.0;
         for ($i = 0; $i < 40; $i++) {
-            $steady[] = [(new \DateTimeImmutable('2026-01-01'))->modify("+{$i} days")->format('Y-m-d'), $v];
+            $steady[] = [(new DateTimeImmutable('2026-01-01'))->modify("+{$i} days")->format('Y-m-d'), $v];
             $v *= 1.001;
         }
         $this->assertSame(0.0, FundMetrics::windowStats($steady, '3M')['volatility']);
 
         $noisy = [];
         foreach ([100, 103, 99, 104, 98, 105] as $i => $val) {
-            $noisy[] = [(new \DateTimeImmutable('2026-01-01'))->modify("+{$i} days")->format('Y-m-d'), (float) $val];
+            $noisy[] = [(new DateTimeImmutable('2026-01-01'))->modify("+{$i} days")->format('Y-m-d'), (float) $val];
         }
         $this->assertGreaterThan(10.0, FundMetrics::windowStats($noisy, '3M')['volatility']);
     }

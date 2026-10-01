@@ -15,8 +15,8 @@ use App\Frontend\Services\CompanyFinancialService;
 use App\Frontend\Services\ExchangeRateService;
 use App\Frontend\Services\MarketOverviewService;
 use App\Frontend\Services\StockPriceFreshness;
-use App\Frontend\Services\WatchlistService;
 use App\Frontend\Services\StockService;
+use App\Frontend\Services\WatchlistService;
 use App\Models\HotIndustry;
 use App\Models\Stock;
 use App\Models\StockPrice;
@@ -27,6 +27,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
+use Throwable;
 
 class StockController extends Controller
 {
@@ -108,7 +109,7 @@ class StockController extends Controller
         $market = ['has_data' => false];
         try {
             $market = $marketService->overview();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             report($e);
         }
         $watchRows = Auth::check() ? $watchlistService->rows(Auth::id(), 8) : null;

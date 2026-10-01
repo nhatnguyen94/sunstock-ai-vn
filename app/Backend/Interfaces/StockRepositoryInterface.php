@@ -2,6 +2,7 @@
 
 namespace App\Backend\Interfaces;
 
+use App\Models\Stock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -25,17 +26,17 @@ interface StockRepositoryInterface
      *
      * @param array{symbol: string, name: string, is_active: bool} $data
      */
-    public function create(array $data): \App\Models\Stock;
+    public function create(array $data): Stock;
 
     /**
      * Update an existing stock record.
      *
      * @param array{symbol: string, name: string, is_active: bool} $data
      */
-    public function update(\App\Models\Stock $stock, array $data): void;
+    public function update(Stock $stock, array $data): void;
 
     /**
      * Permanently delete a stock record.
      */
-    public function delete(\App\Models\Stock $stock): void;
+    public function delete(Stock $stock): void;
 }

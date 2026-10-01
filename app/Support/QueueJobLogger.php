@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\Job as JobContract;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
+use Throwable;
 
 /**
  * Records a lightweight processing log (started/finished/duration/summary)
@@ -29,7 +30,7 @@ class QueueJobLogger
                 'status'      => 'processing',
                 'started_at'  => now(),
             ]);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Never let logging crash the worker
         }
     }
@@ -63,7 +64,7 @@ class QueueJobLogger
                 'finished_at' => $finishedAt,
                 'duration_ms' => $log->started_at->diffInMilliseconds($finishedAt),
             ]);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Never let logging crash the worker
         }
     }
@@ -85,7 +86,7 @@ class QueueJobLogger
 
         try {
             $command = unserialize($commandStr);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
 
@@ -97,7 +98,7 @@ class QueueJobLogger
             $summary = $command->queueSummary();
 
             return is_string($summary) ? mb_substr($summary, 0, 255) : null;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }

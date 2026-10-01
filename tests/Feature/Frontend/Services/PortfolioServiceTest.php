@@ -9,8 +9,10 @@ use App\Models\Portfolio;
 use App\Models\PortfolioItem;
 use App\Models\User;
 use App\Notifications\PortfolioAlertNotification;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -59,14 +61,14 @@ class PortfolioServiceTest extends TestCase
         $item = $this->makeItem('ACB', ['current_price' => 25, 'target_price' => 20, 'target_alerted_at' => null]);
         $portfolio = $this->makePortfolio([$item]);
 
-        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
-        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo = Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->andReturn($portfolio);
         $stockRepo->shouldReceive('getLatestQuotes')->once()->andReturn(['ACB' => ['close' => 25.0, 'prev_close' => null, 'date' => '2026-09-11']]);
         $portfolioRepo->shouldReceive('updateItemsPrices')->once()->andReturn(true);
         $portfolioRepo->shouldReceive('setAlertFlag')->once()
-            ->with($item, 'target_alerted_at', \Mockery::type(\DateTimeInterface::class));
+            ->with($item, 'target_alerted_at', Mockery::type(DateTimeInterface::class));
 
         $service = new PortfolioService($portfolioRepo, $stockRepo);
         $service->updatePortfolioPrices(10, 1);
@@ -87,8 +89,8 @@ class PortfolioServiceTest extends TestCase
         ]);
         $portfolio = $this->makePortfolio([$item]);
 
-        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
-        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo = Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->andReturn($portfolio);
         $stockRepo->shouldReceive('getLatestQuotes')->once()->andReturn(['ACB' => ['close' => 26.0, 'prev_close' => null, 'date' => '2026-09-11']]);
@@ -117,8 +119,8 @@ class PortfolioServiceTest extends TestCase
         $portfolio = $this->makePortfolio([$item]);
         $portfolio->user->forceFill(['status' => $status, 'email_verified_at' => $confirmed ? now() : null]);
 
-        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
-        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo = Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = Mockery::mock(StockRepositoryInterface::class);
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->andReturn($portfolio);
         $stockRepo->shouldReceive('getLatestQuotes')->once()->andReturn(['ACB' => ['close' => 25.0, 'prev_close' => null, 'date' => '2026-09-11']]);
         $portfolioRepo->shouldReceive('updateItemsPrices')->once()->andReturn(true);
@@ -141,8 +143,8 @@ class PortfolioServiceTest extends TestCase
         ]);
         $portfolio = $this->makePortfolio([$item]);
 
-        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
-        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo = Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->andReturn($portfolio);
         $stockRepo->shouldReceive('getLatestQuotes')->once()->andReturn(['ACB' => ['close' => 22.0, 'prev_close' => null, 'date' => '2026-09-11']]);
@@ -163,14 +165,14 @@ class PortfolioServiceTest extends TestCase
         $item = $this->makeItem('ACB', ['current_price' => 15, 'stop_loss_price' => 18, 'stop_loss_alerted_at' => null]);
         $portfolio = $this->makePortfolio([$item]);
 
-        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
-        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo = Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->andReturn($portfolio);
         $stockRepo->shouldReceive('getLatestQuotes')->once()->andReturn(['ACB' => ['close' => 15.0, 'prev_close' => null, 'date' => '2026-09-11']]);
         $portfolioRepo->shouldReceive('updateItemsPrices')->once()->andReturn(true);
         $portfolioRepo->shouldReceive('setAlertFlag')->once()
-            ->with($item, 'stop_loss_alerted_at', \Mockery::type(\DateTimeInterface::class));
+            ->with($item, 'stop_loss_alerted_at', Mockery::type(DateTimeInterface::class));
 
         $service = new PortfolioService($portfolioRepo, $stockRepo);
         $service->updatePortfolioPrices(10, 1);
@@ -188,8 +190,8 @@ class PortfolioServiceTest extends TestCase
         $portfolioA = $this->makePortfolio([$itemA], id: 1, userId: 1);
         $portfolioB = $this->makePortfolio([$itemB], id: 2, userId: 2);
 
-        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
-        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo = Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('getAllActivePortfolios')->once()
             ->andReturn(new Collection([$portfolioA, $portfolioB]));

@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Throwable;
 
 class DashboardController extends Controller
 {
@@ -104,7 +105,7 @@ class DashboardController extends Controller
     {
         try {
             return (int) DB::table('failed_jobs')->count();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return 0;
         }
     }

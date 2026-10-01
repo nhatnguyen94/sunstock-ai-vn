@@ -2,6 +2,14 @@
 
 namespace App\Console;
 
+use App\Console\Commands\BackfillStockPrices;
+use App\Console\Commands\GeneratePriceSummaries;
+use App\Console\Commands\RegisterVnstockApiKey;
+use App\Console\Commands\SyncExchangeRates;
+use App\Console\Commands\SyncHotIndustries;
+use App\Console\Commands\SyncNews;
+use App\Console\Commands\SyncStockData;
+use App\Console\Commands\SyncStockPrices;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -13,14 +21,14 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        \App\Console\Commands\SyncStockData::class,
-        \App\Console\Commands\SyncStockPrices::class,
-        \App\Console\Commands\RegisterVnstockApiKey::class,
-        \App\Console\Commands\SyncHotIndustries::class,
-        \App\Console\Commands\SyncExchangeRates::class,
-        \App\Console\Commands\GeneratePriceSummaries::class,
-        \App\Console\Commands\BackfillStockPrices::class,
-        \App\Console\Commands\SyncNews::class,
+        SyncStockData::class,
+        SyncStockPrices::class,
+        RegisterVnstockApiKey::class,
+        SyncHotIndustries::class,
+        SyncExchangeRates::class,
+        GeneratePriceSummaries::class,
+        BackfillStockPrices::class,
+        SyncNews::class,
         // SyncCompanyFinancials is auto-discovered via $this->load() below
     ];
 

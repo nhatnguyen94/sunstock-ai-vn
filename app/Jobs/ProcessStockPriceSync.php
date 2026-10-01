@@ -2,13 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Frontend\Services\StockService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Frontend\Services\StockService;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ProcessStockPriceSync implements ShouldQueue
 {
@@ -75,7 +76,7 @@ class ProcessStockPriceSync implements ShouldQueue
         try {
             $stockService->processPriceSyncChunk($this->symbolChunk);
             Log::info('Finished job for symbols: ' . implode(',', $symbols));
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Job failed for symbols: ' . implode(',', $symbols), [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

@@ -4,6 +4,7 @@ namespace App\Frontend\Interfaces;
 
 use App\Models\Fund;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 
 interface FundRepositoryInterface
 {
@@ -31,7 +32,7 @@ interface FundRepositoryInterface
 
     public function count(): int;
 
-    public function lastSyncedAt(): ?\Illuminate\Support\Carbon;
+    public function lastSyncedAt(): ?Carbon;
 
     /** @return array<string, int> type_code => number of funds */
     public function typeCounts(): array;

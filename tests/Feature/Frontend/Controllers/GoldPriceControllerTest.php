@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use PHPUnit\Framework\Attributes\Group;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -153,7 +154,7 @@ class GoldPriceControllerTest extends TestCase
 
         $bad = Mockery::mock(GoldPriceService::class);
         $bad->shouldReceive('sync')->once()->andReturn(['error' => 'down']);
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         (new SyncGoldPricesJob)->handle($bad);
     }
 }

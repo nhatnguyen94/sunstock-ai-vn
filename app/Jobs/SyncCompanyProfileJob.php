@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 /**
  * Refreshes one company's cached profile in the background.
@@ -41,7 +42,7 @@ class SyncCompanyProfileJob implements ShouldQueue
             // A transient failure (data source down) is retried by the queue (tries/backoff);
             // "no such company" is a final answer, retrying would just repeat it.
             if (! ($result['not_found'] ?? false)) {
-                throw new \RuntimeException($result['error']);
+                throw new RuntimeException($result['error']);
             }
         }
     }

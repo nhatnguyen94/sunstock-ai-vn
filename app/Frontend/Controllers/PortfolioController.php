@@ -5,11 +5,14 @@ namespace App\Frontend\Controllers;
 use App\Frontend\Services\PortfolioInsightsService;
 use App\Frontend\Services\PortfolioLedgerService;
 use App\Frontend\Services\PortfolioService;
+use App\Models\PortfolioTransaction;
 use App\Support\ActivityLogger;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -99,7 +102,7 @@ class PortfolioController extends Controller
             return redirect()
                 ->route('portfolio.show', $portfolio->id)
                 ->with('success', 'Tạo danh mục đầu tư thành công!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return back()
                 ->withErrors(['error' => 'Có lỗi xảy ra khi tạo danh mục đầu tư.'])
                 ->withInput();
@@ -148,7 +151,7 @@ class PortfolioController extends Controller
             return redirect()
                 ->route('portfolio.show', $id)
                 ->with('success', 'Cập nhật danh mục đầu tư thành công!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return back()
                 ->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật danh mục đầu tư.'])
                 ->withInput();
@@ -170,7 +173,7 @@ class PortfolioController extends Controller
             return redirect()
                 ->route('portfolio.index')
                 ->with('success', 'Xóa danh mục đầu tư thành công!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi xóa danh mục đầu tư.']);
         }
     }
@@ -232,7 +235,7 @@ class PortfolioController extends Controller
             return redirect()
                 ->route('portfolio.show', $id)
                 ->with('success', 'Thêm cổ phiếu vào danh mục thành công!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return back()
                 ->withErrors(['error' => 'Có lỗi xảy ra khi thêm cổ phiếu vào danh mục.'])
                 ->withInput();
@@ -266,7 +269,7 @@ class PortfolioController extends Controller
             return redirect()
                 ->route('portfolio.show', $item->portfolio_id)
                 ->with('success', 'Cập nhật thông tin cổ phiếu thành công!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật thông tin cổ phiếu.']);
         }
     }
@@ -297,7 +300,7 @@ class PortfolioController extends Controller
             return redirect()
                 ->route('portfolio.index')
                 ->with('success', 'Xóa cổ phiếu khỏi danh mục thành công!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi xóa cổ phiếu khỏi danh mục.']);
         }
     }
@@ -338,7 +341,7 @@ class PortfolioController extends Controller
                 'missing' => $result['missing'],
                 'as_of' => $result['as_of'],
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi cập nhật giá cổ phiếu.',
@@ -388,7 +391,7 @@ class PortfolioController extends Controller
             abort(404);
         }
 
-        $name = \Illuminate\Support\Str::slug($analytics['portfolio']->name) ?: 'portfolio';
+        $name = Str::slug($analytics['portfolio']->name) ?: 'portfolio';
 
         return response()->streamDownload(function () use ($analytics) {
             $out = fopen('php://output', 'w');
@@ -461,7 +464,7 @@ class PortfolioController extends Controller
     /** Undo the newest transaction of a symbol. */
     public function destroyTransaction(int $transactionId): RedirectResponse
     {
-        $tx = \App\Models\PortfolioTransaction::find($transactionId);
+        $tx = PortfolioTransaction::find($transactionId);
         $portfolioId = $tx?->portfolio_id;
 
         $result = $this->ledger->undo($transactionId, Auth::id());
@@ -480,7 +483,7 @@ class PortfolioController extends Controller
     {
         $portfolio = $this->portfolioService->getPortfolioById($id, Auth::id()) ?? abort(404);
         $rows = $this->ledger->history($portfolio->id, 5000)->sortBy([['traded_at', 'asc'], ['id', 'asc']]);
-        $name = \Illuminate\Support\Str::slug($portfolio->name) ?: 'portfolio';
+        $name = Str::slug($portfolio->name) ?: 'portfolio';
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
@@ -516,7 +519,7 @@ class PortfolioController extends Controller
                 'success' => true,
                 'suggestions' => $suggestions,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi tạo gợi ý rebalance.',

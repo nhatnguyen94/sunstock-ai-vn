@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
+use Throwable;
 
 class ActivityLogger
 {
@@ -35,7 +36,7 @@ class ActivityLogger
                 'ip_address' => Request::ip(),
                 'created_at' => now(),
             ]);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Never let logging crash the main flow
         }
     }

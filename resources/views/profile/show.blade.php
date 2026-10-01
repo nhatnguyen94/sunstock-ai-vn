@@ -1,4 +1,5 @@
 @extends('layouts.app')
+@use('Carbon\Carbon')
 @section('content')
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -72,7 +73,7 @@
                                     <i class="bi bi-calendar-event" style="color:var(--primary-blue); margin-right:8px;"></i>
                                     Ngày sinh
                                 </label>
-                                <div class="info-value">{{ $profile?->birthday ? \Carbon\Carbon::parse($profile->birthday)->format('d/m/Y') : 'Chưa cập nhật' }}</div>
+                                <div class="info-value">{{ $profile?->birthday ? Carbon::parse($profile->birthday)->format('d/m/Y') : 'Chưa cập nhật' }}</div>
                             </div>
                         </div>
                         <div class="col-md-4">

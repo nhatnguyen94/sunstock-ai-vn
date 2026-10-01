@@ -3,6 +3,7 @@
 namespace App\Frontend\Interfaces;
 
 use App\Models\CompanyProfile;
+use Illuminate\Database\Eloquent\Collection;
 
 interface CompanyProfileRepositoryInterface
 {
@@ -10,9 +11,9 @@ interface CompanyProfileRepositoryInterface
 
     /**
      * @param  string[] $symbols
-     * @return \Illuminate\Database\Eloquent\Collection<int, CompanyProfile>
+     * @return Collection<int, CompanyProfile>
      */
-    public function findMany(array $symbols): \Illuminate\Database\Eloquent\Collection;
+    public function findMany(array $symbols): Collection;
 
     /** Insert or update the cached profile for a symbol and stamp synced_at. */
     public function upsert(string $symbol, array $data): CompanyProfile;

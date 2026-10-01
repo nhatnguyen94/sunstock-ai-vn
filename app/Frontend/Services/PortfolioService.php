@@ -10,6 +10,7 @@ use App\Models\PortfolioItem;
 use App\Notifications\PortfolioAlertNotification;
 use App\Support\PortfolioPerformance;
 use App\Support\PriceUnit;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
@@ -359,7 +360,7 @@ class PortfolioService
             $result = $this->refreshPrices($portfolioId, $userId);
 
             return $result !== null && $result['ok'];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to update portfolio prices', [
                 'portfolio_id' => $portfolioId,
                 'error' => $e->getMessage(),

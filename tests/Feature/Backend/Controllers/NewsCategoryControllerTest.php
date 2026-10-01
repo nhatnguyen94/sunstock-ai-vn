@@ -15,7 +15,7 @@ use Tests\TestCase;
  * Real end-to-end (RefreshDatabase) — genuinely needed for unique-name/slug
  * validation and the destroy guard's real `news()->exists()` check.
  *
- * @see \Tests\Feature\Backend\Controllers\RoleControllerTest::actingAsUserWithPermissions()
+ * @see RoleControllerTest::actingAsUserWithPermissions()
  *      for why the acting role's name matters (must be a backend-access role).
  */
 class NewsCategoryControllerTest extends TestCase

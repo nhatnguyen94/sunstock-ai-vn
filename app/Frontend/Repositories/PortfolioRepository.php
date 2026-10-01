@@ -5,6 +5,8 @@ namespace App\Frontend\Repositories;
 use App\Frontend\Interfaces\PortfolioRepositoryInterface;
 use App\Models\Portfolio;
 use App\Models\PortfolioItem;
+use DateTimeInterface;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -74,7 +76,7 @@ class PortfolioRepository implements PortfolioRepositoryInterface
         return Portfolio::active()->whereHas('user', fn ($q) => $q->mayEnter())->get(['id', 'user_id']);
     }
 
-    public function setAlertFlag(PortfolioItem $item, string $column, ?\DateTimeInterface $value): void
+    public function setAlertFlag(PortfolioItem $item, string $column, ?DateTimeInterface $value): void
     {
         $item->{$column} = $value;
         $item->saveQuietly();
@@ -208,7 +210,7 @@ class PortfolioRepository implements PortfolioRepositoryInterface
             }
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }

@@ -8,8 +8,12 @@
 
 namespace App\Frontend\Services;
 
+use App\Models\Stock;
+use App\Models\StockPrice;
+use App\Models\StockSymbol;
 use App\Support\PythonRunner;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class StockService
 {
@@ -68,11 +72,11 @@ class StockService
                 ];
             }
 
-            \App\Models\StockSymbol::upsert($symbolRows, ['symbol'], ['name', 'exchange', 'industry', 'updated_at']);
-            \App\Models\Stock::upsert($stockRows, ['symbol'], ['name', 'updated_at']);
+            StockSymbol::upsert($symbolRows, ['symbol'], ['name', 'exchange', 'industry', 'updated_at']);
+            Stock::upsert($stockRows, ['symbol'], ['name', 'updated_at']);
 
             return ['success' => true, 'message' => 'Đã đồng bộ ' . count($symbolRows) . ' mã cổ phiếu.'];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('SyncStockSymbolsAndDetails error', ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -89,17 +93,17 @@ class StockService
         try {
             if ($symbolsToSync) {
                 // Lấy thông tin từ DB cho các mã cụ thể
-                $symbols = \App\Models\StockSymbol::whereIn('symbol', $symbolsToSync)->get()->toArray();
+                $symbols = StockSymbol::whereIn('symbol', $symbolsToSync)->get()->toArray();
             } else {
                 // Lấy toàn bộ danh sách mã
-                $symbols = \App\Models\StockSymbol::all()->toArray();
+                $symbols = StockSymbol::all()->toArray();
             }
             
             if (empty($symbols)) {
                 return ['success' => false, 'message' => 'Không có mã cổ phiếu nào để đồng bộ giá.'];
             }
 
-            $symbolToId = \App\Models\Stock::pluck('id', 'symbol')->toArray();
+            $symbolToId = Stock::pluck('id', 'symbol')->toArray();
 
             $count = 0;
             $total = count($symbols);
@@ -146,7 +150,7 @@ class StockService
                 }
 
                 if (!empty($priceDataBatch)) {
-                    \App\Models\StockPrice::upsert($priceDataBatch, ['stock_id', 'date'], ['open', 'high', 'low', 'close', 'volume']);
+                    StockPrice::upsert($priceDataBatch, ['stock_id', 'date'], ['open', 'high', 'low', 'close', 'volume']);
                 }
 
                 $count += count($chunk);
@@ -164,7 +168,7 @@ class StockService
             }
 
             return ['success' => true, 'message' => "Đã đồng bộ giá cho $count mã cổ phiếu."];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('SyncStockPrices error', ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -292,7 +296,7 @@ class StockService
      *
      * @param array $symbolChunk
      * @return void
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function processPriceSyncChunk(array $symbolChunk): void
     {
@@ -300,7 +304,7 @@ class StockService
             return;
         }
 
-        $symbolToId = \App\Models\Stock::whereIn('symbol', array_column($symbolChunk, 'symbol'))
+        $symbolToId = Stock::whereIn('symbol', array_column($symbolChunk, 'symbol'))
             ->pluck('id', 'symbol')
             ->toArray();
 
@@ -364,7 +368,7 @@ class StockService
         }
 
         foreach (array_chunk($rows, 500) as $chunk) {
-            \App\Models\StockPrice::upsert($chunk, ['stock_id', 'date'], ['open', 'high', 'low', 'close', 'volume']);
+            StockPrice::upsert($chunk, ['stock_id', 'date'], ['open', 'high', 'low', 'close', 'volume']);
         }
 
         return count($rows);
@@ -385,7 +389,7 @@ class StockService
             return ['stored' => 0, 'errors' => ['*' => 'Không có mã cổ phiếu hợp lệ.']];
         }
 
-        $ids = \App\Models\Stock::whereIn('symbol', $symbols)->pluck('id', 'symbol')->all();
+        $ids = Stock::whereIn('symbol', $symbols)->pluck('id', 'symbol')->all();
         $result = $this->fetchStockDataFromPython(implode(',', $symbols), $timeoutSeconds, $from);
 
         if (! is_array($result) || ! isset($result['data'])) {

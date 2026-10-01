@@ -7,6 +7,7 @@
 @endsection
 
 @use('App\Support\VnFormat', 'F')
+@use('Illuminate\Support\Str')
 
 @section('content')
 <div class="pf-page">
@@ -59,7 +60,7 @@
                     </div>
                 </div>
                 <div class="pf-card-body">
-                    @if($portfolio->description)<p class="pf-hint" style="margin:0 0 .75rem">{{ \Illuminate\Support\Str::limit($portfolio->description, 80) }}</p>@endif
+                    @if($portfolio->description)<p class="pf-hint" style="margin:0 0 .75rem">{{ Str::limit($portfolio->description, 80) }}</p>@endif
                     <div class="pf-mini"><span>Vốn</span><b>{{ F::number($portfolio->total_invested) }}₫</b></div>
                     <div class="pf-mini"><span>Giá trị hiện tại</span><b>{{ F::number($portfolio->current_value) }}₫</b></div>
                     <div class="pf-pl-box {{ $isUp ? 'up' : 'down' }}">

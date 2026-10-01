@@ -9,6 +9,7 @@ use App\Support\SingleFlight;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Market overview for the home page, the ticker tape and the watchlist: indices, breadth, liquidity, top
@@ -184,7 +185,7 @@ class MarketOverviewService
 
                 return $items;
             });
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return [];
         }
     }

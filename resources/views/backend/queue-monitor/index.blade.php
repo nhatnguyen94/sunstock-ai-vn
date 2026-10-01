@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('Carbon\Carbon')
 
 @section('title', 'Giám sát Queue')
 @section('page_pretitle', 'Hệ thống')
@@ -97,7 +98,7 @@
                         <td class="fw-semibold">{{ class_basename($job->job_class) }}</td>
                         <td><span class="badge bg-azure-lt">{{ $job->queue }}</span></td>
                         <td class="text-secondary small" style="max-width:420px"><span class="text-truncate-2" title="{{ $job->short_exception }}">{{ $job->short_exception }}</span></td>
-                        <td class="text-secondary small text-nowrap">{{ \Carbon\Carbon::parse($job->failed_at)->format('d/m/Y H:i') }}</td>
+                        <td class="text-secondary small text-nowrap">{{ Carbon::parse($job->failed_at)->format('d/m/Y H:i') }}</td>
                         <td class="text-end text-nowrap">
                             <button class="btn btn-sm btn-outline-success btn-retry" data-uuid="{{ $job->uuid }}"><i class="ti ti-rotate me-1"></i>Retry</button>
                             <button class="btn btn-sm btn-ghost-secondary btn-icon btn-delete" data-uuid="{{ $job->uuid }}" title="Xoá job này" aria-label="Xoá job này"><i class="ti ti-trash text-danger"></i></button>

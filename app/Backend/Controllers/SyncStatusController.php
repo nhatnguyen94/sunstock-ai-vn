@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
+use Throwable;
 
 class SyncStatusController extends Controller
 {
@@ -172,7 +173,7 @@ class SyncStatusController extends Controller
                 'success' => true,
                 'message' => trim($output) ?: 'Sync hoàn tất.',
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             report($e);
 
             return response()->json(['error' => 'Sync thất bại, xem chi tiết trong log hệ thống.'], 500);

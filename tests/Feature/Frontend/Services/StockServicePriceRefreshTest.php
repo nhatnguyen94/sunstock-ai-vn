@@ -9,6 +9,7 @@ use App\Models\StockPrice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use PHPUnit\Framework\Attributes\Group;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -125,7 +126,7 @@ class StockServicePriceRefreshTest extends TestCase
 
         $broken = Mockery::mock(StockService::class);
         $broken->shouldReceive('refreshPrices')->once()->andReturn(['stored' => 0, 'errors' => ['*' => 'script died']]);
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         (new RefreshStockPricesJob(['FPT']))->handle($broken);
     }
 }

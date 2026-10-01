@@ -2,11 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
 use App\Frontend\Services\ExchangeRateService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class SyncExchangeRates extends Command
 {
@@ -41,7 +43,7 @@ class SyncExchangeRates extends Command
             // Re-use existing saveRate logic by calling getRatesByDate which triggers save
             foreach ($result as $date => $items) {
                 foreach ($items as $item) {
-                    app(\App\Frontend\Interfaces\ExchangeRateRepositoryInterface::class)->saveRate($item);
+                    app(ExchangeRateRepositoryInterface::class)->saveRate($item);
                 }
                 // Bust date-specific cache
                 Cache::forget("exchange_rates_{$date}");
@@ -55,7 +57,7 @@ class SyncExchangeRates extends Command
             Log::info('sync:exchange-rates: synced', ['dates' => array_keys($result), 'total' => $total]);
 
             return 0;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->error('Failed: ' . $e->getMessage());
             Log::error('sync:exchange-rates error', ['msg' => $e->getMessage()]);
             return 1;

@@ -4,7 +4,9 @@ namespace Tests\Feature\Frontend\Services;
 
 use App\Frontend\Repositories\PortfolioRepository;
 use App\Frontend\Repositories\PortfolioTransactionRepository;
+use App\Frontend\Services\CompanyProfileService;
 use App\Frontend\Services\PortfolioLedgerService;
+use App\Frontend\Services\PortfolioService;
 use App\Models\Portfolio;
 use App\Models\PortfolioItem;
 use App\Models\PortfolioTransaction;
@@ -228,11 +230,11 @@ class PortfolioLedgerServiceTest extends TestCase
     {
         // Laravel does NOT resolve `?Service $x = null` parameters on its own — without the explicit binding the
         // ledger stayed null and the portfolio's upcoming-events list (CompanyProfileService) was silently empty.
-        $service = app(\App\Frontend\Services\PortfolioService::class);
+        $service = app(PortfolioService::class);
         $read = fn (string $prop) => (function () use ($prop) { return $this->$prop; })->call($service);
 
-        $this->assertInstanceOf(\App\Frontend\Services\PortfolioLedgerService::class, $read('ledger'));
-        $this->assertInstanceOf(\App\Frontend\Services\CompanyProfileService::class, $read('companyProfiles'));
+        $this->assertInstanceOf(PortfolioLedgerService::class, $read('ledger'));
+        $this->assertInstanceOf(CompanyProfileService::class, $read('companyProfiles'));
     }
 
     // ── overview ────────────────────────────────────────────────────────────

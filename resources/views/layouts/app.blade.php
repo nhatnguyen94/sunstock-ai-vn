@@ -1,3 +1,5 @@
+@use('App\Models\NewsCategory')
+@use('App\Frontend\Services\MarketOverviewService')
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -109,7 +111,7 @@
                                 <i class="bi bi-journals text-primary"></i> Tất cả tin tức
                             </a>
                             <div class="dropdown-divider"></div>
-                            @php $navNewsCategories = \App\Models\NewsCategory::orderBy('name')->get(); @endphp
+                            @php $navNewsCategories = NewsCategory::orderBy('name')->get(); @endphp
                             @foreach($navNewsCategories as $navCat)
                             <a class="dropdown-item" href="{{ route('news.category', $navCat->slug) }}">
                                 <i class="bi bi-tag text-primary"></i> {{ $navCat->name }}
@@ -166,7 +168,7 @@
     </nav>
 
     <!-- Market Ticker Tape: real index / most-traded quotes from the latest market snapshot -->
-    @php $tickerItems = app(\App\Frontend\Services\MarketOverviewService::class)->ticker(); @endphp
+    @php $tickerItems = app(MarketOverviewService::class)->ticker(); @endphp
     <div class="ticker-wrap">
         <div class="ticker-content {{ count($tickerItems) ? '' : 'ticker-static' }}" id="tickerContent">
             @include('partials.ticker-items', ['items' => $tickerItems])

@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 /**
  * Background refresh of the market overview (indices, breadth, movers, quotes).
@@ -34,7 +35,7 @@ class SyncMarketOverviewJob implements ShouldQueue
         if (isset($result['error'])) {
             Log::warning('SyncMarketOverviewJob failed', ['error' => $result['error']]);
 
-            throw new \RuntimeException($result['error']);   // let the queue retry
+            throw new RuntimeException($result['error']);   // let the queue retry
         }
     }
 }

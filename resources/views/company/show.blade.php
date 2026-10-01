@@ -7,6 +7,7 @@
 @endsection
 
 @use('App\Support\VnFormat', 'F')
+@use('App\Frontend\Services\WatchlistService')
 
 @php
     $o = $company['overview'] ?? [];
@@ -308,7 +309,7 @@
 <script>window.__COMPANY__ = @json($pageData);</script>
 @endif
 @php
-    $watchData = ['auth' => auth()->check(), 'watched' => auth()->check() && app(\App\Frontend\Services\WatchlistService::class)->isWatched(auth()->id(), $symbol) ? [$symbol] : []];
+    $watchData = ['auth' => auth()->check(), 'watched' => auth()->check() && app(WatchlistService::class)->isWatched(auth()->id(), $symbol) ? [$symbol] : []];
 @endphp
 <script>window.__WATCH__ = @json($watchData);</script>
 @vite('resources/frontend/js/shared/watchlist-init.js')

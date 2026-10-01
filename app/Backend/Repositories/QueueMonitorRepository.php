@@ -5,22 +5,23 @@ namespace App\Backend\Repositories;
 use App\Backend\Interfaces\QueueMonitorRepositoryInterface;
 use App\Models\QueueJobLog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Queue\RedisQueue;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Collection;
 
 class QueueMonitorRepository implements QueueMonitorRepositoryInterface
 {
     public function queueSizes(array $queues): Collection
     {
-        /** @var \Illuminate\Queue\RedisQueue $connection */
+        /** @var RedisQueue $connection */
         $connection = Queue::connection('redis');
 
         return collect($queues)->map(fn (string $queue) => [
-            'name'     => $queue,
-            'pending'  => $connection->pendingSize($queue),
-            'delayed'  => $connection->delayedSize($queue),
+            'name' => $queue,
+            'pending' => $connection->pendingSize($queue),
+            'delayed' => $connection->delayedSize($queue),
             'reserved' => $connection->reservedSize($queue),
         ]);
     }

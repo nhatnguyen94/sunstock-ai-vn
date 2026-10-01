@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('App\Models\User')
 
 @section('title', 'Chỉnh sửa User')
 @section('page_pretitle', 'Hệ thống')
@@ -133,7 +134,7 @@
                         <div class="mb-3">
                             <label class="form-label">Trạng thái tài khoản</label>
                             <div class="form-selectgroup">
-                                @foreach(\App\Models\User::statusLabels() as $value => $label)
+                                @foreach(User::statusLabels() as $value => $label)
                                     <label class="form-selectgroup-item">
                                         <input type="radio" name="status" value="{{ $value }}"
                                                class="form-selectgroup-input" {{ (string) old('status', $user->status) === (string) $value ? 'checked' : '' }}>

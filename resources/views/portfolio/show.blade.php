@@ -7,6 +7,9 @@
 @endsection
 
 @use('App\Support\VnFormat', 'F')
+@use('Carbon\Carbon')
+@use('App\Support\PortfolioRisk')
+@use('Illuminate\Support\Str')
 
 @php
     $up = $stats['is_positive'];
@@ -24,7 +27,7 @@
             'series' => array_map(fn ($a) => round($a['percent'], 2), $allocation),
         ],
     ];
-    $stale = $price_info['as_of'] && \Carbon\Carbon::parse($price_info['as_of'])->diffInDays(now()) > 4;
+    $stale = $price_info['as_of'] && Carbon::parse($price_info['as_of'])->diffInDays(now()) > 4;
     $eventLabel = ['DIVIDEND' => 'Cổ tức / phát hành', 'SHAREHOLDER_MEETING' => 'Đại hội cổ đông'];
 @endphp
 
@@ -254,7 +257,7 @@
                                 <div class="pf-stat"><span>Phiên tệ nhất <small>{{ F::date($risk['worst_day']['date']) }}</small></span><strong class="down">{{ F::percent($risk['worst_day']['percent'], 2, true) }}</strong></div>
                             @endif
                             @if($risk['volatility'] === null)
-                                <p class="pf-hint warn"><i class="bi bi-info-circle"></i> Biến động và beta cần ít nhất {{ \App\Support\PortfolioRisk::MIN_OBSERVATIONS }} phiên có dữ liệu; danh mục mới có {{ $risk['days'] }}.</p>
+                                <p class="pf-hint warn"><i class="bi bi-info-circle"></i> Biến động và beta cần ít nhất {{ PortfolioRisk::MIN_OBSERVATIONS }} phiên có dữ liệu; danh mục mới có {{ $risk['days'] }}.</p>
                             @endif
                         @endif
                     </div>
@@ -346,7 +349,7 @@
                             <ul class="pf-list">
                                 @foreach($events as $e)
                                 <li>
-                                    <div class="pf-date"><strong>{{ \Carbon\Carbon::parse($e['key_date'])->format('d') }}</strong><small>Th{{ \Carbon\Carbon::parse($e['key_date'])->format('m') }}</small></div>
+                                    <div class="pf-date"><strong>{{ Carbon::parse($e['key_date'])->format('d') }}</strong><small>Th{{ Carbon::parse($e['key_date'])->format('m') }}</small></div>
                                     <div class="grow">
                                         <b><a class="pf-sym" href="{{ route('company.show', $e['symbol']) }}">{{ $e['symbol'] }}</a> · {{ $eventLabel[$e['category']] ?? 'Sự kiện' }}</b>
                                         <small>{{ $e['title'] }}</small>
@@ -425,7 +428,7 @@
                         <tr>
                             <td>{{ $t->traded_at->format('d/m/Y') }}</td>
                             <td><a class="pf-sym" href="{{ route('company.show', $t->stock_symbol) }}">{{ $t->stock_symbol }}</a>
-                                @if($t->notes)<span class="pf-cell-sub" title="{{ $t->notes }}">{{ \Illuminate\Support\Str::limit($t->notes, 26) }}</span>@endif</td>
+                                @if($t->notes)<span class="pf-cell-sub" title="{{ $t->notes }}">{{ Str::limit($t->notes, 26) }}</span>@endif</td>
                             <td><span class="pf-pill {{ $t->isSell() ? 'down' : 'up' }}">{{ $t->isSell() ? 'Bán' : 'Mua' }}</span></td>
                             <td class="num">{{ F::number($t->quantity) }}</td>
                             <td class="num">{{ F::number($t->price) }}₫</td>

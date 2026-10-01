@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('App\Models\User')
 
 @section('title', 'Chi tiết User')
 @section('page_pretitle', 'Hệ thống')
@@ -48,7 +49,7 @@
                     <div class="list-group-item">
                         <div class="row align-items-center">
                             <div class="col-auto">
-                                <span class="status-dot {{ $user->status === \App\Models\User::STATUS_ACTIVE ? 'd-block' : 'status-dot-animated bg-red' }}"></span>
+                                <span class="status-dot {{ $user->status === User::STATUS_ACTIVE ? 'd-block' : 'status-dot-animated bg-red' }}"></span>
                             </div>
                             <div class="col text-truncate">
                                 <strong>Trạng thái</strong>

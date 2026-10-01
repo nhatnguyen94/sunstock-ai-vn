@@ -7,6 +7,7 @@ use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Frontend\Services\PortfolioService;
 use App\Models\Portfolio;
 use App\Models\PortfolioItem;
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
@@ -44,8 +45,8 @@ class PortfolioServiceTest extends TestCase
         $portfolio->id = 10;
         $portfolio->setRelation('items', collect([$item]));
 
-        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
-        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo = Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->with(10, 1)->andReturn($portfolio);
 
@@ -68,8 +69,8 @@ class PortfolioServiceTest extends TestCase
     #[Group('portfolioPrices')]
     public function test_update_portfolio_prices_returns_false_when_portfolio_not_found(): void
     {
-        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
-        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo = Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->with(999, 1)->andReturn(null);
         $stockRepo->shouldNotReceive('getLatestQuotes');
@@ -88,8 +89,8 @@ class PortfolioServiceTest extends TestCase
         $portfolio->id = 10;
         $portfolio->setRelation('items', collect([$itemWithPrice, $itemWithoutPrice]));
 
-        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
-        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo = Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->andReturn($portfolio);
         // NEWIPO has no synced StockPrice row yet, so the repository omits it from the map.

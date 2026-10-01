@@ -6,6 +6,7 @@ use App\Frontend\Interfaces\CompanyFinancialRepositoryInterface;
 use App\Frontend\Services\CompanyFinancialService;
 use App\Models\CompanyFinancial;
 use Illuminate\Database\Eloquent\Collection;
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
@@ -49,7 +50,7 @@ class CompanyFinancialServiceTest extends TestCase
             ]),
         ]);
 
-        $repo = \Mockery::mock(CompanyFinancialRepositoryInterface::class);
+        $repo = Mockery::mock(CompanyFinancialRepositoryInterface::class);
         $repo->shouldReceive('getAllRatiosByPeriod')->once()->with('year')->andReturn(new Collection([$record]));
 
         $service = new CompanyFinancialService($repo);
@@ -70,7 +71,7 @@ class CompanyFinancialServiceTest extends TestCase
             $this->row('ROE bình quân 4 quý gần nhất', ['2025-Năm' => 0]),
         ]);
 
-        $repo = \Mockery::mock(CompanyFinancialRepositoryInterface::class);
+        $repo = Mockery::mock(CompanyFinancialRepositoryInterface::class);
         $repo->shouldReceive('getAllRatiosByPeriod')->once()->andReturn(new Collection([$record]));
 
         $service = new CompanyFinancialService($repo);
@@ -85,7 +86,7 @@ class CompanyFinancialServiceTest extends TestCase
         $cheap = $this->ratioRecord('CHEAP', [$this->row('Chỉ số giá thị trường trên thu nhập (P/E)', ['2025-Năm' => 5.0])]);
         $expensive = $this->ratioRecord('EXP', [$this->row('Chỉ số giá thị trường trên thu nhập (P/E)', ['2025-Năm' => 40.0])]);
 
-        $repo = \Mockery::mock(CompanyFinancialRepositoryInterface::class);
+        $repo = Mockery::mock(CompanyFinancialRepositoryInterface::class);
         $repo->shouldReceive('getAllRatiosByPeriod')->once()->andReturn(new Collection([$cheap, $expensive]));
 
         $service = new CompanyFinancialService($repo);
@@ -101,7 +102,7 @@ class CompanyFinancialServiceTest extends TestCase
         $strong = $this->ratioRecord('STRONG', [$this->row('Tỷ suất lợi nhuận trên vốn chủ sở hữu bình quân (ROEA)', ['2025-Năm' => 25.0])]);
         $weak = $this->ratioRecord('WEAK', [$this->row('Tỷ suất lợi nhuận trên vốn chủ sở hữu bình quân (ROEA)', ['2025-Năm' => 3.0])]);
 
-        $repo = \Mockery::mock(CompanyFinancialRepositoryInterface::class);
+        $repo = Mockery::mock(CompanyFinancialRepositoryInterface::class);
         $repo->shouldReceive('getAllRatiosByPeriod')->once()->andReturn(new Collection([$strong, $weak]));
 
         $service = new CompanyFinancialService($repo);
@@ -118,7 +119,7 @@ class CompanyFinancialServiceTest extends TestCase
         $mid = $this->ratioRecord('MID', [$this->row('Chỉ số giá thị trường trên thu nhập (P/E)', ['2025-Năm' => 10.0])]);
         $high = $this->ratioRecord('HIGH', [$this->row('Chỉ số giá thị trường trên thu nhập (P/E)', ['2025-Năm' => 20.0])]);
 
-        $repo = \Mockery::mock(CompanyFinancialRepositoryInterface::class);
+        $repo = Mockery::mock(CompanyFinancialRepositoryInterface::class);
         $repo->shouldReceive('getAllRatiosByPeriod')->once()->andReturn(new Collection([$high, $low, $mid]));
 
         $service = new CompanyFinancialService($repo);
@@ -133,7 +134,7 @@ class CompanyFinancialServiceTest extends TestCase
         $usable = $this->ratioRecord('OK', [$this->row('Chỉ số giá thị trường trên thu nhập (P/E)', ['2025-Năm' => 10.0])]);
         $unusable = $this->ratioRecord('EMPTY', [$this->row('Some unrelated metric vnstock might add later', ['2025-Năm' => 99.0])]);
 
-        $repo = \Mockery::mock(CompanyFinancialRepositoryInterface::class);
+        $repo = Mockery::mock(CompanyFinancialRepositoryInterface::class);
         $repo->shouldReceive('getAllRatiosByPeriod')->once()->andReturn(new Collection([$usable, $unusable]));
 
         $service = new CompanyFinancialService($repo);

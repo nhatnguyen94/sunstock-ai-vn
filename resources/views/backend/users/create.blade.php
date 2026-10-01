@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('App\Models\User')
 
 @section('title', 'Tạo User mới')
 @section('page_pretitle', 'Hệ thống')
@@ -65,8 +66,8 @@
                         <div class="mb-3">
                             <label class="form-label required">Trạng thái tài khoản</label>
                             <select name="status" class="form-select @error('status') is-invalid @enderror" required>
-                                @foreach(\App\Models\User::statusLabels() as $value => $label)
-                                    <option value="{{ $value }}" @selected((string) old('status', \App\Models\User::STATUS_ACTIVE) === (string) $value)>{{ $label }}</option>
+                                @foreach(User::statusLabels() as $value => $label)
+                                    <option value="{{ $value }}" @selected((string) old('status', User::STATUS_ACTIVE) === (string) $value)>{{ $label }}</option>
                                 @endforeach
                             </select>
                             @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror

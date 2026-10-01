@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use PHPUnit\Framework\Attributes\Group;
+use RuntimeException;
 use Tests\Concerns\BuildsMarketPayload;
 use Tests\TestCase;
 
@@ -85,7 +86,7 @@ class MarketHomeAndWatchlistTest extends TestCase
     public function test_home_survives_the_market_service_throwing(): void
     {
         $stub = Mockery::mock(MarketOverviewService::class)->makePartial();
-        $stub->shouldReceive('overview')->andThrow(new \RuntimeException('boom'));
+        $stub->shouldReceive('overview')->andThrow(new RuntimeException('boom'));
         $stub->shouldReceive('ticker')->andReturn([]);
         $this->app->instance(MarketOverviewService::class, $stub);
 

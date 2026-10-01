@@ -2,8 +2,11 @@
 
 namespace App\Support;
 
+use DateTimeInterface;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Symfony\Component\Process\Process;
+use Throwable;
 use ZipArchive;
 
 /**
@@ -77,9 +80,9 @@ class DatabaseBackup
      * Take a backup now.
      *
      * @return array{path: string, size: int, sql_size: int, seconds: float}
-     * @throws \RuntimeException when the dump, the zip or the checks fail (nothing half-written is left behind)
+     * @throws RuntimeException when the dump, the zip or the checks fail (nothing half-written is left behind)
      */
-    public function run(?\DateTimeInterface $at = null): array
+    public function run(?DateTimeInterface $at = null): array
     {
         $started = microtime(true);
         $at ??= now();
@@ -91,7 +94,7 @@ class DatabaseBackup
 
         foreach ([$dir, $tmpDir] as $d) {
             if (! is_dir($d) && ! @mkdir($d, 0775, true) && ! is_dir($d)) {
-                throw new \RuntimeException("Không tạo được thư mục backup: {$d} (kiểm tra thư mục đã được mount vào container chưa)");
+                throw new RuntimeException("Không tạo được thư mục backup: {$d} (kiểm tra thư mục đã được mount vào container chưa)");
             }
         }
 
@@ -102,15 +105,15 @@ class DatabaseBackup
             $this->zip($sql, $tmpZip);
 
             if (! $this->isValidBackup($tmpZip)) {
-                throw new \RuntimeException('File zip tạo ra không hợp lệ.');
+                throw new RuntimeException('File zip tạo ra không hợp lệ.');
             }
             if (! @rename($tmpZip, $final) && ! (@copy($tmpZip, $final) && @unlink($tmpZip))) {
-                throw new \RuntimeException("Không ghi được file backup: {$final}");
+                throw new RuntimeException("Không ghi được file backup: {$final}");
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('db:backup failed', ['error' => $e->getMessage()]);
             @unlink($final);   // never leave a half-written zip that the freshness check could mistake for a backup
-            throw $e instanceof \RuntimeException ? $e : new \RuntimeException($e->getMessage(), 0, $e);
+            throw $e instanceof RuntimeException ? $e : new RuntimeException($e->getMessage(), 0, $e);
         } finally {
             $this->removeDir($tmpDir);
         }
@@ -137,7 +140,7 @@ class DatabaseBackup
         $process->run();
 
         if (! $process->isSuccessful()) {
-            throw new \RuntimeException('mysqldump lỗi: ' . trim($process->getErrorOutput() ?: $process->getOutput()));
+            throw new RuntimeException('mysqldump lỗi: ' . trim($process->getErrorOutput() ?: $process->getOutput()));
         }
     }
 
@@ -151,7 +154,7 @@ class DatabaseBackup
             }
         }
 
-        throw new \RuntimeException('Không tìm thấy mysqldump (cài default-mysql-client — đã có sẵn trong docker/php/Dockerfile, cần `docker compose up -d --build`).');
+        throw new RuntimeException('Không tìm thấy mysqldump (cài default-mysql-client — đã có sẵn trong docker/php/Dockerfile, cần `docker compose up -d --build`).');
     }
 
     /** mysqldump ends a finished dump with "-- Dump completed": without it the file is truncated. */
@@ -159,7 +162,7 @@ class DatabaseBackup
     {
         $size = (int) filesize($sql);
         if ($size === 0) {
-            throw new \RuntimeException('File dump rỗng.');
+            throw new RuntimeException('File dump rỗng.');
         }
 
         $fh = fopen($sql, 'rb');
@@ -168,7 +171,7 @@ class DatabaseBackup
         fclose($fh);
 
         if (! str_contains($tail, 'Dump completed')) {
-            throw new \RuntimeException('File dump bị cụt (không thấy dòng "Dump completed").');
+            throw new RuntimeException('File dump bị cụt (không thấy dòng "Dump completed").');
         }
     }
 
@@ -176,12 +179,12 @@ class DatabaseBackup
     {
         $zip = new ZipArchive;
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            throw new \RuntimeException('Không tạo được file zip.');
+            throw new RuntimeException('Không tạo được file zip.');
         }
         $zip->addFile($sql, basename($sql));
         $zip->setCompressionName(basename($sql), ZipArchive::CM_DEFLATE, 6);
         if (! $zip->close()) {
-            throw new \RuntimeException('Không ghi được file zip (hết dung lượng?).');
+            throw new RuntimeException('Không ghi được file zip (hết dung lượng?).');
         }
     }
 

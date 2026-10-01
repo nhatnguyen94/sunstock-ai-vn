@@ -3,6 +3,7 @@
 namespace Tests\Feature\Console\Commands;
 
 use App\Frontend\Services\PortfolioService;
+use Mockery;
 use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
@@ -16,7 +17,7 @@ class SyncPortfolioPricesTest extends TestCase
     #[Group('portfolioAlerts')]
     public function test_command_refreshes_portfolios_and_reports_the_count(): void
     {
-        $mock = \Mockery::mock(PortfolioService::class);
+        $mock = Mockery::mock(PortfolioService::class);
         $mock->shouldReceive('refreshAllPortfolioPrices')->once()->andReturn(3);
         $this->app->instance(PortfolioService::class, $mock);
 
@@ -28,7 +29,7 @@ class SyncPortfolioPricesTest extends TestCase
     #[Group('portfolioAlerts')]
     public function test_command_reports_zero_when_no_portfolios_need_refreshing(): void
     {
-        $mock = \Mockery::mock(PortfolioService::class);
+        $mock = Mockery::mock(PortfolioService::class);
         $mock->shouldReceive('refreshAllPortfolioPrices')->once()->andReturn(0);
         $this->app->instance(PortfolioService::class, $mock);
 

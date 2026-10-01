@@ -6,6 +6,9 @@ use App\Backend\Interfaces\NewsRepositoryInterface;
 use App\Backend\Interfaces\NewsServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use RuntimeException;
+use SimpleXMLElement;
+use Throwable;
 
 class NewsService implements NewsServiceInterface
 {
@@ -49,7 +52,7 @@ class NewsService implements NewsServiceInterface
             try {
                 $items = $this->fetchAndParse($source['url'], $source['name'], $source['category_id'], $syncedAt);
                 $totalSynced += $this->newsRepository->insertNew($items);
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $errors[] = "[{$source['name']}] {$source['url']}: {$e->getMessage()}";
             }
         }
@@ -106,12 +109,12 @@ class NewsService implements NewsServiceInterface
         $code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         if ($error || $code < 200 || $code >= 300 || empty($data)) {
-            throw new \RuntimeException("HTTP {$code}" . ($error ? ": {$error}" : ''));
+            throw new RuntimeException("HTTP {$code}" . ($error ? ": {$error}" : ''));
         }
         return $data;
     }
 
-    private function extractImage(\SimpleXMLElement $item): ?string
+    private function extractImage(SimpleXMLElement $item): ?string
     {
         if (isset($item->enclosure)) {
             $a = $item->enclosure->attributes();

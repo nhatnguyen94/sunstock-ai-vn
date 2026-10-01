@@ -11,6 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Queue job that backfills historical stock prices for a chunk of symbols.
@@ -124,7 +125,7 @@ class BackfillStockPriceChunk implements ShouldQueue
         }
     }
 
-    public function failed(\Throwable $e): void
+    public function failed(Throwable $e): void
     {
         $symbolList = implode(',', array_column($this->chunk, 'symbol'));
         Log::error("BackfillStockPriceChunk FAILED [{$symbolList}]: " . $e->getMessage());

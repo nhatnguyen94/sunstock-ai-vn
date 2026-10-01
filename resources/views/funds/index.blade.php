@@ -8,6 +8,8 @@
 
 @use('App\Support\VnFormat', 'F')
 @use('App\Models\Fund')
+@use('Illuminate\Support\Str')
+@use('App\Frontend\Services\FundService')
 
 @php
     $active = array_filter($filters, fn ($v, $k) => $v !== null && ! in_array($k, ['sort', 'dir'], true), ARRAY_FILTER_USE_BOTH);
@@ -89,7 +91,7 @@
                 <select id="fdOwner" name="owner" class="form-control">
                     <option value="">Tất cả</option>
                     @foreach($owners as $owner)
-                        <option value="{{ $owner }}" @selected($filters['owner'] === $owner)>{{ \Illuminate\Support\Str::of($owner)->replaceMatches('/^(CÔNG TY (TNHH|CỔ PHẦN|CP) )?(QUẢN LÝ QUỸ )?/iu', '')->title() }}</option>
+                        <option value="{{ $owner }}" @selected($filters['owner'] === $owner)>{{ Str::of($owner)->replaceMatches('/^(CÔNG TY (TNHH|CỔ PHẦN|CP) )?(QUẢN LÝ QUỸ )?/iu', '')->title() }}</option>
                     @endforeach
                 </select>
             </div>
@@ -113,7 +115,7 @@
             <table class="fd-table" id="fdTable">
                 <thead>
                     <tr>
-                        <th class="fd-check" title="Chọn tối đa {{ \App\Frontend\Services\FundService::MAX_COMPARE }} quỹ để so sánh"><i class="bi bi-intersect"></i></th>
+                        <th class="fd-check" title="Chọn tối đa {{ FundService::MAX_COMPARE }} quỹ để so sánh"><i class="bi bi-intersect"></i></th>
                         <th><a href="{{ $sortLink('short_name') }}">Quỹ <span>{{ $arrow('short_name') }}</span></a></th>
                         <th>Loại</th>
                         <th class="num"><a href="{{ $sortLink('nav') }}">NAV/CCQ <span>{{ $arrow('nav') }}</span></a></th>
@@ -129,7 +131,7 @@
                         <td class="fd-check"><input type="checkbox" class="fd-pick" value="{{ $f->short_name }}" aria-label="Chọn {{ $f->short_name }} để so sánh"></td>
                         <td>
                             <a class="fd-code" href="{{ route('funds.show', $f->short_name) }}">{{ $f->short_name }}</a>
-                            <span class="fd-fullname">{{ \Illuminate\Support\Str::title(mb_strtolower(preg_replace('/^QUỸ ĐẦU TƯ /iu', '', $f->name))) }}</span>
+                            <span class="fd-fullname">{{ Str::title(mb_strtolower(preg_replace('/^QUỸ ĐẦU TƯ /iu', '', $f->name))) }}</span>
                         </td>
                         <td><span class="fd-type-pill fd-tp-{{ strtolower($f->type_code) }}">{{ $f->type_label }}</span></td>
                         <td class="num">{{ F::number($f->nav) }}</td>
@@ -164,6 +166,6 @@
 @endsection
 
 @section('scripts')
-<script>window.__FUNDS__ = { max: {{ \App\Frontend\Services\FundService::MAX_COMPARE }}, compareUrl: @json(route('funds.compare')) };</script>
+<script>window.__FUNDS__ = { max: {{ FundService::MAX_COMPARE }}, compareUrl: @json(route('funds.compare')) };</script>
 @vite('resources/frontend/js/funds/index.js')
 @endsection

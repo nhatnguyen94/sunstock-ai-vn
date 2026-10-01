@@ -1,4 +1,6 @@
 @extends('layouts.admin')
+@use('App\Models\ActivityLog')
+@use('Illuminate\Support\Carbon')
 
 @section('title', 'Timeline Hệ thống')
 @section('page_pretitle', 'Theo dõi hoạt động thực tế')
@@ -10,7 +12,7 @@
 
 @section('content')
 @php
-    $config = \App\Models\ActivityLog::iconConfig();
+    $config = ActivityLog::iconConfig();
     $current = request('type');
     $totalWeek = array_sum($counts ?? []);
     $byDay = $items->getCollection()->groupBy(fn ($log) => $log->created_at->timezone('Asia/Ho_Chi_Minh')->toDateString());
@@ -54,7 +56,7 @@
     <div class="card-body">
         @if($items->count() > 0)
             @foreach($byDay as $day => $logs)
-                @php $d = \Illuminate\Support\Carbon::parse($day, 'Asia/Ho_Chi_Minh'); @endphp
+                @php $d = Carbon::parse($day, 'Asia/Ho_Chi_Minh'); @endphp
                 <div class="ad-tl-day">{{ $d->isToday() ? 'Hôm nay' : ($d->isYesterday() ? 'Hôm qua' : $d->format('d/m/Y')) }} <span>{{ $logs->count() }} hoạt động</span></div>
                 <div class="ad-tl">
                     @foreach($logs as $log)

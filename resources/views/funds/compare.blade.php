@@ -1,4 +1,5 @@
 @extends('layouts.app')
+@use('App\Models\Fund')
 
 @section('title', 'So sánh quỹ mở | Sun Stock AI')
 
@@ -80,14 +81,14 @@
         'max'          => $max,
         'picker'       => $picker,
         'detailUrl'    => url('/funds'),
-        'returnLabels' => \App\Models\Fund::RETURN_COLUMNS,
+        'returnLabels' => Fund::RETURN_COLUMNS,
         'selected'     => $funds->map(fn ($f) => [
             'code'    => $f->short_name,
             'name'    => $f->name,
             'type'    => $f->type_label,
             'fee'     => $f->management_fee,
             'nav'     => $f->nav,
-            'returns' => collect(\App\Models\Fund::RETURN_COLUMNS)->keys()->mapWithKeys(fn ($k) => [$k => $f->$k])->all(),
+            'returns' => collect(Fund::RETURN_COLUMNS)->keys()->mapWithKeys(fn ($k) => [$k => $f->$k])->all(),
         ])->values(),
     ];
 @endphp

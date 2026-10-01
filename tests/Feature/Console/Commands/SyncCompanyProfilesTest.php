@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Console\Commands;
 
-use App\Frontend\Interfaces\CompanyProfileRepositoryInterface;
 use App\Frontend\Services\CompanyProfileService;
 use App\Jobs\SyncCompanyProfileJob;
 use App\Models\CompanyProfile;
@@ -10,6 +9,7 @@ use App\Models\Stock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
+use Mockery\MockInterface;
 use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
@@ -21,7 +21,7 @@ class SyncCompanyProfilesTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function mockService(): \Mockery\MockInterface
+    private function mockService(): MockInterface
     {
         $mock = Mockery::mock(CompanyProfileService::class);
         $this->app->instance(CompanyProfileService::class, $mock);

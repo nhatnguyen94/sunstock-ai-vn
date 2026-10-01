@@ -1,4 +1,6 @@
 @extends('layouts.app')
+@use('Carbon\Carbon')
+@use('App\Frontend\Services\WatchlistService')
 
 @section('head')
 @vite(['resources/frontend/css/stock/stock.css', 'resources/frontend/css/shared/charts.css', 'resources/frontend/css/shared/watchlist.css'])
@@ -24,7 +26,7 @@
                         $latestClose = $latestData['close'] ?? null;
                         $prevClose = $prevData['close'] ?? null;
                         $dailyChange = ($latestClose && $prevClose && $prevClose > 0) ? (($latestClose - $prevClose) / $prevClose * 100) : null;
-                        $latestDateStr = $latestData ? \Carbon\Carbon::createFromTimestampMs($latestData['time'])->format('d/m/Y') : null;
+                        $latestDateStr = $latestData ? Carbon::createFromTimestampMs($latestData['time'])->format('d/m/Y') : null;
                     @endphp
                     @if($latestClose)
                     <div style="display:flex;align-items:center;gap:1.5rem;margin-top:0.75rem;flex-wrap:wrap;">
@@ -276,7 +278,7 @@ const rawData = @json($data);
 const stockSymbol = '{{ $symbol }}';
 </script>
 @php
-    $watchData = ['auth' => auth()->check(), 'watched' => auth()->check() && app(\App\Frontend\Services\WatchlistService::class)->isWatched(auth()->id(), $symbol) ? [$symbol] : []];
+    $watchData = ['auth' => auth()->check(), 'watched' => auth()->check() && app(WatchlistService::class)->isWatched(auth()->id(), $symbol) ? [$symbol] : []];
 @endphp
 <script>window.__WATCH__ = @json($watchData);</script>
 @vite('resources/frontend/js/shared/watchlist-init.js')

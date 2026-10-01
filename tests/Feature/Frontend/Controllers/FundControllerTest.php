@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Frontend\Controllers;
 
+use App\Frontend\Interfaces\FundRepositoryInterface;
 use App\Frontend\Services\FundService;
 use App\Models\Fund;
 use App\Support\FundMetrics;
@@ -80,7 +81,7 @@ class FundControllerTest extends TestCase
     public function test_index_shows_a_friendly_error_when_the_first_load_from_fmarket_fails(): void
     {
         // Empty table => the service tries a live load; stub it as a failure (no real Python).
-        $stub = Mockery::mock(FundService::class, [app(\App\Frontend\Interfaces\FundRepositoryInterface::class)])
+        $stub = Mockery::mock(FundService::class, [app(FundRepositoryInterface::class)])
             ->makePartial()->shouldAllowMockingProtectedMethods();
         $stub->shouldReceive('runListScript')->andReturn(null);
         $this->app->instance(FundService::class, $stub);
@@ -138,7 +139,7 @@ class FundControllerTest extends TestCase
         // NB: bind the stub BEFORE the first request in a test — the router caches the resolved
         // controller instance on the Route object, so a later re-bind would be ignored.
         $this->fund('DCDS');
-        $stub = Mockery::mock(FundService::class, [app(\App\Frontend\Interfaces\FundRepositoryInterface::class)])
+        $stub = Mockery::mock(FundService::class, [app(FundRepositoryInterface::class)])
             ->makePartial()->shouldAllowMockingProtectedMethods();
         $stub->shouldReceive('runDetailScript')->andReturn(null);
         $this->app->instance(FundService::class, $stub);

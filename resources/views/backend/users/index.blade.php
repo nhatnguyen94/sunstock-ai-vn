@@ -1,4 +1,6 @@
 @extends('layouts.admin')
+@use('App\Models\Role')
+@use('App\Models\User')
 
 @section('title', 'Quản lý Users')
 @section('page_pretitle', 'Hệ thống')
@@ -9,7 +11,7 @@
 @endsection
 
 @section('page_actions')
-    @if(auth()->user()->hasRole(\App\Models\Role::ADMIN))
+    @if(auth()->user()->hasRole(Role::ADMIN))
     <a href="{{ route('admin.users.create') }}" class="btn btn-primary"><i class="ti ti-user-plus me-1"></i> Tạo User mới</a>
     @endif
 @endsection
@@ -24,7 +26,7 @@
                 </div>
                 <select name="status" class="form-select" style="max-width:190px" aria-label="Lọc theo trạng thái">
                     <option value="">Mọi trạng thái</option>
-                    @foreach(\App\Models\User::statusLabels() as $value => $label)
+                    @foreach(User::statusLabels() as $value => $label)
                         <option value="{{ $value }}" @selected((string) request('status') === (string) $value)>{{ $label }}</option>
                     @endforeach
                 </select>
@@ -60,7 +62,7 @@
                             </div>
                         </td>
                         <td>
-                            <span class="ad-dot {{ $user->status === \App\Models\User::STATUS_ACTIVE ? 'ok' : ($user->status === \App\Models\User::STATUS_PENDING ? 'warn' : 'bad') }}">{{ $user->statusLabel() }}</span>
+                            <span class="ad-dot {{ $user->status === User::STATUS_ACTIVE ? 'ok' : ($user->status === User::STATUS_PENDING ? 'warn' : 'bad') }}">{{ $user->statusLabel() }}</span>
                             @if($user->email_verified_at)
                                 <div class="small text-secondary">Email xác thực {{ $user->email_verified_at->format('d/m/Y H:i') }}</div>
                             @else
@@ -76,10 +78,10 @@
                         <td class="text-end">
                             <div class="table-row-actions">
                                 <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-icon btn-ghost-secondary" title="Xem chi tiết"><i class="ti ti-eye"></i></a>
-                                @if(auth()->user()->hasRole(\App\Models\Role::ADMIN))
+                                @if(auth()->user()->hasRole(Role::ADMIN))
                                 <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-icon btn-ghost-secondary" title="Chỉnh sửa"><i class="ti ti-pencil"></i></a>
                                 @endif
-                                @if($user->id !== auth()->id() && auth()->user()->hasRole(\App\Models\Role::ADMIN))
+                                @if($user->id !== auth()->id() && auth()->user()->hasRole(Role::ADMIN))
                                 <div class="dropdown d-inline-block">
                                     <button type="button" class="btn btn-sm btn-icon btn-ghost-secondary" data-bs-toggle="dropdown" aria-label="Thêm thao tác"><i class="ti ti-dots-vertical"></i></button>
                                     <div class="dropdown-menu dropdown-menu-end">

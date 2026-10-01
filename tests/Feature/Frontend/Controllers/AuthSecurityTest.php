@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -417,7 +418,7 @@ class AuthSecurityTest extends TestCase
     public function test_a_failure_halfway_through_registration_leaves_no_half_created_account(): void
     {
         Notification::fake();
-        UserProfile::creating(fn () => throw new \RuntimeException('boom'));
+        UserProfile::creating(fn () => throw new RuntimeException('boom'));
 
         $this->post('/register', $this->registration())->assertSessionHasErrors('error');
 

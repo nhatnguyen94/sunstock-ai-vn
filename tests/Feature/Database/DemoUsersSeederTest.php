@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\Stock;
 use App\Models\StockPrice;
 use App\Models\User;
+use App\Models\UserProfile;
 use Database\Seeders\DemoUsersSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,7 +36,7 @@ class DemoUsersSeederTest extends TestCase
             $this->assertNotNull($u->email_verified_at);
             $this->assertTrue(Hash::check(DemoUsersSeeder::PASSWORD, $u->password));
             $this->assertTrue($u->hasRole(Role::USER));
-            $this->assertTrue(\App\Models\UserProfile::where('user_id', $u->id)->exists());
+            $this->assertTrue(UserProfile::where('user_id', $u->id)->exists());
         }
         $this->assertSame('abc123456789', DemoUsersSeeder::PASSWORD);
     }

@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserProfile;
 use App\Support\ActivityLogger;
 use App\Support\AuthRules;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -113,7 +114,7 @@ class AuthController extends Controller
 
             // Not logged in automatically: the e-mail has to be verified first
             return redirect()->route('login')->with('success', 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập.');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             report($e);
 
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.'])

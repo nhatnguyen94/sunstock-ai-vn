@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -473,7 +474,7 @@ class AdminAuthorizationSecurityTest extends TestCase
     #[Group('authzSecurity')]
     public function test_a_failing_sync_does_not_hand_the_exception_text_to_the_browser(): void
     {
-        Artisan::shouldReceive('call')->andThrow(new \RuntimeException('SECRET /var/www/html/.env DB_PASSWORD=hunter2'));
+        Artisan::shouldReceive('call')->andThrow(new RuntimeException('SECRET /var/www/html/.env DB_PASSWORD=hunter2'));
 
         $r = $this->as($this->sup)->postJson('/admin/sync-status/trigger/sync:news');
 

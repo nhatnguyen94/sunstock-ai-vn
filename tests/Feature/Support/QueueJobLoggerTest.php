@@ -2,9 +2,13 @@
 
 namespace Tests\Feature\Support;
 
+use App\Jobs\BackfillStockPriceChunk;
+use App\Jobs\ProcessStockPriceSync;
 use App\Jobs\SyncCompanyFinancialJob;
-use App\Models\QueueJobLog;
 use App\Support\QueueJobLogger;
+use Exception;
+use Illuminate\Contracts\Queue\Job;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
@@ -22,11 +26,11 @@ use Tests\TestCase;
  */
 class QueueJobLoggerTest extends TestCase
 {
-    use \Illuminate\Foundation\Testing\RefreshDatabase;
+    use RefreshDatabase;
 
     private function fakeJob(string $jobId, string $class, string $queue, ?object $command): object
     {
-        return new class($jobId, $class, $queue, $command) implements \Illuminate\Contracts\Queue\Job {
+        return new class($jobId, $class, $queue, $command) implements Job {
             public function __construct(
                 private string $jobId,
                 private string $class,
@@ -112,7 +116,7 @@ class QueueJobLoggerTest extends TestCase
         $job = $this->fakeJob('job-4', SyncCompanyFinancialJob::class, 'default', new SyncCompanyFinancialJob('FPT'));
         QueueJobLogger::processing(new JobProcessing('redis', $job));
 
-        QueueJobLogger::failed(new JobFailed('redis', $job, new \Exception('boom')));
+        QueueJobLogger::failed(new JobFailed('redis', $job, new Exception('boom')));
 
         $this->assertDatabaseHas('queue_job_logs', ['job_id' => 'job-4', 'status' => 'failed']);
     }
@@ -130,13 +134,13 @@ class QueueJobLoggerTest extends TestCase
     #[Group('queueMonitor')]
     public function test_queue_summary_extraction_for_all_three_job_types(): void
     {
-        $stockChunkJob = $this->fakeJob('job-5', \App\Jobs\ProcessStockPriceSync::class, 'default', new \App\Jobs\ProcessStockPriceSync([
+        $stockChunkJob = $this->fakeJob('job-5', ProcessStockPriceSync::class, 'default', new ProcessStockPriceSync([
             ['symbol' => 'VCB'], ['symbol' => 'ACB'],
         ]));
         QueueJobLogger::processing(new JobProcessing('redis', $stockChunkJob));
         $this->assertDatabaseHas('queue_job_logs', ['job_id' => 'job-5', 'summary' => '2 mã (VCB, ACB)']);
 
-        $backfillJob = $this->fakeJob('job-6', \App\Jobs\BackfillStockPriceChunk::class, 'default', new \App\Jobs\BackfillStockPriceChunk(
+        $backfillJob = $this->fakeJob('job-6', BackfillStockPriceChunk::class, 'default', new BackfillStockPriceChunk(
             [['symbol' => 'VCB']], '2026-01-01', '2026-01-31'
         ));
         QueueJobLogger::processing(new JobProcessing('redis', $backfillJob));

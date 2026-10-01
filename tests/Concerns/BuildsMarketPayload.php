@@ -3,6 +3,7 @@
 namespace Tests\Concerns;
 
 use App\Models\MarketSnapshot;
+use DateTimeInterface;
 
 /**
  * A realistic output of py/get_market_overview.py, so tests never spawn Python (or touch the network) to get a
@@ -59,7 +60,7 @@ trait BuildsMarketPayload
     }
 
     /** Store a snapshot straight in the table (what MarketSnapshotRepository::save() would have written). */
-    protected function seedMarketSnapshot(array $over = [], ?\DateTimeInterface $syncedAt = null): MarketSnapshot
+    protected function seedMarketSnapshot(array $over = [], ?DateTimeInterface $syncedAt = null): MarketSnapshot
     {
         $p = $this->marketPayload($over);
         $quotes = $p['quotes'];

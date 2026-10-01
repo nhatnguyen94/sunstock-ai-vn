@@ -11,6 +11,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Group;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -184,7 +185,7 @@ class AiFeaturesTest extends TestCase
         $this->mock(MarketOverviewService::class, fn ($m) => $m->shouldReceive('overview')->andReturn(['has_data' => false]));
         $this->assertSame('', app(AiService::class)->marketContext());
 
-        $this->mock(MarketOverviewService::class, fn ($m) => $m->shouldReceive('overview')->andThrow(new \RuntimeException('db down')));
+        $this->mock(MarketOverviewService::class, fn ($m) => $m->shouldReceive('overview')->andThrow(new RuntimeException('db down')));
         $this->assertSame('', app(AiService::class)->marketContext());
 
         Http::fake([self::URL => $this->ok('ok')]);

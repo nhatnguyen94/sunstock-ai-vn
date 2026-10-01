@@ -1,4 +1,5 @@
 @extends('layouts.app')
+@use('Carbon\Carbon')
 
 @section('head')
 @vite(['resources/frontend/css/exchange_rate/index.css', 'resources/frontend/css/shared/charts.css'])
@@ -103,7 +104,7 @@ $keyRates = ['USD','EUR','JPY','GBP','CNY'];
                         <i class="bi bi-bar-chart-fill" style="color:#2563eb;margin-right:6px;"></i>
                         Tỷ giá bán (VNĐ) các ngoại tệ chính
                     </h4>
-                    <p style="font-size:0.8rem;color:#9ca3af;margin:2px 0 0;">Giá bán Vietcombank · {{ !empty($ratesForChart) ? \Carbon\Carbon::parse(array_key_first($ratesForChart))->format('d/m/Y') : 'Hôm nay' }}</p>
+                    <p style="font-size:0.8rem;color:#9ca3af;margin:2px 0 0;">Giá bán Vietcombank · {{ !empty($ratesForChart) ? Carbon::parse(array_key_first($ratesForChart))->format('d/m/Y') : 'Hôm nay' }}</p>
                 </div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                     @foreach($chartRates as $cr)
@@ -149,8 +150,8 @@ $keyRates = ['USD','EUR','JPY','GBP','CNY'];
                     <div class="date-display {{ isset($date) ? 'show' : '' }}" id="date-display">
                         @if(isset($date))
                             <i class="bi bi-check-circle"></i>
-                            Ngày đã chọn: {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
-                            ({{ \Carbon\Carbon::parse($date)->diffForHumans() }})
+                            Ngày đã chọn: {{ Carbon::parse($date)->format('d/m/Y') }}
+                            ({{ Carbon::parse($date)->diffForHumans() }})
                         @endif
                     </div>
                     
@@ -221,9 +222,9 @@ $keyRates = ['USD','EUR','JPY','GBP','CNY'];
                 <div class="date-header slide-up">
                     <h4 class="date-title">
                         <i class="bi bi-calendar-check"></i>
-                        {{ \Carbon\Carbon::parse($rateDate)->format('d/m/Y') }}
+                        {{ Carbon::parse($rateDate)->format('d/m/Y') }}
                         <span class="date-badge">
-                            {{ \Carbon\Carbon::parse($rateDate)->diffForHumans() }}
+                            {{ Carbon::parse($rateDate)->diffForHumans() }}
                         </span>
                     </h4>
                 </div>
@@ -285,7 +286,7 @@ $keyRates = ['USD','EUR','JPY','GBP','CNY'];
                 <div class="no-data slide-up">
                     <i class="no-data-icon bi bi-calendar-x"></i>
                     <h4 class="no-data-title">Không tìm thấy dữ liệu</h4>
-                    <p class="no-data-text">Không có dữ liệu tỷ giá cho ngày {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</p>
+                    <p class="no-data-text">Không có dữ liệu tỷ giá cho ngày {{ Carbon::parse($date)->format('d/m/Y') }}</p>
                 </div>
             @endif
 
@@ -301,9 +302,9 @@ $keyRates = ['USD','EUR','JPY','GBP','CNY'];
                     <div class="date-header slide-up" style="animation-delay: {{ $loop->index * 0.1 }}s;">
                         <h4 class="date-title">
                             <i class="bi bi-calendar-check"></i>
-                            {{ \Carbon\Carbon::parse($rateDate)->format('d/m/Y') }}
+                            {{ Carbon::parse($rateDate)->format('d/m/Y') }}
                             <span class="date-badge">
-                                {{ \Carbon\Carbon::parse($rateDate)->diffForHumans() }}
+                                {{ Carbon::parse($rateDate)->diffForHumans() }}
                             </span>
                         </h4>
                     </div>

@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('Carbon\Carbon')
 
 @section('title', 'Trạng thái Sync')
 @section('page_pretitle', 'Quản lý dữ liệu')
@@ -17,7 +18,7 @@
     $iconMap = ['news' => 'ti-news', 'currency' => 'ti-currency-dollar', 'flame' => 'ti-flame', 'trending-up' => 'ti-trending-up', 'database' => 'ti-database',
                 'report' => 'ti-report-analytics', 'building' => 'ti-building-skyscraper', 'chart-pie' => 'ti-chart-pie', 'chart-line' => 'ti-chart-line'];
     $colorMap = ['purple' => 'purple', 'green' => 'green', 'orange' => 'orange', 'blue' => 'blue', 'cyan' => 'cyan', 'yellow' => 'orange', 'pink' => 'purple', 'red' => 'red', 'indigo' => 'blue'];
-    $fresh = collect($sources)->filter(fn ($s) => $s['last_sync'] && \Carbon\Carbon::parse($s['last_sync'])->gte(now()->subDay()))->count();
+    $fresh = collect($sources)->filter(fn ($s) => $s['last_sync'] && Carbon::parse($s['last_sync'])->gte(now()->subDay()))->count();
 @endphp
 
 <div class="alert alert-{{ $fresh === count($sources) ? 'success' : 'warning' }} d-flex align-items-center gap-2 mb-3" role="status">
@@ -29,7 +30,7 @@
 <div class="row row-cards g-3">
     @foreach($sources as $src)
     @php
-        $lastSync = $src['last_sync'] ? \Carbon\Carbon::parse($src['last_sync']) : null;
+        $lastSync = $src['last_sync'] ? Carbon::parse($src['last_sync']) : null;
         $isStale = !$lastSync || $lastSync->lt(now()->subDay());
         $state = !$lastSync ? 'off' : ($isStale ? 'bad' : 'ok');
         $stateText = !$lastSync ? 'Chưa có dữ liệu' : ($isStale ? 'Cũ' : 'Mới');

@@ -6,6 +6,22 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## IMPORTS_CLEANUP - October 1, 2026
+
+### Summary
+Owner: classes were written out in full inside the code (for example `\App\Models\User::STATUS_ACTIVE` in a Blade view) — a very serious cleanliness defect that must be forbidden for every AI agent.
+
+### Done
+- Scanned the whole project with the PHP tokenizer: **165 inline fully-qualified names in 57 PHP files** (45 `\Mockery`, 30 `\RuntimeException`, 21 `\Throwable`, 13 `\Exception`, models, jobs, commands, interfaces…) and **50 in 21 Blade views**, plus two doc comments. All replaced by imports (`use` in PHP, `@use` in Blade); no name clash existed, so no alias was needed. PHP was rewritten with Pint restricted to the import rules only (the rest of those files was left as it was).
+- Rule written into `AGENTS.md` (new "Imports" section and a row in the forbidden-patterns table), `docs/GUIDELINES.md` and the assistant's memory.
+- Enforcement: `pint.json` (Laravel preset + `fully_qualified_strict_types` with `import_symbols`, global classes imported) and `tests/Unit/CodeStyle/NoInlineFullyQualifiedNamesTest.php` (group `codeStyle`, 4 tests) which fails on any inline name in PHP, doc comments and Blade.
+- Verified: full suite green, `view:cache` compiles every view, public pages return 200.
+
+### Noticed, not changed
+`/profile/edit` crashes for an account that has no `user_profiles` row (the factory-made users in tests): the view reads `$profile->username` on null. Accounts created by registration and by the admin form always have a profile.
+
+---
+
 ## AUTHORIZATION_HARDENING - October 1, 2026
 
 ### Summary

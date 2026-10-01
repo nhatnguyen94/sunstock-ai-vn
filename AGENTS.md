@@ -90,9 +90,45 @@ After reading, you MUST output this block verbatim with your own answers filled 
 | Use `dd()` in Services | Return only JSON or structured data | Python stdout must be clean JSON |
 | Ship a new or changed feature without tests | Write/update tests tagged `#[Group('featureName')]`, then run `php artisan test --group=featureName` | Untested changes are not considered done — see "AFTER EVERY TASK" |
 | Test method/class with no `#[Group(...)]` tag | Every test MUST have a feature group so it can be run in isolation | Lets you verify just your change without running the full (slow) suite |
+| Writing a class out in full in the body: `\App\Models\User::STATUS_ACTIVE`, `new \RuntimeException()`, `catch (\Throwable $e)`, `@var \Foo\Bar` — in PHP, tests, doc comments **and Blade** | `use App\Models\User;` (Blade: `@use('App\Models\User')`) at the top, then `User::STATUS_ACTIVE` | **Very serious code-cleanliness defect** — see "Imports" below; enforced by `pint.json` and the `codeStyle` tests |
 | Group name in kebab-case, e.g. `#[Group('portfolio-alerts')]` | **camelCase only**, e.g. `#[Group('portfolioAlerts')]` | Mandatory naming convention — kebab-case groups will be rejected |
 | Commit message without a `[branch-name]` prefix | `[master] <summary> (<detail>)` — e.g. `[master] Add stock screener` | Mandatory commit format — see "AFTER EVERY TASK" |
 | A new chart library, or a CDN `<script>` for charts (ApexCharts, Chart.js...) | `resources/frontend/js/shared/charts.js` (Lightweight Charts, bundled) for time-series and `shared/svgcharts.js` for donut/bars | One look, one bundle, no runtime CDN dependency — see docs/FRONTEND_VIEWS.md "Chart conventions" |
+
+---
+
+## 📦 Imports — MANDATORY, no exceptions
+
+**Import every class with `use` at the top of the file and refer to it by its short name below. Never write a
+fully-qualified class name (one with a leading backslash) in the body.** This applies to *everything*: controllers,
+services, repositories, models, jobs, commands, seeders, routes, config, **tests**, doc comments (`@var`, `@param`,
+`@return`, `@see`) and **Blade views**.
+
+```php
+// ❌ WRONG
+$ok = $user->status === \App\Models\User::STATUS_ACTIVE;
+throw new \RuntimeException('x');
+/** @var \Illuminate\Queue\RedisQueue $connection */
+
+// ✅ RIGHT
+use App\Models\User;
+use Illuminate\Queue\RedisQueue;
+use RuntimeException;
+...
+$ok = $user->status === User::STATUS_ACTIVE;
+throw new RuntimeException('x');
+/** @var RedisQueue $connection */
+```
+
+- **Blade:** put `@use('App\Models\User')` at the top of the template (after `@extends`) and write `User::...` in the body.
+- **Global classes are imported too:** `use Throwable;`, `use RuntimeException;`, `use Mockery;`, `use DateTimeInterface;`.
+- **Two classes with the same short name** (e.g. `Illuminate\Support\Carbon` and `Carbon\Carbon`, or two `Request` classes):
+  import both and **alias one with `as`** — `use Carbon\Carbon as BaseCarbon;` (Blade: `@use('Carbon\Carbon', 'BaseCarbon')`).
+  Never solve a name clash by writing the full name inline.
+- Leading-backslash **function calls and constants** (`\count()`, `\PHP_EOL`) are not classes and are fine.
+- **Add the `use` line first, then write the code that needs it.** Run `./vendor/bin/pint <files>` (the repo's `pint.json`
+  imports symbols automatically) and `php artisan test --group=codeStyle` before finishing a task: that test scans the whole
+  project and fails on any inline fully-qualified name, so a violation is never "done".
 
 ---
 

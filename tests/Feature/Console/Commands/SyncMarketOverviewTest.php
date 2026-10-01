@@ -6,6 +6,7 @@ use App\Frontend\Services\MarketOverviewService;
 use App\Jobs\SyncMarketOverviewJob;
 use Mockery;
 use PHPUnit\Framework\Attributes\Group;
+use RuntimeException;
 use Tests\TestCase;
 
 /** The command and the queued job are thin: they must report the service result and let failures surface. */
@@ -45,7 +46,7 @@ class SyncMarketOverviewTest extends TestCase
 
         $bad = Mockery::mock(MarketOverviewService::class);
         $bad->shouldReceive('sync')->once()->andReturn(['error' => 'down']);
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         (new SyncMarketOverviewJob)->handle($bad);
     }
 }

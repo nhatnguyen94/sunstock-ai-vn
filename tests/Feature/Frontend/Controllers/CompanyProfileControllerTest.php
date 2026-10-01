@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Frontend\Controllers;
 
+use App\Frontend\Interfaces\CompanyProfileRepositoryInterface;
 use App\Frontend\Services\CompanyProfileService;
 use App\Jobs\SyncCompanyProfileJob;
 use App\Models\CompanyProfile;
+use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
@@ -27,7 +29,7 @@ class CompanyProfileControllerTest extends TestCase
         Cache::flush();
     }
 
-    private function seedProfile(string $symbol = 'FPT', ?\DateTimeInterface $syncedAt = null, array $over = []): CompanyProfile
+    private function seedProfile(string $symbol = 'FPT', ?DateTimeInterface $syncedAt = null, array $over = []): CompanyProfile
     {
         return CompanyProfile::create([
             'symbol' => $symbol,
@@ -120,7 +122,7 @@ class CompanyProfileControllerTest extends TestCase
 
     private function stubService(?array $scriptResult): void
     {
-        $stub = Mockery::mock(CompanyProfileService::class, [app(\App\Frontend\Interfaces\CompanyProfileRepositoryInterface::class)])
+        $stub = Mockery::mock(CompanyProfileService::class, [app(CompanyProfileRepositoryInterface::class)])
             ->makePartial()->shouldAllowMockingProtectedMethods();
         $stub->shouldReceive('runScript')->andReturn($scriptResult);
         $this->app->instance(CompanyProfileService::class, $stub);
