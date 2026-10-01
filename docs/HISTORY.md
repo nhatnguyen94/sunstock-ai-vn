@@ -17,8 +17,8 @@ Owner: classes were written out in full inside the code (for example `\App\Model
 - Enforcement: `pint.json` (Laravel preset + `fully_qualified_strict_types` with `import_symbols`, global classes imported) and `tests/Unit/CodeStyle/NoInlineFullyQualifiedNamesTest.php` (group `codeStyle`, 4 tests) which fails on any inline name in PHP, doc comments and Blade.
 - Verified: full suite green, `view:cache` compiles every view, public pages return 200.
 
-### Noticed, not changed
-`/profile/edit` crashes for an account that has no `user_profiles` row (the factory-made users in tests): the view reads `$profile->username` on null. Accounts created by registration and by the admin form always have a profile.
+### Found while checking the views, then fixed
+`/profile/edit` returned a 500 for an account with no `user_profiles` row: the view read `$profile->username` and `$profile->mobile` on null. The existing tests only asserted which view the controller returned, so nothing rendered it. The form now falls back to the account name (and an empty mobile), opening the page does not create a row, and saving creates it. New `ProfilePagesRenderTest` (group `profile`, 5 tests) renders both pages for real: no profile, stored profile, old input, a hostile name, and the create-on-save path.
 
 ---
 

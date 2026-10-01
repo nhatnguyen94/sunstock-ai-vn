@@ -55,7 +55,7 @@
                                     </label>
                                     <input type="text" name="username" class="form-control search-input" required
                                            style="background:white; color:var(--text-primary); padding:1rem 1rem 1rem 2.5rem; border-radius:12px; border:2px solid var(--border-color);"
-                                           value="{{ old('username', $profile->username) }}">
+                                           value="{{ old('username', $profile?->username ?? $user->name) }}">
                                     @error('username')
                                         <small class="text-danger">{{ $message }}</small>
                                     @enderror
@@ -83,7 +83,7 @@
                                     </label>
                                     <input type="text" name="mobile" class="form-control search-input"
                                            style="background:white; color:var(--text-primary); padding:1rem 1rem 1rem 2.5rem; border-radius:12px; border:2px solid var(--border-color);"
-                                           value="{{ old('mobile', $profile->mobile) }}">
+                                           value="{{ old('mobile', $profile?->mobile) }}">
                                     @error('mobile')
                                         <small class="text-danger">{{ $message }}</small>
                                     @enderror
