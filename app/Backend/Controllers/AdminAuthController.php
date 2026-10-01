@@ -46,7 +46,7 @@ class AdminAuthController extends Controller
 
         // Only an active account with a confirmed e-mail may enter (a blocked or switched-off administrator is
         // answered like a wrong password: this form must not reveal what state an account is in)
-        $mayEnter = fn ($query) => $query->where('status', User::STATUS_ACTIVE)->whereNotNull('email_verified_at');
+        $mayEnter = fn ($query) => $query->mayEnter();
 
         // Thử đăng nhập
         if (Auth::attempt($credentials + [$mayEnter], $remember)) {

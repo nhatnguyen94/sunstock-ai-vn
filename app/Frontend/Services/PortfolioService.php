@@ -4,9 +4,9 @@ namespace App\Frontend\Services;
 
 use App\Frontend\Interfaces\PortfolioRepositoryInterface;
 use App\Frontend\Interfaces\StockRepositoryInterface;
+use App\Jobs\ProcessStockPriceSync;
 use App\Models\Portfolio;
 use App\Models\PortfolioItem;
-use App\Jobs\ProcessStockPriceSync;
 use App\Notifications\PortfolioAlertNotification;
 use App\Support\PortfolioPerformance;
 use App\Support\PriceUnit;
@@ -279,9 +279,9 @@ class PortfolioService
             return [];
         }
 
-        $signature = md5($portfolio->items->map(fn ($i) => $i->id . ':' . $i->quantity . ':' . $i->buy_price . ':' . $i->buy_date?->toDateString())->implode('|'));
+        $signature = md5($portfolio->items->map(fn ($i) => $i->id.':'.$i->quantity.':'.$i->buy_price.':'.$i->buy_date?->toDateString())->implode('|'));
 
-        $series = Cache::remember("portfolio-performance:{$portfolio->id}:{$signature}:" . now()->format('YmdH'), 1800, function () use ($portfolio) {
+        $series = Cache::remember("portfolio-performance:{$portfolio->id}:{$signature}:".now()->format('YmdH'), 1800, function () use ($portfolio) {
             $holdings = $portfolio->items->map(fn ($i) => [
                 'symbol' => $i->stock_symbol,
                 'quantity' => $i->quantity,
@@ -315,7 +315,7 @@ class PortfolioService
     }
 
     /**
-     * @param  array<int, array{symbol: string, percent: float|int}> $allocation
+     * @param  array<int, array{symbol: string, percent: float|int}>  $allocation
      * @return array<int, array<string, mixed>>
      */
     private function concentrationSuggestions(array $allocation): array
@@ -410,7 +410,7 @@ class PortfolioService
      * Symbols with no synced price at all get their history fetched in the background (deduplicated for
      * 10 minutes so repeated page views / clicks do not stack jobs).
      *
-     * @param  string[] $symbols
+     * @param  string[]  $symbols
      * @return string[] symbols actually queued
      */
     public function requestPriceSync(array $symbols): array
@@ -421,7 +421,7 @@ class PortfolioService
 
         $needSync = array_filter(
             $this->stockRepository->ensureTracked($symbols),
-            fn ($s) => Cache::add('portfolio-price-sync:' . $s, 1, 600)
+            fn ($s) => Cache::add('portfolio-price-sync:'.$s, 1, 600)
         );
 
         if ($needSync !== []) {
@@ -507,9 +507,13 @@ class PortfolioService
         $column = $type === 'target' ? 'target_alerted_at' : 'stop_loss_alerted_at';
 
         if ($isTriggered && ! $alertedAt) {
-            if ($portfolio->user) {
-                $portfolio->user->notify((new PortfolioAlertNotification($item, $type))->onQueue('high'));
+            // A blocked / switched-off / pending owner gets no e-mail, and the flag is left alone so the alert still
+            // fires once the account is active again instead of being silently used up
+            if (! $portfolio->user?->canSignIn()) {
+                return;
             }
+
+            $portfolio->user->notify((new PortfolioAlertNotification($item, $type))->onQueue('high'));
             $this->portfolioRepository->setAlertFlag($item, $column, now());
         } elseif (! $isTriggered && $alertedAt) {
             $this->portfolioRepository->setAlertFlag($item, $column, null);
@@ -569,7 +573,7 @@ class PortfolioService
     /**
      * Latest synced quotes converted from the feed's thousands-of-VND to whole VND.
      *
-     * @param  string[] $symbols
+     * @param  string[]  $symbols
      * @return array<string, array{price: float, prev: ?float, date: string}>
      */
     private function fetchQuotes(array $symbols): array

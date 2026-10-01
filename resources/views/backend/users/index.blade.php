@@ -22,8 +22,14 @@
                     <span class="input-icon-addon"><i class="ti ti-search"></i></span>
                     <input type="search" class="form-control" name="search" value="{{ request('search') }}" placeholder="Tìm theo tên hoặc email…" aria-label="Tìm user">
                 </div>
+                <select name="status" class="form-select" style="max-width:190px" aria-label="Lọc theo trạng thái">
+                    <option value="">Mọi trạng thái</option>
+                    @foreach(\App\Models\User::statusLabels() as $value => $label)
+                        <option value="{{ $value }}" @selected((string) request('status') === (string) $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
                 <button type="submit" class="btn btn-primary">Tìm</button>
-                @if(request()->hasAny(['search']))
+                @if(request()->hasAny(['search', 'status']))
                     <a href="{{ route('admin.users.index') }}" class="btn btn-ghost-secondary"><i class="ti ti-x me-1"></i>Xóa lọc</a>
                 @endif
             </form>

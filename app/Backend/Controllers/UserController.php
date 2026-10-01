@@ -24,7 +24,7 @@ class UserController extends Controller
 
     public function index(Request $request): View
     {
-        $users = $this->userService->listUsers($request->only('search'));
+        $users = $this->userService->listUsers($request->only('search', 'status'));
 
         return view('backend.users.index', compact('users'));
     }

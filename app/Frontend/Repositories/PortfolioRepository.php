@@ -70,7 +70,8 @@ class PortfolioRepository implements PortfolioRepositoryInterface
 
     public function getAllActivePortfolios(): Collection
     {
-        return Portfolio::active()->get(['id', 'user_id']);
+        // the scheduled price refresh (and the alerts it triggers) skips portfolios whose owner may not sign in
+        return Portfolio::active()->whereHas('user', fn ($q) => $q->mayEnter())->get(['id', 'user_id']);
     }
 
     public function setAlertFlag(PortfolioItem $item, string $column, ?\DateTimeInterface $value): void
@@ -184,7 +185,7 @@ class PortfolioRepository implements PortfolioRepositoryInterface
     }
 
     /**
-     * @param array<string, array{price: float, prev?: ?float, date?: ?string}> $priceData quotes in VND, by symbol
+     * @param  array<string, array{price: float, prev?: ?float, date?: ?string}>  $priceData  quotes in VND, by symbol
      */
     public function updateItemsPrices(Portfolio $portfolio, array $priceData): bool
     {

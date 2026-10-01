@@ -120,6 +120,11 @@
                     <span class="badge bg-{{ $stats['unverified_users'] > 0 ? 'yellow' : 'green' }}-lt">{{ number_format($stats['unverified_users']) }}</span>
                 </div>
                 <div class="list-group-item d-flex align-items-center gap-3 py-3">
+                    <span class="ad-stat-icon cyan" style="flex-basis:38px;height:38px;font-size:1.2rem;border-radius:11px"><i class="ti ti-user-off"></i></span>
+                    <div class="flex-fill"><div class="fw-semibold">Tài khoản bị chặn / ngưng</div><div class="text-secondary small">Không đăng nhập được</div></div>
+                    <span class="badge bg-{{ $stats['locked_users'] > 0 ? 'orange' : 'green' }}-lt">{{ number_format($stats['locked_users']) }}</span>
+                </div>
+                <div class="list-group-item d-flex align-items-center gap-3 py-3">
                     <span class="ad-stat-icon purple" style="flex-basis:38px;height:38px;font-size:1.2rem;border-radius:11px"><i class="ti ti-star"></i></span>
                     <div class="flex-fill"><div class="fw-semibold">Danh sách theo dõi</div><div class="text-secondary small">Mã được người dùng gắn ★</div></div>
                     <span class="badge bg-blue-lt">{{ number_format($stats['watchlist_items']) }}</span>

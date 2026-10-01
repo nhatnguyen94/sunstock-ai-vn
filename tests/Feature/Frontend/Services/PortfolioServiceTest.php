@@ -9,8 +9,10 @@ use App\Models\Portfolio;
 use App\Models\PortfolioItem;
 use App\Models\User;
 use App\Notifications\PortfolioAlertNotification;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
@@ -44,7 +46,7 @@ class PortfolioServiceTest extends TestCase
         $portfolio->id = $id;
         $portfolio->user_id = $userId;
         $portfolio->setRelation('items', collect($items));
-        $portfolio->setRelation('user', new User(['name' => 'Test User', 'email' => "user{$userId}@example.com"]));
+        $portfolio->setRelation('user', (new User(['name' => 'Test User', 'email' => "user{$userId}@example.com"]))->forceFill(['status' => User::STATUS_ACTIVE, 'email_verified_at' => now()]));
 
         return $portfolio;
     }
@@ -95,6 +97,34 @@ class PortfolioServiceTest extends TestCase
 
         $service = new PortfolioService($portfolioRepo, $stockRepo);
         $service->updatePortfolioPrices(10, 1);
+
+        Notification::assertNothingSent();
+    }
+
+    /** @return array<string, array{int, bool}> */
+    public static function ownersWhoMustNotBeEmailed(): array
+    {
+        return ['pending' => [User::STATUS_PENDING, false], 'inactive' => [User::STATUS_INACTIVE, true], 'blocked' => [User::STATUS_BLOCKED, true], 'active but e-mail not confirmed' => [User::STATUS_ACTIVE, false]];
+    }
+
+    #[Group('portfolioAlerts')]
+    #[DataProvider('ownersWhoMustNotBeEmailed')]
+    public function test_no_alert_is_sent_to_an_owner_who_may_not_sign_in_and_the_flag_is_left_for_later(int $status, bool $confirmed): void
+    {
+        Notification::fake();
+
+        $item = $this->makeItem('ACB', ['current_price' => 25, 'target_price' => 20, 'target_alerted_at' => null]);
+        $portfolio = $this->makePortfolio([$item]);
+        $portfolio->user->forceFill(['status' => $status, 'email_verified_at' => $confirmed ? now() : null]);
+
+        $portfolioRepo = \Mockery::mock(PortfolioRepositoryInterface::class);
+        $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
+        $portfolioRepo->shouldReceive('findByIdAndUser')->once()->andReturn($portfolio);
+        $stockRepo->shouldReceive('getLatestQuotes')->once()->andReturn(['ACB' => ['close' => 25.0, 'prev_close' => null, 'date' => '2026-09-11']]);
+        $portfolioRepo->shouldReceive('updateItemsPrices')->once()->andReturn(true);
+        $portfolioRepo->shouldReceive('setAlertFlag')->never();   // not "used up": it fires when the account is active again
+
+        (new PortfolioService($portfolioRepo, $stockRepo))->updatePortfolioPrices(10, 1);
 
         Notification::assertNothingSent();
     }
@@ -162,7 +192,7 @@ class PortfolioServiceTest extends TestCase
         $stockRepo = \Mockery::mock(StockRepositoryInterface::class);
 
         $portfolioRepo->shouldReceive('getAllActivePortfolios')->once()
-            ->andReturn(new \Illuminate\Database\Eloquent\Collection([$portfolioA, $portfolioB]));
+            ->andReturn(new Collection([$portfolioA, $portfolioB]));
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->with(1, 1)->andReturn($portfolioA);
         $portfolioRepo->shouldReceive('findByIdAndUser')->once()->with(2, 2)->andReturn($portfolioB);
         $stockRepo->shouldReceive('getLatestQuotes')->twice()->andReturn([]);

@@ -35,6 +35,9 @@ Migration `2026_10_01_000001_add_status_to_users_table` (default 2, back-filled:
 ### Tests
 New groups `authzSecurity` (67 + AdminGuard rules), `accountStatus` (46 incl. guard tests), `aiLimits` (18); `demoUsers` +6. Legacy tests adapted (role/permission writes as admin, AI endpoints signed in, watchlist/verification flows). Full suite 805 passed (was 665). Pint run on every touched PHP file (the repo had never been formatted, so some old files changed style).
 
+### Status propagation re-check (same day)
+Owner asked to verify the new status is applied everywhere from the frontend to the admin. Walked every place that authenticates, e-mails, schedules or lists users and fixed the gaps: one `User::scopeMayEnter()` now defines "may enter" for both logins and `AdminGuard`; blocked/inactive accounts no longer get reset mails and an old reset token is refused; price-alert e-mails and the scheduled price refresh skip owners who may not sign in (the alert flag is left for later); the dashboard counts by status; the admin user list can be filtered by status. Tests found two real bugs in the new filter ("abc" silently meant status 0, and `when(0, …)` dropped the inactive filter) — both fixed. Remember-me, public pages, AJAX and registration-after-block are covered by tests. +17 tests (822 in total).
+
 ### Not done / for the owner
 `.env` still has `APP_DEBUG=true`/`APP_ENV=local` (stack traces are returned to the browser): set `false`/`production` when deploying. Other public endpoints that call Python (`/company/{symbol}/load`, `/gold/refresh`, `/stock/*`) are still anonymous, per-IP limited only. No CAPTCHA/2FA.
 

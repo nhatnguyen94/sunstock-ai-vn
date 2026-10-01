@@ -35,7 +35,7 @@ class AuthController extends Controller
 
         // The status and e-mail checks are part of the attempt itself, so an account that may not enter never gets a
         // session (not even a short-lived one) and no "remember me" cookie is ever issued for it.
-        $mayEnter = fn ($query) => $query->where('status', User::STATUS_ACTIVE)->whereNotNull('email_verified_at');
+        $mayEnter = fn ($query) => $query->mayEnter();
 
         if (Auth::attempt($credentials + [$mayEnter], $request->boolean('remember'))) {
             $request->session()->regenerate();

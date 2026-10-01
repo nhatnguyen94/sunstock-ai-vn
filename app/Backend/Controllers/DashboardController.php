@@ -41,7 +41,8 @@ class DashboardController extends Controller
             'activity_today' => ActivityLog::whereDate('created_at', today())->count(),
             'watchlist_items' => WatchlistItem::count(),
             'transactions' => PortfolioTransaction::count(),
-            'unverified_users' => User::whereNull('email_verified_at')->count(),
+            'unverified_users' => User::where('status', User::STATUS_PENDING)->count(),
+            'locked_users' => User::whereIn('status', [User::STATUS_BLOCKED, User::STATUS_INACTIVE])->count(),
             'failed_jobs' => $this->failedJobs(),
         ];
 

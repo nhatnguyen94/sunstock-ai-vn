@@ -10,6 +10,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -213,6 +214,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE;
+    }
+
+    /** Accounts that may sign in right now: active status and a confirmed e-mail. The one definition used by every login. */
+    public function scopeMayEnter(Builder $query): void
+    {
+        $query->where('status', self::STATUS_ACTIVE)->whereNotNull('email_verified_at');
     }
 
     /** Why this account cannot sign in (shown only to someone who already proved the password, or on a live session). */

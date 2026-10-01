@@ -33,7 +33,10 @@ class PasswordResetController extends Controller
             'email.email' => 'Email không hợp lệ.',
         ]);
 
-        Password::sendResetLink($request->only('email'));
+        // A blocked or switched-off account gets no mail (the answer below is the same either way)
+        if (! $this->isLockedOut($request->input('email'))) {
+            Password::sendResetLink($request->only('email'));
+        }
 
         // Deliberately the SAME message regardless of whether the broker
         // actually found a matching account — telling the user "email not
@@ -69,6 +72,13 @@ class PasswordResetController extends Controller
             'password.required' => 'Vui lòng nhập mật khẩu mới.',
         ]);
 
+        // Tokens issued before an account was blocked / switched off must not work any more
+        if ($this->isLockedOut($request->input('email'))) {
+            return back()
+                ->withErrors(['email' => $this->translateStatus(Password::INVALID_TOKEN)])
+                ->withInput($request->only('email'));
+        }
+
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
@@ -90,6 +100,12 @@ class PasswordResetController extends Controller
         return back()
             ->withErrors(['email' => $this->translateStatus($status)])
             ->withInput($request->only('email'));
+    }
+
+    /** True for an existing account whose status is blocked or inactive (pending accounts may still reset). */
+    private function isLockedOut(string $email): bool
+    {
+        return User::where('email', $email)->whereIn('status', [User::STATUS_BLOCKED, User::STATUS_INACTIVE])->exists();
     }
 
     /**

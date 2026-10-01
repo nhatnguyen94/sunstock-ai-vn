@@ -31,8 +31,7 @@ final class AdminGuard
     {
         return User::query()
             ->whereKeyNot($except->getKey())
-            ->where('status', User::STATUS_ACTIVE)
-            ->whereNotNull('email_verified_at')
+            ->mayEnter()
             ->whereHas('roles', fn ($q) => $q->where('name', Role::ADMIN))
             ->exists();
     }

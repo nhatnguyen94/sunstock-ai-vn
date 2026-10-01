@@ -13,13 +13,25 @@ class UserRepository implements UserRepositoryInterface
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return User::with(['roles', 'profile'])
+            // grouped: an ungrouped OR would let the e-mail match escape the status filter below
             ->when($filters['search'] ?? null, function ($q, $search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                $q->where(fn ($w) => $w->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
             })
+            // compared with null on purpose: when(0, ...) is falsy and would silently drop the "inactive" filter
+            ->when($this->validStatus($filters['status'] ?? null) !== null, fn ($q) => $q->where('status', $this->validStatus($filters['status'])))
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    /** A status filter is only applied when it is exactly one of the known numbers ("abc" must not silently mean 0). */
+    private function validStatus(mixed $value): ?int
+    {
+        if (! is_string($value) && ! is_int($value)) {
+            return null;
+        }
+
+        return preg_match('/^\d+$/', (string) $value) === 1 && array_key_exists((int) $value, User::statusLabels()) ? (int) $value : null;
     }
 
     public function findWithRelations(User $user): User

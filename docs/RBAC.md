@@ -125,6 +125,21 @@ Vietnamese message that the controller flashes as an error):
 - `status` is not mass-assignable: it is only set through `applyStatus()` / `forceFill()`, never from request input.
 - Existing accounts were back-filled by the migration: confirmed e-mail → 1, otherwise 2.
 
+### Where the status is enforced (checked end to end by the `accountStatus` tests)
+
+| Place | Behaviour |
+|---|---|
+| `POST /login`, `POST /admin/login` | `User::scopeMayEnter()` (status 1 + confirmed e-mail) is part of the attempt: no session and no remember cookie for anyone else |
+| Every web request (`EnsureUserIsActive`) | ends the session of an account that stopped being allowed in — also a session resumed from a **remember-me cookie**, public pages, and AJAX (401 JSON) |
+| Registration | an address already used by a blocked/inactive/pending account is a duplicate: a block cannot be dodged by registering again |
+| Verification link / admin "xác thực" / password reset | pending → active; never unblocks or reactivates |
+| `POST /forgot-password`, `POST /reset-password` | no mail to blocked/inactive accounts (identical answer for every address); a token issued before the block is refused |
+| Resend verification | only for pending accounts |
+| Portfolio price alerts (e-mail) | not sent to an owner who may not sign in, and the alert flag is left untouched so it fires after reactivation; the scheduled price refresh skips such owners' portfolios |
+| `AdminGuard` | "last admin" counts only effective admins (admin role + `mayEnter`) |
+| Admin dashboard | "chờ xác thực" = status 2; a separate "bị chặn / ngưng" counter = status 4 + 0 |
+| Admin users list | filter by status (only the exact numbers 0/1/2/4; `0` is a real filter, anything else is ignored) combined with the search without escaping it |
+
 ## Admin audit trail
 
 Every change made in the admin is written to `activity_logs` (shown in Admin > Timeline) with the actor, IP and a
