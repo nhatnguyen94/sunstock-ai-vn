@@ -61,4 +61,35 @@ class VnFormatTest extends TestCase
         $this->assertSame('is-flat', VnFormat::trendClass(0));
         $this->assertSame('is-na', VnFormat::trendClass(null));
     }
+
+    #[Group('stockPageUx')]
+    public function test_signed_shows_an_explicit_plus_and_keeps_the_minus(): void
+    {
+        $this->assertSame('+600', VnFormat::signed(600));
+        $this->assertSame('-600', VnFormat::signed(-600));
+        $this->assertSame('0', VnFormat::signed(0));
+        $this->assertSame('+1.234,50', VnFormat::signed(1234.5, 2));
+        $this->assertSame('—', VnFormat::signed(null));
+    }
+
+    #[Group('stockPageUx')]
+    public function test_volume_uses_the_spoken_units(): void
+    {
+        $this->assertSame('3,2 tr', VnFormat::volume(3_199_600));
+        $this->assertSame('45,3K', VnFormat::volume(45_300));
+        $this->assertSame('700', VnFormat::volume(700));
+        $this->assertSame('1,5 tỷ', VnFormat::volume(1_500_000_000));
+        $this->assertSame('—', VnFormat::volume(null));
+        $this->assertSame('0', VnFormat::volume(0));
+    }
+
+    #[Group('stockPageUx')]
+    public function test_exchange_names_follow_what_people_call_them(): void
+    {
+        $this->assertSame('HOSE', VnFormat::exchange('HSX'));
+        $this->assertSame('UPCoM', VnFormat::exchange('upcom'));
+        $this->assertSame('HNX', VnFormat::exchange(' hnx '));
+        $this->assertSame('', VnFormat::exchange(null));
+        $this->assertSame('', VnFormat::exchange('  '));
+    }
 }

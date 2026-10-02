@@ -34,6 +34,7 @@ resources/
 │   │   │   ├── autocomplete.css ← Dropdown + search-input styles (replaces the CDN awesomplete.css and 3 per-page copies); loaded by layouts/app.blade.php
 │   │   │   └── charts.css       ← Styles for shared/charts.js (legend) and shared/svgcharts.js (donut, bars)
 │   │   │   ├── watchlist.css    ← ★ follow buttons (.wl-star, .wl-btn, .wl-toggle)
+│   │   │   ├── skeleton.css     ← Shimmering grey placeholders (.sk, .sk-text, .sk-bar, .sk-chart, .sk-row) + .is-loading-soft; honours reduced motion
 │   │   ├── company/
 │   │   │   └── show.css         ← Company profile page
 │   │   ├── funds/
@@ -69,6 +70,7 @@ resources/
 │       │   ├── charts.js        ← Lightweight Charts setup: theme, `makeChart`, legend, helpers (toDay/cleanSeries/sliceByDays/rebase)
 │       │   ├── indicators.js    ← SMA/EMA/RSI/MACD/Bollinger (pure, unit-tested)
 │       │   ├── svgcharts.js     ← Dependency-free donut + diverging bars (what Lightweight Charts cannot draw)
+│       │   ├── pricefx.js       ← Number cues: `countUp()` from the previous value, `flash()` once in the move's colour (both skipped for reduced motion) + pure helpers (`direction`, `valueAt`, `formatNumber`), unit-tested
 │       │   └── toast.js         ← Toast helper for page scripts
 │       ├── company/
 │       │   └── show.js          ← Company profile: loader, refresh, tabs, donuts
@@ -82,6 +84,7 @@ resources/
 │       ├── gold/
 │       │   └── index.js         ← Gold chart (Lightweight Charts step lines), lượng/chỉ toggle, calculator, refresh
 │       ├── stock/
+│       │   ├── pricetable.js    ← Price history table: pure row model (change vs previous session, volume bar, busy-day flag), row/page markup, page window — unit-tested
 │       │   ├── stock.js         ← Stock chart JS: Lightweight Charts candles/area + volume + MA/Bollinger overlays + RSI/MACD panes
 │       │   └── compare.js       ← Stock compare JS: Lightweight Charts multi-line, re-based to a common start date
 │       └── portfolio/
@@ -109,7 +112,7 @@ resources/
 | `partials/market-overview.blade.php`, `partials/ticker-items.blade.php` | *(home / layout)* | *(home.js)* |
 | `watchlist/index.blade.php` | `css/watchlist/watchlist.css` + `css/shared/watchlist.css` | `js/watchlist/index.js` |
 | `news/index.blade.php` | `css/news/index.css` | *(none)* |
-| `stock/stock.blade.php` | `css/stock/stock.css` | `js/stock/stock.js` |
+| `stock/stock.blade.php` | `css/stock/stock.css` + `css/shared/charts.css` + `css/shared/watchlist.css` + `css/shared/skeleton.css` | `js/stock/stock.js` (+ `shared/pricefx.js`, `stock/pricetable.js`) |
 | `stock/compare.blade.php` | `css/stock/compare.css` | `js/stock/compare.js` |
 | `stock/screener.blade.php` | `css/stock/screener.css` | *(none)* |
 | `company/show.blade.php` | `css/company/show.css` + `css/shared/charts.css` | `js/company/show.js` |
@@ -240,6 +243,13 @@ npm run build
 - Extra indicator panes are extra **panes of the same chart** (`chart.addSeries(Series, opts, paneIndex)`), so the time axis and crosshair stay in sync; removing a pane's last series removes the pane.
 - A chart created inside a hidden container is re-fitted automatically on its first real size (`makeChart`).
 - Pure logic (indicators, series helpers) stays DOM-free and is covered by `npm test` (see docs/TESTING.md).
+
+## Stock page: units, header, history table, skeletons
+- **Units — never print a feed price as money.** `stock_prices` is quoted in thousands of VND (FPT 62.1 = 62,100 ₫); an index (`VNINDEX`, `VN30`…) is in points. `App\Support\StockQuoteSummary::build($rows, $symbol)` converts once, server-side, and returns the whole header model (close, change, day and 52-week range with position, volume vs 20-session average, 1T/3T/6T/1N returns, `scale`/`decimals`/`unit`). The page passes `const stockUnit = {scale, decimals, unit}` to the script, which multiplies the bars by `scale` so the chart axis, legend, table and header all read 62.100, and an index keeps 1.737,71. A new page that shows a price from `stock_prices` must go through `PriceUnit` / `StockQuoteSummary`, not format the raw number.
+- **Header** (`.sq-*` in `stock.css`): symbol + exchange (`VnFormat::exchange`: HSX → HOSE), company and industry, one row of actions (`.wl-toggle` keeps its hook), big price, change chip, day/52-week range bars, key-figure tiles. The old blue banner (`.stock-header`, `.back-button`) is gone.
+- **History table** (`.px-*`): built in the browser from `pricetable.js` — close, change in dong and %, open/high/low, volume with a thin bar (amber when ≥ 1.5× the average), no currency column, sticky header (the wrapper uses `overflow-x: clip` so sticking still works; never `overflow: auto`). The finance table keeps `.data-table`. On a phone open/high/low are hidden.
+- **Skeletons** (`css/shared/skeleton.css`): the server renders `.sk-chart` inside `#priceChart` and ten `.sk-row`s in the table body; `stock.js` removes/replaces them when it has the data. The finance block shows skeleton rows on first load and dims the old table (`.is-loading-soft`) when switching tab/period instead of a spinner. Use the same classes for any new "loading" state.
+- **Number cues** (`shared/pricefx.js`): the header price counts up from the previous close and flashes once red/green; the markup already holds the final text (right without JS, and for `prefers-reduced-motion`). Reuse `countUp`/`flash` where a number is updated live.
 
 ## ETF pages
 

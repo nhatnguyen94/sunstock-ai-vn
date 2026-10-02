@@ -39,6 +39,8 @@ export const fmtPrice = (v) => (Math.abs(v) >= 1000 ? fmtInt(v) : fmtDec(v));
 /** 2-decimal Vietnamese format for indicator panes (RSI, MACD, index levels). */
 export const DEC_FORMAT = { type: 'custom', formatter: fmtDec, minMove: 0.01 };
 export const PRICE_FORMAT = { type: 'custom', formatter: fmtPrice, minMove: 0.01 };
+/** Whole-VND prices (62.100): the stock page converts the feed's thousands to dong, so the axis and legend read like a broker's screen. */
+export const VND_FORMAT = { type: 'custom', formatter: fmtInt, minMove: 10 };
 
 export const fmtCompact = (v) => {
     const a = Math.abs(v);

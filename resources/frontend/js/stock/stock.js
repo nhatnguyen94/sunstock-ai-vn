@@ -2,8 +2,10 @@
 // price history table, financial statements and symbol search.
 import {
     AreaSeries, CandlestickSeries, HistogramSeries, LineSeries, LineStyle,
-    COLORS, DEC_FORMAT, PRICE_FORMAT, attachLegend, cleanSeries, fmtDec, fmtInt, fmtPrice, makeChart, toDay,
+    COLORS, DEC_FORMAT, VND_FORMAT, attachLegend, cleanSeries, fmtDec, fmtInt, makeChart, toDay,
 } from '../shared/charts.js';
+import { countUp, direction, flash } from '../shared/pricefx.js';
+import { PAGE_SIZE, buildRows, pageHtml, pageWindow } from './pricetable.js';
 import { stockAutocomplete } from '../shared/autocomplete.js';
 import { bollinger, macd, rsi, sma } from '../shared/indicators.js';
 
@@ -12,16 +14,32 @@ window.searchSymbol = function (symbol) {
     document.querySelector('.search-section form').submit();
 };
 
+// The feed quotes stocks in thousands of VND: the page shows whole VND (scale 1000), an index stays in points (scale 1)
+const UNIT = (typeof stockUnit !== 'undefined') ? stockUnit : { scale: 1000, decimals: 0, unit: '₫' };
+const PRICE_FMT = UNIT.scale > 1 ? VND_FORMAT : DEC_FORMAT;
+const fmtP = UNIT.scale > 1 ? fmtInt : fmtDec;
+
 if (typeof rawData !== 'undefined' && rawData.length > 0) {
     initPriceChart();
     initPriceTable();
+}
+initQuoteFx();
+
+// ─── QUOTE HEADER: the price counts up from the previous close and flashes once in the move's colour ───
+function initQuoteFx() {
+    const price = document.getElementById('sqPrice');
+    if (!price) return;
+    const from = Number(price.dataset.from);
+    const to = Number(price.dataset.to);
+    countUp(price, from, to, { decimals: Number(price.dataset.decimals) || 0 });
+    flash(price, direction(from, to));
 }
 
 function initPriceChart() {
     const bars = cleanSeries(rawData.map((d) => ({
         time: toDay(d.time),
-        open: parseFloat(d.open), high: parseFloat(d.high), low: parseFloat(d.low), close: parseFloat(d.close),
-        value: parseFloat(d.close),
+        open: parseFloat(d.open) * UNIT.scale, high: parseFloat(d.high) * UNIT.scale, low: parseFloat(d.low) * UNIT.scale, close: parseFloat(d.close) * UNIT.scale,
+        value: parseFloat(d.close) * UNIT.scale,
         volume: parseFloat(d.volume) || 0,
     })));
     if (!bars.length) return;
@@ -32,18 +50,19 @@ function initPriceChart() {
     const el = document.getElementById('priceChart');
     const BASE_HEIGHT = 480, SUB_HEIGHT = 170;
 
+    el.querySelector('.sk-chart')?.remove();   // the placeholder shown while the chart library starts
     const chart = makeChart(el);
 
     // Candles (default) and area (line mode) share one chart so indicators/volume/legend work in both.
     const candle = chart.addSeries(CandlestickSeries, {
         upColor: COLORS.up, downColor: COLORS.down, borderVisible: false,
-        wickUpColor: COLORS.up, wickDownColor: COLORS.down, priceFormat: PRICE_FORMAT,
+        wickUpColor: COLORS.up, wickDownColor: COLORS.down, priceFormat: PRICE_FMT,
     });
     candle.setData(bars.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })));
 
     const area = chart.addSeries(AreaSeries, {
         lineColor: COLORS.blue, topColor: 'rgba(37,99,235,0.35)', bottomColor: 'rgba(37,99,235,0)',
-        lineWidth: 2, visible: false, priceFormat: PRICE_FORMAT,
+        lineWidth: 2, visible: false, priceFormat: PRICE_FMT,
     });
     area.setData(bars.map(({ time, close }) => ({ time, value: close })));
 
@@ -60,7 +79,7 @@ function initPriceChart() {
 
     // ── Legend (OHLC + change + volume + active indicator values under the crosshair) ──
     const active = {};   // name -> { color, series: [..primary series for the legend value] }
-    const num = (v) => (v === undefined || v === null ? '—' : fmtPrice(v));
+    const num = (v) => (v === undefined || v === null ? '—' : fmtP(v));
     const vol = (v) => (v === undefined || v === null ? '—' : fmtInt(v));
 
     function legendFor(time, seriesData) {
@@ -73,15 +92,15 @@ function initPriceChart() {
         const date = time.split('-').reverse().join('/');
 
         let html = `<span class="lwc-date">${date}</span>` +
-            `<span>M <b>${num(b.open)}</b></span><span>C <b>${num(b.high)}</b></span>` +
-            `<span>T <b>${num(b.low)}</b></span><span>Đ <b class="${cls}">${num(b.close)}</b></span>` +
+            `<span>Mở <b>${num(b.open)}</b></span><span>Cao <b>${num(b.high)}</b></span>` +
+            `<span>Thấp <b>${num(b.low)}</b></span><span>Đóng <b class="${cls}">${num(b.close)}</b></span>` +
             (chg === null ? '' : `<span class="${cls}">${chg >= 0 ? '+' : ''}${fmtDec(chg)}%</span>`) +
             `<span>KL <b>${vol(b.volume)}</b></span>`;
 
         Object.entries(active).forEach(([name, ind]) => {
             const d = seriesData ? seriesData.get(ind.series[0]) : ind.lastValue?.(i);
             const v = d && (d.value ?? undefined);
-            if (v !== undefined) html += `<span style="color:${ind.color}">${name} <b>${fmtDec(v)}</b></span>`;
+            if (v !== undefined) html += `<span style="color:${ind.color}">${name} <b>${OVERLAYS[name] ? fmtP(v) : fmtDec(v)}</b></span>`;
         });
         return html;
     }
@@ -93,7 +112,7 @@ function initPriceChart() {
     const toLine = (values) => values.map((v, i) => (v === null ? null : { time: times[i], value: v })).filter(Boolean);
     const overlayLine = (color, width = 1.5, extra = {}) => chart.addSeries(LineSeries, {
         color, lineWidth: width, priceLineVisible: false, lastValueVisible: false,
-        crosshairMarkerVisible: false, priceFormat: PRICE_FORMAT, ...extra,
+        crosshairMarkerVisible: false, priceFormat: PRICE_FMT, ...extra,
     });
 
     const OVERLAYS = {
@@ -203,55 +222,41 @@ function initPriceChart() {
 
 // ─── DATA TABLE ─────────────────────────────────────────────────────────────
 function initPriceTable() {
-    const pageSize = 20;
     let currentPage = 1;
-    const newestFirst = rawData.slice().reverse();
+    const rows = buildRows(rawData, UNIT.scale);   // newest first, with the change against the previous session
+    const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    const body = document.getElementById('priceTableBody');
+    const pager = document.getElementById('tablePagination');
+
+    const rangeEl = document.getElementById('pxRange');
+    if (rangeEl) rangeEl.textContent = `${rows.length.toLocaleString('vi-VN')} phiên`;
 
     function renderTable(page) {
-        currentPage = page;
-        const start = (page - 1) * pageSize;
-        const tbody = document.getElementById('priceTableBody');
-        tbody.innerHTML = newestFirst.slice(start, start + pageSize).map((item) => {
-            const date = new Date(item.time).toLocaleDateString('vi-VN');
-            const isUp = parseFloat(item.close) >= parseFloat(item.open);
-            return `<tr>
-                <td style="font-weight:600;">${date}</td>
-                <td>${Number(item.open).toLocaleString()}</td>
-                <td class="price-positive">${Number(item.high).toLocaleString()}</td>
-                <td class="price-negative">${Number(item.low).toLocaleString()}</td>
-                <td style="font-weight:700;color:${isUp ? '#10b981' : '#ef4444'};">
-                    <i class="bi bi-${isUp ? 'arrow-up' : 'arrow-down'}"></i>
-                    ${Number(item.close).toLocaleString()}
-                </td>
-                <td class="volume-cell">${Number(item.volume).toLocaleString()}</td>
-                <td><span class="badge badge-primary">${item.currency || 'VND'}</span></td>
-            </tr>`;
-        }).join('');
+        currentPage = Math.min(Math.max(1, page), totalPages);
+        body.innerHTML = pageHtml(rows, currentPage, { decimals: UNIT.decimals });
         renderPagination();
     }
 
     function renderPagination() {
-        const totalPages = Math.ceil(rawData.length / pageSize);
-        const p = document.getElementById('tablePagination');
-        let h = '';
-        if (currentPage > 1) h += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a></li>`;
-        const sp = Math.max(1, currentPage - 2), ep = Math.min(totalPages, currentPage + 2);
-        if (sp > 1) { h += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`; if (sp > 2) h += `<li class="page-item disabled"><span class="page-link">...</span></li>`; }
-        for (let i = sp; i <= ep; i++) h += `<li class="page-item${i === currentPage ? ' active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
-        if (ep < totalPages) { if (ep < totalPages - 1) h += `<li class="page-item disabled"><span class="page-link">...</span></li>`; h += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`; }
-        if (currentPage < totalPages) h += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a></li>`;
-        p.innerHTML = h;
+        const item = (label, page, extra = '') => `<li class="page-item ${extra}"><a class="page-link" href="#" data-page="${page}">${label}</a></li>`;
+        let html = '';
+        if (currentPage > 1) html += item('<i class="bi bi-chevron-left"></i>', currentPage - 1);
+        pageWindow(currentPage, totalPages).forEach((p) => {
+            html += p === '…' ? '<li class="page-item disabled"><span class="page-link">…</span></li>' : item(p, p, p === currentPage ? 'active' : '');
+        });
+        if (currentPage < totalPages) html += item('<i class="bi bi-chevron-right"></i>', currentPage + 1);
+        pager.innerHTML = html;
     }
 
     renderTable(1);
-    document.getElementById('tablePagination').addEventListener('click', (e) => {
+    pager.addEventListener('click', (e) => {
         const link = e.target.closest('[data-page]');
         if (!link) return;
         e.preventDefault();
         renderTable(parseInt(link.dataset.page, 10));
+        document.getElementById('priceTable')?.scrollIntoView({ block: 'nearest' });
     });
 }
-
 // ─── FINANCE SECTION ─────────────────────────────────────────────────────────
 (function () {
     const btnLoad = document.getElementById('btnLoadFinance');
@@ -300,15 +305,24 @@ function initPriceTable() {
         return html;
     }
 
+    function financeSkeleton() {
+        const cell = '<td><i class="sk sk-text is-wide"></i></td>';
+        const row = `<tr><td><i class="sk sk-text is-wide is-left"></i></td>${cell.repeat(6)}</tr>`;
+        return `<div class="table-responsive" aria-busy="true"><table class="table data-table"><tbody>${row.repeat(9)}</tbody></table></div>`;
+    }
+
     function loadFinance() {
         const symbol = (typeof stockSymbol !== 'undefined') ? stockSymbol : '';
         if (!symbol) return;
         const body = document.getElementById('financeBody');
-        body.innerHTML = '<div style="text-align:center;padding:2rem;color:#6b7280;"><i class="bi bi-hourglass-split" style="font-size:2rem;"></i><p style="margin-top:12px;">Đang tải dữ liệu tài chính...</p></div>';
+        // first load: grey placeholder rows; switching tab/period: keep the old table, dimmed, so the page does not jump
+        if (body.querySelector('table')) body.classList.add('is-loading-soft');
+        else body.innerHTML = financeSkeleton();
 
         fetch(`/stock/finance?symbol=${encodeURIComponent(symbol)}&type=${finType}&period=${finPeriod}`)
             .then(r => r.json())
             .then(json => {
+                body.classList.remove('is-loading-soft');
                 if (json.error) {
                     body.innerHTML = `<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> ${json.error}</div>`;
                     return;
@@ -316,6 +330,7 @@ function initPriceTable() {
                 body.innerHTML = renderFinanceTable(json.data || [], json.periods || []);
             })
             .catch(() => {
+                body.classList.remove('is-loading-soft');
                 body.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Lỗi kết nối. Vui lòng thử lại.</div>';
             });
     }

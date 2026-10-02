@@ -6,6 +6,30 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## STOCK_PAGE_UX_REFRESH - October 2, 2026
+
+### Summary
+Owner: the recent work was invisible to users; propose and build changes people see at once. Package 1 + 4 + 5 of the proposal: new stock page header, modern price table, skeleton loading and number cues.
+
+### Found while looking at the real page (Chrome)
+The header printed **"62 VNĐ"** for a 62,100 ₫ share, the chart axis ran 10–140 and the table printed `63.7` with a `VND` badge on every row: the feed is quoted in thousands of VND and the page never converted it. Also: a ~380 px banner that was half empty with five buttons stacked at different widths, and a table of bare numbers.
+
+### Done
+- **`StockQuoteSummary`** (pure) converts once: stocks/ETFs in whole VND, indices in points; the page hands `{scale, decimals, unit}` to the script so header, chart axis, legend and table agree (62.100 everywhere; VN-Index stays 1.737,71).
+- **New header**: symbol + exchange (HOSE/UPCoM) + company + industry, one row of actions, big coloured price, change chip (`-600 (-0,96%)`), day and 52-week range bars with the close marked, tiles for volume (× the 20-session average), open, and 1/3/6-month and 1-year returns. Phone layout checked.
+- **New history table**: close, change in dong and %, open/high/low, volume with a thin bar (amber when ≥ 1.5× average), weekday under the date, no currency column, sticky header, paging window `1 … 4 5 6 … 102`; open/high/low drop out on a phone. Chart legend now spells Mở/Cao/Thấp/Đóng (it showed `C` for the high next to `Đ`).
+- **Skeletons**: shimmering placeholders for the chart, the table and the finance block (which dims the old table when you switch tab instead of a spinner); honours reduced motion.
+- **Number cues** (`shared/pricefx.js`): the price counts up from the previous close and flashes once red/green.
+- Removed the old banner CSS. `VnFormat` gained `signed`, `volume`, `exchange`.
+
+### Tests
+Groups `stockPageUx` (PHP 34, Node 17 new). Full suite and Node suite green; Pint clean on touched PHP. Verified in the owner's Chrome (FPT and VNINDEX) and a 390 px phone emulation without horizontal overflow.
+
+### Not done
+Dark mode, home-page redesign and the phone bottom navigation (items 3, 2, 6 of the proposal) are still open.
+
+---
+
 ## PUBLIC_ENDPOINT_ABUSE_PROTECTION - October 2, 2026
 
 ### Summary

@@ -20,6 +20,7 @@ use App\Frontend\Services\WatchlistService;
 use App\Models\HotIndustry;
 use App\Models\Stock;
 use App\Models\StockPrice;
+use App\Support\StockQuoteSummary;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,9 +33,13 @@ use Throwable;
 class StockController extends Controller
 {
     protected $stockRepo;
+
     protected $stockService;
+
     protected $exchangeService;
+
     protected $financialService;
+
     protected $freshness;
 
     public function __construct(
@@ -44,11 +49,11 @@ class StockController extends Controller
         CompanyFinancialService $financialService,
         StockPriceFreshness $freshness
     ) {
-        $this->stockRepo        = $stockRepo;
-        $this->stockService     = $stockService;
-        $this->exchangeService  = $exchangeService;
+        $this->stockRepo = $stockRepo;
+        $this->stockService = $stockService;
+        $this->exchangeService = $exchangeService;
         $this->financialService = $financialService;
-        $this->freshness        = $freshness;
+        $this->freshness = $freshness;
     }
 
     /**
@@ -71,6 +76,7 @@ class StockController extends Controller
                 //     $this->stockRepo->updateStockPriceFromPython($symbol);
                 // }
             }
+
             return $this->stockRepo->getFeaturedStocks($symbols);
         });
 
@@ -81,6 +87,7 @@ class StockController extends Controller
             if (! empty($rates) && isset($rates[0]['currency_code'])) {
                 $rates = [$today => $rates];
             }
+
             return $rates;
         });
 
@@ -126,18 +133,18 @@ class StockController extends Controller
     {
         $rows = HotIndustry::select('symbol', 'organ_name', 'icb_name3')->get()->toArray();
 
-        if (!empty($rows)) {
+        if (! empty($rows)) {
             return $rows;
         }
 
         // First-run fallback: call Python, persist to DB
         $data = $this->stockService->fetchHotIndustriesFromPython(100);
 
-        if (!empty($data)) {
-            $inserts = array_map(fn($item) => [
-                'symbol'     => $item['symbol'] ?? '',
+        if (! empty($data)) {
+            $inserts = array_map(fn ($item) => [
+                'symbol' => $item['symbol'] ?? '',
                 'organ_name' => $item['organ_name'] ?? null,
-                'icb_name3'  => $item['icb_name3'] ?? null,
+                'icb_name3' => $item['icb_name3'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ], $data);
@@ -169,6 +176,7 @@ class StockController extends Controller
         $data = $prices['rows'];
         $liveBar = $prices['live'];
         $overview = $this->stockRepo->getOverview($symbol);
+        $summary = StockQuoteSummary::build($data, $symbol);   // header numbers in the unit people read (whole VND / index points)
 
         $error = match ($freshness['status']) {
             'failed' => $freshness['error'] ?? null,
@@ -176,7 +184,7 @@ class StockController extends Controller
             default => null,
         };
 
-        return view('stock.stock', compact('symbol', 'data', 'overview', 'liveBar', 'error'));
+        return view('stock.stock', compact('symbol', 'data', 'overview', 'summary', 'liveBar', 'error'));
     }
 
     /**
@@ -221,7 +229,9 @@ class StockController extends Controller
         foreach ($symbols as $symbol) {
             // Same policy as the stock page (history-less symbols are fetched together in ONE script run below)
             $prices = $this->freshness->withLiveBar($this->stockRepo->getStockPrice($symbol), $symbol)['rows'];
-            if (empty($prices)) continue;
+            if (empty($prices)) {
+                continue;
+            }
 
             // Normalize to percentage change from first price
             $firstClose = $prices[0]['close'] ?? 1;
@@ -257,7 +267,7 @@ class StockController extends Controller
     public function finance(Request $request): JsonResponse
     {
         $symbol = strtoupper(trim($request->input('symbol', '')));
-        $type   = $request->input('type',   'income');
+        $type = $request->input('type', 'income');
         $period = $request->input('period', 'quarter');
 
         if (! $symbol || ! preg_match('/^[A-Z0-9]{1,20}$/', $symbol)) {

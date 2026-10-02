@@ -70,6 +70,9 @@ When adding ANY new feature (or changing an existing one):
 - Same short name twice → alias one with `as`. Function calls/constants like `\count()` / `\PHP_EOL` are exempt.
 - `pint.json` makes Pint add the imports (`fully_qualified_strict_types` + `import_symbols`); `tests/Unit/CodeStyle/NoInlineFullyQualifiedNamesTest.php` (group `codeStyle`) fails on any violation. Run `php artisan test --group=codeStyle`.
 
+### Showing prices
+The feed is in thousands of VND (62.1 = 62,100 ₫) except for index codes (points). Never format a `stock_prices` value as money directly: convert with `PriceUnit` / `StockQuoteSummary`, and show the unit. Loading states use the shared skeleton classes (`css/shared/skeleton.css`), not a spinner or the word "loading"; numbers that change use `shared/pricefx.js`. See `docs/FRONTEND_VIEWS.md`, "Stock page".
+
 ### Anything a visitor can trigger that costs money or a process
 Validate the input against what exists before it reaches Python/cache/queue (known symbol, real date in range, stored fund code); never cache a failed or refused run; keep manual refresh buttons for signed-in users; and count real starts in a test (see `docs/PYTHON_INTEGRATION.md`, "Python started by a visitor's web request"). A bare `throttle:N,M` per IP is not protection for a 60-second subprocess.
 
