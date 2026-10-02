@@ -115,7 +115,7 @@ if (cfg) {
 
     // ── heat map ─────────────────────────────────────────────────────────────
     const heat = $('mkHeatStage') && cfg.heatmap?.items?.length
-        ? createHeatmap({ stage: $('mkHeatStage'), tip: $('mkHeatTip'), legend: $('mkHeatLegend'), back: $('mkHeatBack'), chips: $('mkHeatEx'), summary: $('mkHeatSummary'), data: cfg.heatmap })
+        ? createHeatmap({ stage: $('mkHeatStage'), tip: $('mkHeatTip'), legend: $('mkHeatLegend'), back: $('mkHeatBack'), chips: $('mkHeatEx'), summary: [$('mkHeatSummary'), $('mkHeatMini')], data: cfg.heatmap, card: $('mkHeat'), toggle: $('mkHeatToggle') })
         : null;
 
     // ── live updates ─────────────────────────────────────────────────────────

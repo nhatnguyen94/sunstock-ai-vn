@@ -55,7 +55,13 @@
     {{-- Heat map: drawn by js/market/heatmap.js from window.__MARKET__.heatmap (size = traded value, colour = % change) --}}
     <div class="mk-card mk-heat" id="mkHeat">
         <div class="mk-card-head">
-            <h3><i class="bi bi-grid-3x3-gap-fill"></i> Bản đồ nhiệt thị trường</h3>
+            <h3>
+                <button type="button" class="mk-heat-toggle" id="mkHeatToggle" aria-expanded="true" aria-controls="mkHeatBody" title="Thu gọn / mở rộng bản đồ nhiệt">
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i><span class="sr-only">Thu gọn hoặc mở rộng bản đồ nhiệt</span>
+                </button>
+                <i class="bi bi-grid-3x3-gap-fill"></i> Bản đồ nhiệt thị trường
+                <span class="mk-heat-mini" id="mkHeatMini"></span>
+            </h3>
             <div class="mk-heat-tools">
                 <button type="button" class="mk-heat-back" id="mkHeatBack" hidden><i class="bi bi-arrow-left"></i> Tất cả ngành</button>
                 <div class="mk-chips" id="mkHeatEx">
@@ -65,6 +71,7 @@
                 </div>
             </div>
         </div>
+        <div class="mk-heat-body" id="mkHeatBody"><div class="mk-heat-inner">
         <p class="mk-heat-sub">Kích thước ô = giá trị giao dịch · màu = % thay đổi trong phiên · bấm tên ngành để phóng to, bấm mã để xem chi tiết.</p>
         <div class="mk-heat-stage" id="mkHeatStage" role="group" aria-label="Bản đồ nhiệt thị trường theo ngành">
             <noscript><p class="mk-loading">Bản đồ nhiệt cần bật JavaScript.</p></noscript>
@@ -74,7 +81,20 @@
             <span id="mkHeatSummary" class="mk-heat-summary">{{ $heatmap['shown'] }} mã</span>
             <span class="mk-heat-legend"><small>−7%</small><i id="mkHeatLegend"></i><small>+7%</small></span>
         </div>
+        </div></div>
     </div>
+    {{-- apply the remembered choice before the first paint (no jump): closed by default on phones --}}
+    <script>
+    (function () {
+        try {
+            var s = localStorage.getItem('sunstock-heatmap');
+            if (s === 'closed' || (s === null && window.innerWidth < 768)) {
+                document.getElementById('mkHeat').classList.add('is-collapsed');
+                document.getElementById('mkHeatToggle').setAttribute('aria-expanded', 'false');
+            }
+        } catch (e) {}
+    })();
+    </script>
     @endif
 
     <div class="row">

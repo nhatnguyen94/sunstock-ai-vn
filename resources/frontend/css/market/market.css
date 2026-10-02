@@ -195,3 +195,24 @@
 @keyframes hm-fade { from { opacity: 0; } to { opacity: 1; } }
 .hm-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; color: #94a3b8; font-size: .9rem; }
 .hm-empty[hidden] { display: none; }
+
+/* ── Heat map: collapse / expand ── */
+.mk-heat-toggle { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-right: .15rem; padding: 0; border: 0; border-radius: 8px; background: var(--light-blue); color: var(--primary-blue); cursor: pointer; flex-shrink: 0; transition: background .15s ease; }
+.mk-heat-toggle:hover { background: #dbeafe; }
+.mk-heat-toggle i { font-size: .9rem; transition: transform .35s cubic-bezier(.3, 1.4, .5, 1); }
+.mk-heat.is-collapsed .mk-heat-toggle i { transform: rotate(-90deg); }
+.mk-heat-mini { display: none; margin-left: .35rem; font-size: .76rem; font-weight: 600; color: var(--text-secondary); }
+.mk-heat.is-collapsed .mk-heat-mini { display: inline; }
+.mk-heat.is-collapsed .mk-heat-tools { display: none; }
+.mk-heat .mk-card-head h3 { cursor: pointer; }
+
+/* the body folds away by animating its grid row to 0 (the stage keeps its size, so nothing is re-laid-out) */
+.mk-heat-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .45s cubic-bezier(.2, .8, .2, 1); }
+.mk-heat-inner { min-height: 0; overflow: hidden; }
+.mk-heat.is-collapsed .mk-heat-body { grid-template-rows: 0fr; }
+.mk-heat.is-collapsed .mk-heat-inner { visibility: hidden; transition: visibility 0s .45s; }   /* out of the tab order and the accessibility tree once folded */
+.mk-heat.is-collapsed .mk-card-head { padding-bottom: 1rem; }
+@media (prefers-reduced-motion: reduce) {
+    .mk-heat-body, .mk-heat-toggle i { transition: none; }
+}
+@media (max-width: 575.98px) { .mk-heat-mini { display: none !important; } }

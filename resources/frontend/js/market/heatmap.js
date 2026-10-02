@@ -10,7 +10,9 @@ import { LEGEND_STOPS, groupItems, labelFor, layoutGroups, tileColor } from './t
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const px = (n) => `${Math.round(n * 10) / 10}px`;
 
-export function createHeatmap({ stage, tip, legend, back, chips, summary, data }) {
+const STATE_KEY = 'sunstock-heatmap';
+
+export function createHeatmap({ stage, tip, legend, back, chips, summary, data, card, toggle }) {
     let items = data?.items || [];
     let exchange = 'ALL';
     let focus = null;          // industry name while zoomed in
@@ -125,7 +127,8 @@ export function createHeatmap({ stage, tip, legend, back, chips, summary, data }
             const shown = groups.flatMap((g) => g.items);
             const up = shown.filter((t) => t.c > 0).length;
             const down = shown.filter((t) => t.c < 0).length;
-            summary.textContent = `${shown.length} mã · ${up} tăng · ${down} giảm · ${fmtValue(shown.reduce((t, i) => t + i.v, 0))} ₫`;
+            const text = `${shown.length} mã · ${up} tăng · ${down} giảm · ${fmtValue(shown.reduce((t, i) => t + i.v, 0))} ₫`;
+            [].concat(summary).forEach((node) => { if (node) node.textContent = text; });
         }
     }
 
@@ -172,6 +175,18 @@ export function createHeatmap({ stage, tip, legend, back, chips, summary, data }
     });
     back?.addEventListener('click', () => setFocus(null));
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && focus) setFocus(null); });
+
+    // ── collapse / expand (the choice is remembered; the partial applies it before the first paint) ──
+    toggle?.addEventListener('click', () => {
+        const collapsed = card.classList.toggle('is-collapsed');
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        if (collapsed) hideTip();
+        try { localStorage.setItem(STATE_KEY, collapsed ? 'closed' : 'open'); } catch (e) { /* not remembered in private mode */ }
+    });
+    card?.querySelector('.mk-card-head h3')?.addEventListener('click', (e) => {
+        if (e.target.closest('.mk-heat-toggle')) return;   // the button handles itself
+        toggle?.click();
+    });
 
     let raf = 0;
     const relayout = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => render()); };

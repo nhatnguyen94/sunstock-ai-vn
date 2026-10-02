@@ -172,6 +172,49 @@ class MarketHeatmapPageTest extends TestCase
     }
 
     #[Group('marketHeatmap')]
+    public function test_the_card_can_be_folded_with_an_accessible_toggle_and_a_remembered_choice(): void
+    {
+        $this->seedWithExchanges();
+
+        $html = $this->get('/')->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('#<button type="button" class="mk-heat-toggle" id="mkHeatToggle" aria-expanded="true" aria-controls="mkHeatBody"#', $html);
+        $this->assertStringContainsString('id="mkHeatBody"', $html);
+        $this->assertStringContainsString('id="mkHeatMini"', $html);    // the one-line summary shown while folded
+        $this->assertStringContainsString('sr-only', $html);            // the icon-only button has a text label
+
+        // the stage, legend and footer are all inside the part that folds away; the head with the toggle is outside it
+        $head = strpos($html, 'id="mkHeatToggle"');
+        $body = strpos($html, 'id="mkHeatBody"');
+        $stage = strpos($html, 'id="mkHeatStage"');
+        $legend = strpos($html, 'id="mkHeatLegend"');
+        $this->assertTrue($head < $body && $body < $stage && $stage < $legend);
+
+        // the remembered choice is applied right after the card, before the first paint; phones start folded
+        $this->assertStringContainsString("localStorage.getItem('sunstock-heatmap')", $html);
+        $this->assertStringContainsString("s === 'closed' || (s === null && window.innerWidth < 768)", $html);
+        $this->assertGreaterThan(strpos($html, 'id="mkHeat"'), strpos($html, "localStorage.getItem('sunstock-heatmap')"));
+    }
+
+    #[Group('marketHeatmap')]
+    public function test_folding_is_wired_in_the_script_and_the_stylesheet(): void
+    {
+        $js = file_get_contents(resource_path('frontend/js/market/heatmap.js'));
+        $home = file_get_contents(resource_path('frontend/js/market/home.js'));
+        $css = file_get_contents(resource_path('frontend/css/market/market.css'));
+
+        $this->assertStringContainsString("classList.toggle('is-collapsed')", $js);
+        $this->assertStringContainsString("setAttribute('aria-expanded'", $js);
+        $this->assertMatchesRegularExpression("/try \{ localStorage\.setItem\(STATE_KEY.*catch/", $js, 'a blocked storage must not break the toggle');
+        $this->assertStringContainsString("toggle: $('mkHeatToggle')", $home);
+        $this->assertStringContainsString("$('mkHeatMini')", $home);
+
+        $this->assertStringContainsString('.mk-heat.is-collapsed .mk-heat-body { grid-template-rows: 0fr; }', $css);
+        $this->assertStringContainsString('.mk-heat.is-collapsed .mk-heat-inner { visibility: hidden;', $css, 'folded content leaves the tab order');
+        $this->assertMatchesRegularExpression('/@media \(prefers-reduced-motion: reduce\) \{[^}]*\.mk-heat-body[^}]*transition: none/s', $css);
+    }
+
+    #[Group('marketHeatmap')]
     public function test_home_without_heatmap_data_shows_no_card_and_still_works(): void
     {
         $this->seedMarketSnapshot(['quotes' => []]);
