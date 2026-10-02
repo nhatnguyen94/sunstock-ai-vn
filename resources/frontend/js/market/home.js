@@ -3,6 +3,7 @@
 
 import { AreaSeries, HistogramSeries, attachLegend, fmtCompact, fmtDec, makeChart } from '../shared/charts.js';
 import { countUp, direction, flash } from '../shared/pricefx.js';
+import { createHeatmap } from './heatmap.js';
 import { initWatchlistStars, paintStars } from '../shared/watchlist.js';
 import { dirClass, esc, exchangeLabel, fmtInt, fmtPct, fmtValue, fmtVolume } from './format.js';
 
@@ -112,6 +113,11 @@ if (cfg) {
         });
     }
 
+    // ── heat map ─────────────────────────────────────────────────────────────
+    const heat = $('mkHeatStage') && cfg.heatmap?.items?.length
+        ? createHeatmap({ stage: $('mkHeatStage'), tip: $('mkHeatTip'), legend: $('mkHeatLegend'), back: $('mkHeatBack'), chips: $('mkHeatEx'), summary: $('mkHeatSummary'), data: cfg.heatmap })
+        : null;
+
     // ── live updates ─────────────────────────────────────────────────────────
     // the number shown in a vi-VN formatted element (1.737,71 -> 1737.71)
     const readVi = (el) => Number(el.textContent.replace(/\./g, '').replace(',', '.'));
@@ -127,6 +133,7 @@ if (cfg) {
     });
 
     function applyData(d) {
+        if (heat && d.heatmap) heat.update(d.heatmap);
         // prices on screen before this update, to flash only the rows that moved
         const before = new Map([...document.querySelectorAll('[data-px]')].map((el) => [el.dataset.px, readVi(el)]));
         state.movers = d.movers || state.movers;

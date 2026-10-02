@@ -22,7 +22,7 @@
 | GET | `/etf` | `etf.index` | `EtfController` | `index` |
 | GET | `/etf/{symbol}` | `etf.show` | `EtfController` | `show` |
 | GET | `/gold` | `gold.index` | `GoldPriceController` | `index` |
-| GET | `/market/data` | `market.data` | `MarketController` | `data` |
+| GET | `/market/data` | `market.data` | `MarketController` | `data` (JSON poll: indices, breadth, exchanges, liquidity, movers, `heatmap` (null on failure), the user's watchlist) |
 | GET | `/gold/history/{id}` | `gold.history` | `GoldPriceController` | `history` |
 | POST | `/gold/refresh` | `gold.refresh` | `GoldPriceController` | `refresh` |
 | POST | `/search` | `stock.search` | `StockController` | `search` |

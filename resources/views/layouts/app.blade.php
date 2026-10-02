@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
     <!-- NProgress – page loading indicator -->
     <link rel="stylesheet" href="https://unpkg.com/nprogress@0.2.0/nprogress.css">
-    @vite(['resources/frontend/css/layouts/app.css', 'resources/frontend/css/shared/autocomplete.css', 'resources/frontend/css/shared/mobile-nav.css'])
+    @vite(['resources/frontend/css/layouts/app.css', 'resources/frontend/css/shared/autocomplete.css', 'resources/frontend/css/shared/mobile-nav.css', 'resources/frontend/css/shared/palette.css'])
     @yield('head')
 </head>
 <body>
@@ -43,6 +43,10 @@
                 Sun Stock AI
             </a>
             
+            <button class="navbar-toggler nav-search-quick d-xl-none ml-auto" type="button" data-palette-open aria-label="Tìm nhanh" title="Tìm nhanh">
+                <i class="bi bi-search"></i>
+            </button>
+
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
                 <i class="bi bi-list text-white" style="font-size: 1.5rem;"></i>
             </button>
@@ -120,6 +124,12 @@
                         </div>
                     </li>
                     
+                    <li class="nav-item d-none d-xl-block ml-xl-1">
+                        <button type="button" class="nav-link nav-search" data-palette-open aria-label="Tìm nhanh (Ctrl+K)" title="Tìm nhanh">
+                            <i class="bi bi-search"></i><kbd>Ctrl K</kbd>
+                        </button>
+                    </li>
+
                     @guest
                         <li class="nav-item ml-xl-2">
                             <a class="nav-link" href="{{ route('login') }}"
@@ -275,6 +285,7 @@
     </footer>
 
     @include('partials.mobile-nav')
+    @include('partials.command-palette')
 
     <!-- Back to top -->
     <button id="backToTop" title="Lên đầu trang"><i class="bi bi-arrow-up"></i></button>

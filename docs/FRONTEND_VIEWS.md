@@ -34,6 +34,7 @@ resources/
 │   │   │   ├── autocomplete.css ← Dropdown + search-input styles (replaces the CDN awesomplete.css and 3 per-page copies); loaded by layouts/app.blade.php
 │   │   │   └── charts.css       ← Styles for shared/charts.js (legend) and shared/svgcharts.js (donut, bars)
 │   │   │   ├── watchlist.css    ← ★ follow buttons (.wl-star, .wl-btn, .wl-toggle)
+│   │   │   ├── palette.css      ← Ctrl+K command palette dialog and the navbar search buttons
 │   │   │   ├── mobile-nav.css   ← Phone bottom navigation bar (below 768 px) and the offsets that keep floating buttons above it
 │   │   │   ├── skeleton.css     ← Shimmering grey placeholders (.sk, .sk-text, .sk-bar, .sk-chart, .sk-row) + .is-loading-soft; honours reduced motion
 │   │   ├── company/
@@ -71,6 +72,8 @@ resources/
 │       │   ├── charts.js        ← Lightweight Charts setup: theme, `makeChart`, legend, helpers (toDay/cleanSeries/sliceByDays/rebase)
 │       │   ├── indicators.js    ← SMA/EMA/RSI/MACD/Bollinger (pure, unit-tested)
 │       │   ├── svgcharts.js     ← Dependency-free donut + diverging bars (what Lightweight Charts cannot draw)
+│       │   ├── palette-core.js  ← Command palette logic (pure: sections, highlight, recent list), unit-tested
+│       │   ├── palette.js       ← Command palette DOM: Ctrl+K / `/` / [data-palette-open], stock search, glide highlight, Ask-AI hand-off
 │       │   ├── mobile-nav.js    ← Hide-on-scroll-down / show-on-scroll-up for the phone bottom bar (pure `nextVisible()`, unit-tested)
 │       │   ├── pricefx.js       ← Number cues: `countUp()` from the previous value, `flash()` once in the move's colour (both skipped for reduced motion) + pure helpers (`direction`, `valueAt`, `formatNumber`), unit-tested
 │       │   └── toast.js         ← Toast helper for page scripts
@@ -252,6 +255,20 @@ npm run build
 - The compact rules are appended to `css/index.css` under `.hero-compact`; the original `.search-card` / `.hero-*` rules stay as the base (the card no longer overlaps the hero with a negative margin). On a phone the input and the search button share a row and the button shows only its icon.
 - **Background and motion**: the hero is one even blue (`#2563eb → #3b82f6`) so `.mk::before` (market.css) can fade the same blue out behind the market title and the index cards; the white-on-blue title/status styles live in `.mk-head`. `.home-body` wraps the market and everything below with ONE continuous gradient (colour-wheel scheme documented in `index.css`: analogous blues to violet + a small amber complement; change hues together, keep saturation soft), a dot grid (`::before`) and five `.home-glow` blobs; cards inside it are frosted glass (`.home-body .mk-card/.mk-idx/.info-section/.stock-card/.news-card`); do not add a second background zone, it reads as separate pieces; `.hero-fx` holds the hero orbs and candle bars. Motion (cards rising, `clip-path` reveals of sparklines/chart/breadth bar, bar growth, glow drift) is declared only inside `@media (prefers-reduced-motion: no-preference)`; use `animation-fill-mode: backwards` (not `both`) on anything that also has a hover transform. `home.js` counts the index levels and breadth numbers up on load and flashes (`pricefx.flash`) the numbers a 60 s poll changed. Decorative elements are `aria-hidden`.
 - `js/index.js` binds to `#symbol`, `.search-form-wrapper`, `.search-btn`, `.btn-text`, `#notFoundMsg`: keep those hooks when restyling (covered by the `homeLayout` tests).
+
+## Market heat map (home page)
+
+- `partials/market-overview.blade.php` renders the empty card (`#mkHeat`, `#mkHeatStage`, chips `#mkHeatEx`, tooltip, legend, summary) only when `$heatmap['items']` exists; `js/market/home.js` builds it from `window.__MARKET__.heatmap` and feeds every poll (`d.heatmap`) to `heat.update()`.
+- `js/market/treemap.js` is pure and unit-tested: `groupItems(items, exchange)`, `squarify(values, rect)`, `layoutGroups(groups, {width,height,gap,header})`, `tileColor(pct)`, `labelFor(rect)`. `js/market/heatmap.js` keys DOM nodes by symbol / industry and only moves them (CSS `transition` on left/top/width/height/background-color), so a filter, a zoom or a refresh animates; tiles that changed % get `.hm-blink`, first-paint tiles `.hm-enter` (both only under `prefers-reduced-motion: no-preference`).
+- Tile size is **traded value**, not market cap (not available): keep that wording in the card text. Colours saturate at ±7 % (the HOSE daily limit); white text must stay readable on every tile (tested: lightness ≤ 52).
+- The exchange of each stock comes from the quote's 11th element (`stock_symbols.exchange` is not reliable). A snapshot without it makes the exchange chips show the "no data yet" message until the next sync.
+
+## Command palette (Ctrl+K)
+
+- `partials/command-palette.blade.php` (included by the layout) holds the page list as JSON (`#paletteData`, built server-side so it follows the visitor: guests get Đăng nhập/Đăng ký, users their account; links are site-relative via `route(..., [], false)`) and the closed dialog. `js/shared/palette.js` opens it on Ctrl/⌘+K, `/` outside a field, or any `[data-palette-open]` button (navbar: desktop pill with the shortcut, phone icon next to the menu button).
+- Results: stocks from `GET /stocks-list?q=` (debounced 140 ms, previous request aborted), pages (`filterCommands` from `admin/helpers.js`: accent-insensitive, keywords), recent stocks (`localStorage` `sunstock-recent`, wrapped in try/catch) and "Hỏi AI: …", which opens `#aiChatOpenBtn` and fills `#aiChatInput` (the user still presses Enter, so the per-account AI limits apply as usual).
+- Everything visitor-supplied is rendered with `textContent` / text nodes; the only `innerHTML` is the icon class chosen by the code. Do not add another Ctrl+K handler on a page: it would fight the palette (the home and stock pages used to have one).
+- To add a page to the palette add one `$paletteItem(...)` line in the partial (title with accents, icon name from Bootstrap Icons, relative URL, ASCII keywords).
 
 ## Phone bottom navigation
 

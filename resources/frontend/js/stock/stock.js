@@ -377,4 +377,4 @@ document.querySelector('.search-section form').addEventListener('submit', functi
     if (btnText) btnText.textContent = 'Đang tìm...';
     setTimeout(() => { btn.disabled = false; if (btnIcon) btnIcon.className = 'bi bi-search'; if (btnText) btnText.textContent = 'Tra cứu'; }, 5000);
 });
-document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); document.getElementById('symbol').focus(); } });
+// Ctrl/Cmd + K is the global command palette now (js/shared/palette.js)

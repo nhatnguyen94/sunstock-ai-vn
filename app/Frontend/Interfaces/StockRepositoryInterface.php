@@ -23,6 +23,15 @@ interface StockRepositoryInterface
     public function searchSymbols(string $query): array;
 
     /**
+     * Name, exchange and ICB industry for each symbol, as [symbol => ['name' => ?string, 'exchange' => ?string, 'industry' => ?string]].
+     * Unknown symbols are absent.
+     *
+     * @param  string[]  $symbols
+     * @return array<string, array{name: ?string, exchange: ?string, industry: ?string}>
+     */
+    public function symbolInfo(array $symbols): array;
+
+    /**
      * Latest close price for each symbol, as [symbol => close]. Symbols with no price yet are omitted.
      */
     public function getLatestPrices(array $symbols): array;
@@ -31,7 +40,7 @@ interface StockRepositoryInterface
      * Latest session + the one before it, per symbol, in FEED units (thousands of VND — see App\Support\PriceUnit).
      * Symbols with no synced price are simply absent.
      *
-     * @param  string[] $symbols
+     * @param  string[]  $symbols
      * @return array<string, array{close: float, prev_close: ?float, date: string}>
      */
     public function getLatestQuotes(array $symbols): array;
@@ -39,7 +48,7 @@ interface StockRepositoryInterface
     /**
      * Daily closes (feed units) since $from, per symbol: [symbol => [date => close]], ascending by date.
      *
-     * @param  string[] $symbols
+     * @param  string[]  $symbols
      * @return array<string, array<string, float>>
      */
     public function getCloseHistory(array $symbols, string $from): array;
@@ -48,7 +57,7 @@ interface StockRepositoryInterface
      * Make sure every symbol is a tracked Stock row and return those that still have NO price rows
      * (they need a sync before they can be valued).
      *
-     * @param  string[] $symbols
+     * @param  string[]  $symbols
      * @return string[]
      */
     public function ensureTracked(array $symbols): array;

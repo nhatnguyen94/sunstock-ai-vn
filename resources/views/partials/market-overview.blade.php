@@ -51,6 +51,32 @@
         @endforeach
     </div>
 
+    @if(! empty($heatmap['items']))
+    {{-- Heat map: drawn by js/market/heatmap.js from window.__MARKET__.heatmap (size = traded value, colour = % change) --}}
+    <div class="mk-card mk-heat" id="mkHeat">
+        <div class="mk-card-head">
+            <h3><i class="bi bi-grid-3x3-gap-fill"></i> Bản đồ nhiệt thị trường</h3>
+            <div class="mk-heat-tools">
+                <button type="button" class="mk-heat-back" id="mkHeatBack" hidden><i class="bi bi-arrow-left"></i> Tất cả ngành</button>
+                <div class="mk-chips" id="mkHeatEx">
+                    @foreach(['ALL' => 'Tất cả', 'HOSE' => 'HOSE', 'HNX' => 'HNX', 'UPCOM' => 'UPCoM'] as $k => $label)
+                        <button type="button" data-ex="{{ $k }}" class="{{ $k === 'ALL' ? 'active' : '' }}">{{ $label }}</button>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        <p class="mk-heat-sub">Kích thước ô = giá trị giao dịch · màu = % thay đổi trong phiên · bấm tên ngành để phóng to, bấm mã để xem chi tiết.</p>
+        <div class="mk-heat-stage" id="mkHeatStage" role="group" aria-label="Bản đồ nhiệt thị trường theo ngành">
+            <noscript><p class="mk-loading">Bản đồ nhiệt cần bật JavaScript.</p></noscript>
+            <div class="mk-heat-tip" id="mkHeatTip" role="tooltip" hidden></div>
+        </div>
+        <div class="mk-heat-foot">
+            <span id="mkHeatSummary" class="mk-heat-summary">{{ $heatmap['shown'] }} mã</span>
+            <span class="mk-heat-legend"><small>−7%</small><i id="mkHeatLegend"></i><small>+7%</small></span>
+        </div>
+    </div>
+    @endif
+
     <div class="row">
         <div class="col-lg-8">
             <div class="mk-card">

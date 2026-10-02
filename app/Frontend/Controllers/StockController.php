@@ -13,6 +13,7 @@ use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Frontend\Services\AiService;
 use App\Frontend\Services\CompanyFinancialService;
 use App\Frontend\Services\ExchangeRateService;
+use App\Frontend\Services\MarketHeatmapService;
 use App\Frontend\Services\MarketOverviewService;
 use App\Frontend\Services\StockPriceFreshness;
 use App\Frontend\Services\StockService;
@@ -61,7 +62,7 @@ class StockController extends Controller
      *
      * @return View
      */
-    public function home(Request $request, NewsServiceInterface $newsService, MarketOverviewService $marketService, WatchlistService $watchlistService)
+    public function home(Request $request, NewsServiceInterface $newsService, MarketOverviewService $marketService, WatchlistService $watchlistService, MarketHeatmapService $heatmapService)
     {
         $symbols = ['FPT', 'VNM', 'ACB'];
 
@@ -119,10 +120,19 @@ class StockController extends Controller
         } catch (Throwable $e) {
             report($e);
         }
+        // the heat map is an extra on top of the market section: it never takes the page down
+        $heatmap = null;
+        if ($market['has_data'] ?? false) {
+            try {
+                $heatmap = $heatmapService->heatmap();
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
         $watchRows = Auth::check() ? $watchlistService->rows(Auth::id(), 8) : null;
         $watched = Auth::check() ? $watchlistService->symbols(Auth::id()) : [];
 
-        return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news', 'market', 'watchRows', 'watched'));
+        return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news', 'market', 'watchRows', 'watched', 'heatmap'));
     }
 
     /**

@@ -66,14 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Add keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        // Focus search input with Ctrl/Cmd + K
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            symbolInput.focus();
-        }
-    });
+    // Ctrl/Cmd + K is the global command palette now (js/shared/palette.js)
 
     // Scroll to hot industries section when paginate is clicked
     document.addEventListener('click', function(e) {

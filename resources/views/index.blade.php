@@ -66,7 +66,7 @@
                     <a href="{{ url('/stock?symbol=TCB') }}" class="tag">TCB</a>
                     <a href="{{ url('/stock?symbol=HPG') }}" class="tag">HPG</a>
                     <a href="{{ url('/stock/compare') }}" class="tag tag-tool"><i class="bi bi-bar-chart-steps"></i> So sánh</a>
-                    <kbd class="popular-kbd d-none d-md-inline" title="Phím tắt để chọn ô tìm kiếm">Ctrl+K</kbd>
+                    <kbd class="popular-kbd d-none d-md-inline" title="Phím tắt mở thanh tìm nhanh">Ctrl+K</kbd>
                 </div>
             </div>
         </div>
@@ -402,6 +402,7 @@
         'movers' => $market['movers'],
         'watchlist' => $watchRows,
         'watched' => $watched,
+        'heatmap' => $heatmap,
     ] : null;
 @endphp
 <script>

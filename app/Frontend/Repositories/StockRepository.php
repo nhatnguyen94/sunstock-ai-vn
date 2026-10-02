@@ -147,6 +147,24 @@ class StockRepository implements StockRepositoryInterface
     }
 
     /**
+     * Name, exchange and industry per symbol (the market heat map groups by industry).
+     *
+     * @param  string[]  $symbols
+     * @return array<string, array{name: ?string, exchange: ?string, industry: ?string}>
+     */
+    public function symbolInfo(array $symbols): array
+    {
+        if ($symbols === []) {
+            return [];
+        }
+
+        return StockSymbol::whereIn('symbol', $symbols)
+            ->get(['symbol', 'name', 'exchange', 'industry'])
+            ->mapWithKeys(fn (StockSymbol $s) => [$s->symbol => ['name' => $s->name, 'exchange' => $s->exchange, 'industry' => $s->industry]])
+            ->all();
+    }
+
+    /**
      * Search stock symbols by query string.
      *
      * @return mixed

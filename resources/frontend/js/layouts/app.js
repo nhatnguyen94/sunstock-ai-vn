@@ -1,6 +1,8 @@
 import { initAiChat } from '../shared/ai-chat.js';
 import { initMobileNav } from '../shared/mobile-nav.js';
+import { initPalette } from '../shared/palette.js';
 
+initPalette();     // Ctrl+K command palette: stocks, pages, ask the AI
 initMobileNav();   // bottom navigation on phones: hides while scrolling down, returns on scroll up
 
 // ── AOS Init ──────────────────────────────────────

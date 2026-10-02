@@ -6,6 +6,26 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## MARKET_HEATMAP_AND_COMMAND_PALETTE - October 3, 2026
+
+### Summary
+Owner asked for something "wow". Two pieces: a market heat map on the home page and a global Ctrl+K command palette.
+
+### Heat map ("Bản đồ nhiệt thị trường")
+- **What it shows**: the 150 busiest stocks of the newest snapshot as a squarified treemap grouped by ICB industry; tile size = traded value (the site has no market-cap data and the page says so), colour = % change (green/red, deeper towards the ±7 % daily limit, grey when flat). Hover (or keyboard focus) gives a card with name, industry, price, value, volume; clicking a tile opens the stock; clicking an industry name zooms into it (back button / Esc); exchange chips filter HOSE / HNX / UPCoM. The layout and colour maths are pure (`js/market/treemap.js`), `js/market/heatmap.js` moves the elements (CSS transitions) instead of rebuilding them, so filtering, zooming and the 60 s poll glide; tiles pop in on first paint and blink when their % changed.
+- **Data**: `App\Support\MarketHeatmap` (pure shaping) + `MarketHeatmapService` (newest snapshot + `StockRepository::symbolInfo()` for names/industries, cached per snapshot) → `window.__MARKET__.heatmap` on the home page and the `heatmap` key of `GET /market/data`. A failure there never takes the page or the poll down (card simply absent / `null`). No Python is started.
+- **Found on the way**: `stock_symbols.exchange` says `HSX` for every row, so the exchange filter could not use it. `py/get_market_overview.py` now writes each quote's exchange (HOSE/HNX/UPCOM/null) as the **11th element** of the quote array; older snapshots simply have none (the filter shows a friendly "no data yet" message until the next sync, `php artisan sync:market-overview`).
+
+### Command palette (Ctrl+K)
+- Ctrl/⌘+K (or `/` outside a field, or the search button in the navbar / next to the phone menu button) opens a glass dialog: stock results from the existing `/stocks-list` endpoint (debounced, abortable), matching pages (accent-insensitive, with keywords), recent stocks (localStorage), and "Hỏi AI: …" which opens the AI chat with the question filled in (the AI endpoints keep their per-account limits). Arrow keys wrap, Enter opens, Esc closes, the highlight glides to the selected row, `aria-activedescendant` / combobox / listbox roles.
+- The page list is server-side (`partials/command-palette.blade.php`): guests see Đăng nhập/Đăng ký, signed-in users their account; links are site-relative, the admin is never advertised. Results are built with text nodes (never HTML strings).
+- The two old per-page Ctrl+K handlers (home, stock page) were removed so they cannot fight the palette.
+
+### Tests
+Groups `marketHeatmap` (PHP: pure shaping, service + cache, symbol lookup incl. hostile input, poll, home markup/order, failure tolerance, script-tag escaping, the real `analyse()` writing the exchange) and `commandPalette` (PHP: per-visitor pages, relative links, dialog accessibility, triggers, legacy handlers gone, no innerHTML from visitor data, reduced motion); Node: `treemap.test.mjs` (areas proportional and exact, no overlap, inside the box, aspect ratios, degenerate input, grouping/filters, layout containment, colour scale, label levels) and `palette.test.mjs` (highlighting incl. decomposed accents and markup, recent list, wrap-around selection, sections for each state). 489 PHP tests across the groups touching the layout/home page and 95 Node tests pass; Pint clean.
+
+---
+
 ## MOBILE_BOTTOM_NAV - October 3, 2026
 
 ### Summary
