@@ -123,6 +123,12 @@ $keyRates = ['USD','EUR','JPY','GBP','CNY'];
                 Tìm kiếm tỷ giá theo ngày
             </h3>
             
+            @isset($searchError)
+                @if($searchError)
+                    <div class="alert alert-warning" role="alert">{{ $searchError }}</div>
+                @endif
+            @endisset
+
             <form method="GET" action="{{ route('exchange-rate.search') }}" class="search-form">
                 <div class="search-group">
                     <label class="search-label" for="search_date">

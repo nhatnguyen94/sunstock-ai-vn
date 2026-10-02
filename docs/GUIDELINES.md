@@ -70,6 +70,9 @@ When adding ANY new feature (or changing an existing one):
 - Same short name twice → alias one with `as`. Function calls/constants like `\count()` / `\PHP_EOL` are exempt.
 - `pint.json` makes Pint add the imports (`fully_qualified_strict_types` + `import_symbols`); `tests/Unit/CodeStyle/NoInlineFullyQualifiedNamesTest.php` (group `codeStyle`) fails on any violation. Run `php artisan test --group=codeStyle`.
 
+### Anything a visitor can trigger that costs money or a process
+Validate the input against what exists before it reaches Python/cache/queue (known symbol, real date in range, stored fund code); never cache a failed or refused run; keep manual refresh buttons for signed-in users; and count real starts in a test (see `docs/PYTHON_INTEGRATION.md`, "Python started by a visitor's web request"). A bare `throttle:N,M` per IP is not protection for a 60-second subprocess.
+
 ### Authorization and account status (rules learned the hard way)
 - **Delegating `manage-users` / `manage-roles` / `manage-permissions` is read-only by design**: writes need the `admin` role (`admin.only`). New admin write routes for these areas must sit inside those groups; do not add "special" routes outside them.
 - Add the `AdminGuard` check to any new code that changes a user's roles/status or a role/permission, and write an `ActivityLogger::log('admin_action', ...)` entry with ids, before/after and **never** a password or token.

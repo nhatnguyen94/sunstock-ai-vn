@@ -5,6 +5,7 @@ namespace App\Frontend\Controllers;
 use App\Frontend\Services\GoldPriceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class GoldPriceController extends Controller
@@ -29,6 +30,10 @@ class GoldPriceController extends Controller
     /** "Làm mới" button: fetch now (rate-limited). */
     public function refresh(): JsonResponse
     {
+        if (! Auth::check()) {
+            return response()->json(['success' => false, 'message' => 'Vui lòng đăng nhập để làm mới giá.', 'login_url' => route('login')], 401);
+        }
+
         $result = $this->service->refresh();
 
         if (isset($result['error'])) {

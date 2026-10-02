@@ -5,6 +5,8 @@ namespace App\Frontend\Services;
 use App\Frontend\Interfaces\CompanyProfileRepositoryInterface;
 use App\Jobs\SyncCompanyProfileJob;
 use App\Models\CompanyProfile;
+use App\Models\Stock;
+use App\Models\StockSymbol;
 use App\Support\PythonRunner;
 use App\Support\SingleFlight;
 use Illuminate\Support\Facades\Cache;
@@ -25,10 +27,10 @@ class CompanyProfileService
     private const QUEUE_DEDUP_TTL = 1800;
 
     private const EVENT_CATEGORIES = [
-        'DIVIDEND'                  => 'Cổ tức & phát hành',
-        'SHAREHOLDER_MEETING'       => 'Đại hội cổ đông',
+        'DIVIDEND' => 'Cổ tức & phát hành',
+        'SHAREHOLDER_MEETING' => 'Đại hội cổ đông',
         'MAJOR_SHAREHOLDER_TRADING' => 'Giao dịch nội bộ / cổ đông lớn',
-        'OTHER'                     => 'Sự kiện khác',
+        'OTHER' => 'Sự kiện khác',
     ];
 
     public function __construct(
@@ -66,7 +68,7 @@ class CompanyProfileService
     /** @return bool true when a job was actually queued (false = one is already pending) */
     public function queueRefresh(string $symbol): bool
     {
-        if (! Cache::add('company-profile-refresh:' . $symbol, 1, self::QUEUE_DEDUP_TTL)) {
+        if (! Cache::add('company-profile-refresh:'.$symbol, 1, self::QUEUE_DEDUP_TTL)) {
             return false;
         }
 
@@ -83,13 +85,18 @@ class CompanyProfileService
      */
     public function load(string $symbol, bool $force = false): array
     {
+        // A made-up ticker must not cost a subprocess: only symbols we know can be fetched
+        if (! $this->isKnownCompany($symbol) && ! $this->repo->find($symbol)) {
+            return ['error' => 'Không tìm thấy thông tin công ty cho mã '.$symbol.'.', 'not_found' => true];
+        }
+
         if ($force) {
-            if (! Cache::add('company-profile-cooldown:' . $symbol, 1, self::REFRESH_COOLDOWN)) {
+            if (! Cache::add('company-profile-cooldown:'.$symbol, 1, self::REFRESH_COOLDOWN)) {
                 return ['error' => 'Vừa cập nhật gần đây, vui lòng thử lại sau vài phút.', 'cooldown' => true];
             }
 
             return SingleFlight::run(
-                'company-profile:' . $symbol,
+                'company-profile:'.$symbol,
                 fn () => null, // force = ignore the cached copy
                 fn () => $this->sync($symbol),
                 self::PYTHON_TIMEOUT + 30
@@ -97,11 +104,11 @@ class CompanyProfileService
         }
 
         if ($this->isKnownMissing($symbol)) {
-            return ['error' => 'Không tìm thấy thông tin công ty cho mã ' . $symbol . '.', 'not_found' => true];
+            return ['error' => 'Không tìm thấy thông tin công ty cho mã '.$symbol.'.', 'not_found' => true];
         }
 
         return SingleFlight::run(
-            'company-profile:' . $symbol,
+            'company-profile:'.$symbol,
             fn () => ($p = $this->repo->find($symbol)) ? ['profile' => $p] : null,
             fn () => $this->sync($symbol),
             self::PYTHON_TIMEOUT + 30
@@ -137,7 +144,7 @@ class CompanyProfileService
      * The corporate events come from VCI only. When VCI timed out (the script still returns the KBS
      * sections), overwriting the stored profile would wipe events we already had, so keep them.
      *
-     * @param array<string, mixed> $fresh
+     * @param  array<string, mixed>  $fresh
      * @return array<string, mixed>
      */
     private function keepLastGoodEvents(string $symbol, array $fresh): array
@@ -168,6 +175,12 @@ class CompanyProfileService
         return $decoded;
     }
 
+    /** Is this a listed symbol (or a stock we already track)? Protected so tests can stub the lookup. */
+    protected function isKnownCompany(string $symbol): bool
+    {
+        return StockSymbol::where('symbol', $symbol)->exists() || Stock::where('symbol', $symbol)->exists();
+    }
+
     /** Protected so tests can stub the subprocess. */
     protected function runScript(string $symbol): ?array
     {
@@ -186,7 +199,7 @@ class CompanyProfileService
         $d = $profile->data;
 
         $events = $d['events'] ?? [];
-        $today  = now()->toDateString();
+        $today = now()->toDateString();
 
         $upcoming = array_values(array_filter($events, function (array $e) use ($today) {
             return ($e['category'] ?? '') !== 'MAJOR_SHAREHOLDER_TRADING'
@@ -208,24 +221,24 @@ class CompanyProfileService
         }
 
         return [
-            'symbol'         => $profile->symbol,
-            'synced_at'      => $profile->synced_at,
-            'stale'          => $profile->isStale(),
-            'overview'       => $d['overview'] ?? [],
-            'ownership'      => $d['ownership'] ?? [],
-            'shareholders'   => $d['shareholders'] ?? [],
-            'officers'       => $officers,
-            'subsidiaries'   => $d['subsidiaries'] ?? [],
-            'affiliates'     => $d['affiliates'] ?? [],
-            'upcoming'       => $upcoming,
-            'dividends'      => $byCategory('DIVIDEND'),
-            'meetings'       => $byCategory('SHAREHOLDER_MEETING'),
-            'other_events'   => $byCategory('OTHER'),
+            'symbol' => $profile->symbol,
+            'synced_at' => $profile->synced_at,
+            'stale' => $profile->isStale(),
+            'overview' => $d['overview'] ?? [],
+            'ownership' => $d['ownership'] ?? [],
+            'shareholders' => $d['shareholders'] ?? [],
+            'officers' => $officers,
+            'subsidiaries' => $d['subsidiaries'] ?? [],
+            'affiliates' => $d['affiliates'] ?? [],
+            'upcoming' => $upcoming,
+            'dividends' => $byCategory('DIVIDEND'),
+            'meetings' => $byCategory('SHAREHOLDER_MEETING'),
+            'other_events' => $byCategory('OTHER'),
             'insider_trades' => $insider,
             'ownership_chart' => $this->ownershipChart($d['ownership'] ?? []),
-            'holders_chart'   => $this->holdersChart($d['shareholders'] ?? []),
-            'errors'         => $d['errors'] ?? [],
-            'event_labels'   => self::EVENT_CATEGORIES,
+            'holders_chart' => $this->holdersChart($d['shareholders'] ?? []),
+            'errors' => $d['errors'] ?? [],
+            'event_labels' => self::EVENT_CATEGORIES,
         ];
     }
 
@@ -233,7 +246,7 @@ class CompanyProfileService
      * Upcoming dividends / shareholder meetings for a set of symbols (a portfolio's holdings), soonest first.
      * Symbols whose profile is not cached yet get one background load queued, so the next visit has them.
      *
-     * @param  string[] $symbols
+     * @param  string[]  $symbols
      * @return array<int, array<string, mixed>> events + `symbol` + `key_date`
      */
     public function upcomingEventsFor(array $symbols, int $limit = 8): array
@@ -289,7 +302,7 @@ class CompanyProfileService
      */
     private function holdersChart(array $holders): array
     {
-        $top    = array_slice($holders, 0, 10);
+        $top = array_slice($holders, 0, 10);
         $labels = array_column($top, 'name');
         $series = array_map('floatval', array_column($top, 'percent'));
 
@@ -304,6 +317,6 @@ class CompanyProfileService
 
     private function missingKey(string $symbol): string
     {
-        return 'company-profile-missing:' . $symbol;
+        return 'company-profile-missing:'.$symbol;
     }
 }

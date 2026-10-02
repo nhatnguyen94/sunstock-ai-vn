@@ -169,6 +169,24 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 
 Changing a job's own `$timeout`/a command's expected runtime? Update the matching row here and the matching `PythonRunner::run()` call together — they're meant to move as a pair.
 
+## Python started by a visitor's web request is limited (`PythonWebGuard`)
+
+An anonymous request that misses its cache can start a subprocess of up to a minute. The per-IP route throttle (30/min) alone allowed one machine to keep dozens running (e.g. a loop over made-up company symbols) and to burn the shared vnstock quota. `PythonRunner::run()` therefore asks `App\Support\PythonWebGuard` first **when the call comes from a web request** (`! app()->runningInConsole()`); queue workers, the scheduler and artisan commands are never limited.
+
+| Guard | Default | `.env` |
+|---|---|---|
+| Processes running at the same time, all visitors together (Redis locks as a counting semaphore; a slot frees itself after `timeout + 15 s` if a worker dies) | 3 | `PYTHON_WEB_MAX_CONCURRENT` |
+| Guest budget per IP, per minute / per hour | 4 / 20 | `PYTHON_WEB_GUEST_PER_MINUTE`, `PYTHON_WEB_GUEST_PER_HOUR` |
+| Signed-in user budget (follows the account, not the address), per minute / per hour | 10 / 60 | `PYTHON_WEB_USER_PER_MINUTE`, `PYTHON_WEB_USER_PER_HOUR` |
+
+The budget is charged only when a process **really starts** (cache hits and refused calls are free). Values are floored at 1 (`config/python_limits.php`). A refused call returns `['output' => [], 'exit_code' => 75, 'timed_out' => false, 'refused' => true]` and every caller already treats an empty result as "source unreachable": the page says "try again in a moment" and nothing wrong is cached.
+
+Rules for any new web-reachable Python call:
+1. **Validate the input first** — a made-up symbol, code or date must be rejected before it reaches Python, a cache key or the queue (`CompanyProfileService::isKnownCompany()`, `ExchangeRateService::isSearchableDate()`, `StockPriceFreshness::isKnown()`, fund codes against the stored catalog).
+2. **Never cache a failed or refused run** (the exchange-rate service used to cache `[]` for 30 min when Python failed). "No data that day" is a real answer and may be cached; a refusal (`$result['refused']`) may not.
+3. **Manual "refresh" buttons are for signed-in users** (`/gold/refresh`, `/company/{symbol}/load?force=1`).
+4. Prove it with a test that counts real starts — see `PublicEndpointAbuseTest` (a tiny executable stands in for Python).
+
 ## Web-request Python calls & the `HOME` override
 
 Python launched from a **PHP-FPM request** runs as `www-data`, whose home (`/var/www`) is root-owned in the image. vnstock writes `~/.vnstock` at import time, so every web-triggered call died with `[Errno 13] Permission denied: '/var/www/.vnstock'` — scripts returned an error/empty result and callers silently fell back to whatever was cached (e.g. `get_exchange_rate.py` returned `[]` from a web request, while the same script worked from the queue worker/scheduler, which run as root). `PythonRunner::run()` now points `HOME` at `sys_get_temp_dir()/python-home-<uid>` (one directory per user — a shared one, created 0700 by root, locked `www-data` out and broke fund detail) **only when the effective user's home is not writable**; root workers and Windows dev setups are unaffected. Covered by `PythonRunnerTest` (group `pythonRunner`).

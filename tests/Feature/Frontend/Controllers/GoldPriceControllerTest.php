@@ -5,6 +5,7 @@ namespace Tests\Feature\Frontend\Controllers;
 use App\Frontend\Services\GoldPriceService;
 use App\Jobs\SyncGoldPricesJob;
 use App\Models\GoldPrice;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
@@ -86,7 +87,7 @@ class GoldPriceControllerTest extends TestCase
         $this->assertStringContainsString('Thị trường', $html);
         $this->assertStringContainsString('Tỷ giá ngoại tệ', $html);
         $this->assertStringContainsString(route('gold.index'), $html);
-        $this->assertStringContainsString('href="' . url('/exchange-rate') . '"', $html);
+        $this->assertStringContainsString('href="'.url('/exchange-rate').'"', $html);
     }
 
     #[Group('goldPrice')]
@@ -112,7 +113,7 @@ class GoldPriceControllerTest extends TestCase
         $stub->shouldReceive('refresh')->once()->andReturn(['count' => 3, 'warnings' => []]);
         $this->app->instance(GoldPriceService::class, $stub);
 
-        $this->postJson('/gold/refresh')->assertOk()->assertJsonPath('success', true)->assertJsonPath('message', 'Đã cập nhật 3 mức giá mới.');
+        $this->actingAs(User::factory()->create())->postJson('/gold/refresh')->assertOk()->assertJsonPath('success', true)->assertJsonPath('message', 'Đã cập nhật 3 mức giá mới.');
     }
 
     #[Group('goldPrice')]
@@ -122,7 +123,7 @@ class GoldPriceControllerTest extends TestCase
         $stub->shouldReceive('refresh')->once()->andReturn(['count' => 0, 'warnings' => []]);
         $this->app->instance(GoldPriceService::class, $stub);
 
-        $this->postJson('/gold/refresh')->assertOk()->assertJsonPath('message', 'Giá chưa thay đổi so với lần cập nhật trước.');
+        $this->actingAs(User::factory()->create())->postJson('/gold/refresh')->assertOk()->assertJsonPath('message', 'Giá chưa thay đổi so với lần cập nhật trước.');
     }
 
     #[Group('goldPrice')]
@@ -132,7 +133,7 @@ class GoldPriceControllerTest extends TestCase
         $stub->shouldReceive('refresh')->once()->andReturn(['error' => 'Vừa cập nhật', 'cooldown' => true]);
         $this->app->instance(GoldPriceService::class, $stub);
 
-        $this->postJson('/gold/refresh')->assertStatus(429)->assertJsonPath('success', false);
+        $this->actingAs(User::factory()->create())->postJson('/gold/refresh')->assertStatus(429)->assertJsonPath('success', false);
     }
 
     #[Group('goldPrice')]
@@ -142,7 +143,7 @@ class GoldPriceControllerTest extends TestCase
         $stub->shouldReceive('refresh')->once()->andReturn(['error' => 'Không lấy được giá vàng']);
         $this->app->instance(GoldPriceService::class, $stub);
 
-        $this->postJson('/gold/refresh')->assertStatus(502)->assertJsonPath('message', 'Không lấy được giá vàng');
+        $this->actingAs(User::factory()->create())->postJson('/gold/refresh')->assertStatus(502)->assertJsonPath('message', 'Không lấy được giá vàng');
     }
 
     #[Group('goldPrice')]

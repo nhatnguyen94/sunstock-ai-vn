@@ -4,11 +4,18 @@ namespace App\Frontend\Services;
 
 use App\Frontend\Interfaces\ExchangeRateRepositoryInterface;
 use App\Support\PythonRunner;
+use DateTimeImmutable;
 use Illuminate\Support\Facades\Cache;
 
 class ExchangeRateService
 {
+    /** How far back the date search goes. Older dates are refused without touching the cache or Python. */
+    public const MAX_HISTORY_DAYS = 1095;
+
     protected $repo;
+
+    /** True when the last Python call was refused by the web guard (see PythonWebGuard): that answer must not be cached. */
+    protected bool $fetchWasRefused = false;
 
     public function __construct(ExchangeRateRepositoryInterface $repo)
     {
@@ -17,45 +24,86 @@ class ExchangeRateService
 
     public function getLatestRates($days = 3)
     {
-        return Cache::remember("exchange_rates_latest_{$days}", 1800, function () use ($days) {
-            $rates = $this->repo->getLatestRates($days);
-            if (empty($rates)) {
-                $rates = $this->fetchRatesFromPython($days);
-                // Lưu vào DB từng ngày
-                foreach ($rates as $date => $items) {
-                    foreach ($items as $item) {
-                        $this->repo->saveRate($item);
-                    }
+        $key = "exchange_rates_latest_{$days}";
+        if (($cached = Cache::get($key)) !== null) {
+            return $cached;
+        }
+
+        $rates = $this->repo->getLatestRates($days);
+        if (empty($rates)) {
+            $rates = $this->fetchRatesFromPython($days);
+            // Lưu vào DB từng ngày
+            foreach ($rates as $date => $items) {
+                foreach ($items as $item) {
+                    $this->repo->saveRate($item);
                 }
             }
+        }
 
-            return $rates;
-        });
+        // An empty answer (source down, or a run the web guard refused) is not remembered: the page would stay empty for
+        // half an hour even after the source is back
+        if (! empty($rates)) {
+            Cache::put($key, $rates, 1800);
+        }
+
+        return $rates;
+    }
+
+    /**
+     * Is this a real calendar date (Y-m-d), not in the future and not older than MAX_HISTORY_DAYS?
+     * Anything else must never become a cache key or a Python argument: the search form is public.
+     */
+    public static function isSearchableDate(mixed $date): bool
+    {
+        if (! is_string($date) || preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $date) !== 1) {
+            return false;
+        }
+
+        $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
+            return false;   // "2026-02-31" and friends
+        }
+
+        return $date <= now()->toDateString() && $date >= now()->subDays(self::MAX_HISTORY_DAYS)->toDateString();
     }
 
     public function getRatesByDate($date)
     {
-        return Cache::remember("exchange_rates_{$date}", 1800, function () use ($date) {
-            $rates = $this->repo->getRatesByDate($date);
-            if (empty($rates)) {
-                $ratesArr = $this->fetchRatesFromPython($date);
-                // $ratesArr là [date => [item, ...]]
-                foreach ($ratesArr as $items) {
-                    foreach ($items as $item) {
-                        $this->repo->saveRate($item);
-                    }
-                }
-                $rates = $this->repo->getRatesByDate($date); // Lấy lại từ DB cho chắc chắn
-            }
+        if (! self::isSearchableDate($date)) {
+            return [];
+        }
 
-            return $rates;
-        });
+        $key = "exchange_rates_{$date}";
+        if (($cached = Cache::get($key)) !== null) {
+            return $cached;
+        }
+
+        $rates = $this->repo->getRatesByDate($date);
+        if (empty($rates)) {
+            $this->fetchWasRefused = false;
+            $ratesArr = $this->fetchRatesFromPython($date);
+            // $ratesArr là [date => [item, ...]]
+            foreach ($ratesArr as $items) {
+                foreach ($items as $item) {
+                    $this->repo->saveRate($item);
+                }
+            }
+            $rates = $this->repo->getRatesByDate($date); // Lấy lại từ DB cho chắc chắn
+        }
+
+        // "No rates that day" is a real answer worth remembering (weekends), but a run the web guard refused is not:
+        // caching it would hide that day for half an hour
+        if (! $this->fetchWasRefused) {
+            Cache::put($key, $rates, 1800);
+        }
+
+        return $rates;
     }
 
     public function fetchRatesFromPython($daysOrDate)
     {
         // Validate input: must be numeric (days) or date format (Y-m-d)
-        if (!is_numeric($daysOrDate) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $daysOrDate)) {
+        if (! is_numeric($daysOrDate) && ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $daysOrDate)) {
             return [];
         }
 
@@ -63,6 +111,7 @@ class ExchangeRateService
         // sync:exchange-rates — must fail fast rather than hang a page load or a
         // scheduled run. See App\Support\PythonRunner.
         $result = PythonRunner::run(base_path('py/get_exchange_rate.py'), [$daysOrDate], 30);
+        $this->fetchWasRefused = (bool) ($result['refused'] ?? false);
 
         return $this->parsePythonOutput($result['output'], $daysOrDate);
     }

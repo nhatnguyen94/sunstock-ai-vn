@@ -6,6 +6,31 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## PUBLIC_ENDPOINT_ABUSE_PROTECTION - October 2, 2026
+
+### Summary
+Last open item of the security audit (A1): anonymous visitors could make the server start Python processes of up to a minute, limited only by a 30-requests-a-minute per-IP throttle, and so keep dozens running and burn the shared vnstock quota.
+
+### Found (by reading every web-reachable `PythonRunner` call)
+- `POST /company/{symbol}/load`: any 2–10 character ticker spawned a run (a made-up symbol took ~60 s to come back "not found"). A loop over random symbols = ~30 concurrent subprocesses.
+- `GET /exchange-rate/search?date=`: only checked inside the Python wrapper, so **the raw text was used as a cache key** (unbounded keys, and an array parameter crashed it), every valid date missing from the database spawned a run, and **a failed or refused fetch cached `[]` for 30 minutes**.
+- `?force=1` and `/gold/refresh`: manual refresh buttons open to everyone (the gold one shares a global cooldown, so a guest could also burn it).
+- Already fine: stock pages (`StockPriceFreshness::isKnown`, failure memory), fund detail (stored codes only, cached for hours), market overview / ETF / fund lists (single flight).
+
+### Fixed
+- **`PythonWebGuard`** (new, used by `PythonRunner::run()` for web requests only): global ceiling of 3 concurrent processes and a per-visitor budget (guest IP 4/min and 20/h, signed-in user 10/min and 60/h), counted only for processes that really start; a refused call returns a `refused` result that callers already treat as "source unreachable". All numbers in `.env` (`PYTHON_WEB_*`, `config/python_limits.php`, floored at 1). Queue workers, scheduler and artisan are not limited.
+- Company profile: only listed symbols (or ones with a stored profile) reach Python — a made-up ticker is now a 404 in ~0.3 s instead of ~60 s; forced refresh needs a login (401 JSON with `login_url`).
+- Exchange rates: a searched date must be a real `Y-m-d`, not in the future, at most 3 years back, otherwise the page shows "Ngày không hợp lệ" before any cache or Python; empty or refused answers for the latest rates are no longer cached (a refused date is not cached either; a genuine "no rates that day" still is).
+- `/gold/refresh`: login required, and a guest no longer touches the shared cooldown.
+
+### Verified
+Live: 5 made-up symbols → 404 in 0.3–0.7 s each, guest `force=1` and gold refresh → 401, bad dates → warning. Tests (group `webPythonGuard`, 40) count real process starts with a stand-in executable. Full suite 871 passed.
+
+### Not done
+Fund detail and the stock first-load still use their own protections plus the new guard; the paid AI endpoints were handled earlier (login + per-account limits). No CAPTCHA.
+
+---
+
 ## IMPORTS_CLEANUP - October 1, 2026
 
 ### Summary
@@ -112,72 +137,16 @@ VCI being slow/down: valuation snapshot, events and the long shareholder list ar
 
 ---
 
-## PORTFOLIO_AUDIT_AND_INSIGHTS - September 30, 2026
-
-### Summary
-Owner: users lose interest in the portfolio feature. Asked to (1) audit its UI/UX and current features, (2) seed 4–5 more accounts, (3) build wave 1 of the suggested improvements (benchmark comparison, risk, sector split).
-
-### Audit (headless Chrome, five demo accounts, desktop and phone)
-Worked: list/detail/create/edit, refresh prices, buy modal prefill + live preview, buy, over-sell refusal, undo, delete confirmation, CSV exports, menu, add-stock + quote endpoint, ownership isolation (404), phone layout without horizontal scroll, no console errors. Found and fixed:
-- **The value line ignored sales.** It was rebuilt from today's holdings ("as if the current quantity had been held since the buy date"), so a partial sale was invisible and a closed position vanished from history. Now replayed from the ledger.
-- **ETF rows showed the ticker twice** (no name in the symbol list). Names now come from the ETF roster.
-- **Concentration advice punished ETFs** (a 36% VN30 ETF was "too concentrated"). ETFs are exempt; overlap between ETFs on one index is reported instead.
-- **"Mã nổi bật" painted a loss green** (▲ for the best of a losing portfolio); best/worst sale shown twice when there was one sale. Colours now follow the sign.
-- **Impossible sale could be submitted**, and the server answered in English about the *fee* field ("The fee field must not be greater than…"). Submit is disabled with the preview's explanation and validation messages are Vietnamese.
-- Not audited deeply / not changed: the portfolio **list** page is bare (no daily change, no chart) and the older `rebalance-suggestions` endpoint still applies the plain 25% cap.
-
-### Changes (wave 1)
-- `PortfolioHistory` (ledger replay) and `PortfolioRisk` (time-weighted returns, volatility, drawdown, beta, benchmark simulation), `PortfolioInsightsService`; new cards on `/portfolio/{id}`: **Theo ngành** (donut), **So với thị trường** (VN-Index and E1VFVN30: return difference in percentage points and "same money, same days in the index" value), **Rủi ro** (volatility, max drawdown, beta, best/worst day) and a chart toggle overlaying the index line.
-- A benchmark whose stored history starts after the portfolio's first trade is flagged and backfilled (one `RefreshStockPricesJob` per symbol per day). Found while testing: the price window began on the first trade date, so a weekend first trade left no close to start from — now 10 days earlier.
-- `DemoUsersSeeder`: `demo1..demo5@sunstock.test` with a shared password and differently shaped portfolios; local/testing only.
-
-### Tests
-Groups `portfolioInsights` (30 PHP + 1 Node) and `demoUsers` (4). Full suite: 542 passed (was 508); Node 37.
-
-### Verified / not verified
-Real numbers on the four demo portfolios (e.g. ETF portfolio −7.57% vs VN-Index −5.46% → "Kém 2,11 điểm phần trăm"; concentrated VIC/VHM portfolio beta 1.76). Not done: wave 2 (email digest, smart alerts) and wave 3 (health score, AI review, dividend income); target-price upside per holding; list-page redesign. Login is throttled to 5 a minute: audits reuse a saved session (clearing the cache also resets the counters).
-
----
-
-## ETF_PAGES - September 30, 2026
-
-### Summary
-Owner asked for an ETF page after the vnstock capability survey (idea #8). Explored what the feed really has for ETFs before designing anything.
-
-### What the data allows (verified with the app's key, tier community 60/min)
-- **Available**: roster with Vietnamese/English names (KBS listing, type `fund`, 24 funds on HOSE: 21 ETFs + 3 closed-end funds), 8-year daily history (already stored by the price sync), live board (price, reference, ceiling/floor, volume, value, 3-level bid/ask).
-- **Not available**: NAV, iNAV, holdings, fees, tracked index. `Company` (KBS and VCI) rejects ETFs, and Fmarket lists only the 68 open-end funds. So there is **no premium/discount to NAV** and the page says so instead of inventing it.
-
-### Changes
-- **`py/get_etf_list.py`** + `sync:etfs` (weekly, Sunday 03:30) → `etfs` table (migration `2026_09_30_000001`), model `Etf`; first visit loads it once (`SingleFlight`); a successful sync prunes delisted symbols.
-- **`EtfMeta`** parses manager and tracked index out of the registered name (SSIAM, DCVFM, MAFM, Kim Growth, VinaCapital, … / VN30, VNX50, VNDiamond, VN100, …) — unrecognised names stay null; **`EtfMetrics`** computes 1M/3M/6M/1Y/3Y return, drawdown, volatility, YTD, 52-week range and 20-session average traded value from `stock_prices` (a window the history does not cover is NULL, never silently shortened; YTD is NULL for a fund listed this year).
-- **`EtfService`/`EtfRepository`/`EtfController`**, routes `/etf` and `/etf/{symbol}`, navbar entry under *Cổ phiếu*, Admin Sync Status entry + trigger.
-- **Pages** (reusing the fund look): catalog with kind tabs (ETF / quỹ đóng), index filter, text search, sortable columns (default: liquidity), an "ETF là gì?" explainer, ★ watch buttons and a compare bar that opens the existing `/stock/compare?symbols=` chart; detail with price/liquidity/52-week KPIs, closing-price chart (3T/6T/1N/all with volume), return-and-risk table, and a table of the other funds tracking the same index (which is the useful ETF comparison: same index, different liquidity and tracking).
-- **Fixed on the way**: the compare page still said "2/4 ma" (missing diacritic).
-
-### Tests
-Group `etf`: 53 tests (EtfMeta on the 24 real names, EtfMetrics, EtfService with real SQL, controller/markup, command, schedule, admin). Full suite: 508 passed (was 455).
-
-### Verified / not verified
-Rendered in headless Chrome against real data (list, detail with chart and range switch, compare handoff): no console errors; figures cross-checked (E1VFVN30 +72.3% over 3 years vs the other VN30 ETFs 68–71%). Not verified: behaviour on a day the market snapshot is missing (falls back to last close, covered by a test), and iNAV/NAV-based metrics (no data source).
-
----
-
-## CLAUDE_CONFIG_AND_DOCS_REREAD - September 30, 2026
-
-Owner asked to re-read AGENTS.md and every file in `docs/`, and to create a `.claude` folder if useful.
-
-- **Added** `.claude/settings.json` (shared, committed): allows read-only git, `docker compose ps/logs`, the feature-test and `route:list`/`schedule:list` commands, `npm test`/`npm run build`; **denies** reading `.env*` secret files and destructive commands (`docker compose down -v`, `docker volume rm`, `docker system prune`, force-push, `git reset --hard`) — the volume wipe is the failure mode that already cost this project its containers once. Personal overrides go in `.claude/settings.local.json` (gitignored). `CLAUDE.md` imports `AGENTS.md` so plain Claude Code reads the same rules.
-- **Docs that disagreed with the code, fixed:** AGENTS.md and README still named `llama-3.3-70b-versatile` as the AI model and README listed three retired Groq models; STRUCTURE.md and DOCKER.md said the queue container runs 3 workers (it is 6).
-- **Noticed, not changed (needs a decision):** TESTING.md still says tests must never touch the database and always mock repositories, while most feature tests use `RefreshDatabase`; `goldPrice` row in its groups table has no file column; RBAC.md notes `spatie/laravel-permission` is installed but unused (still in composer.json); DOCKER.md's "Last updated" line is old.
-
----
-
 ## Earlier work — one-line digest
 
 Full text: [2026-09](history/2026-09.md) · [2026-06](history/2026-06.md) · [2026-05 and earlier](history/2026-05-and-earlier.md).
 
 ### September 2026 — [archive](history/2026-09.md)
+
+**Sep 30**
+- **PORTFOLIO_AUDIT_AND_INSIGHTS** — Owner: users lose interest in the portfolio feature. Asked to (1) audit its UI/UX and current features, (2) seed 4–5 more accounts, (3) build wave 1 of the suggested improvements (benchmark comparison, risk, sector split).
+- **ETF_PAGES** — Owner asked for an ETF page after the vnstock capability survey (idea #8). Explored what the feed really has for ETFs before designing anything.
+- **CLAUDE_CONFIG_AND_DOCS_REREAD** — Owner asked to re-read AGENTS.md and every file in `docs/`, and to create a `.claude` folder if useful.
 
 **Sep 20**
 - **HISTORY_AND_CHANGELOG_CONDENSED** — User: one day had too many README changelog rows and `docs/HISTORY.md` had grown to 1,429 lines / 160 KB.

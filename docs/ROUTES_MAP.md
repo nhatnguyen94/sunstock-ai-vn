@@ -106,6 +106,9 @@ The frontend and admin login share buckets, so switching door gives an attacker 
 | DELETE | `/watchlist/{symbol}` | `watchlist.destroy` | `WatchlistController` | `destroy` |
 | GET | `/portfolio/{id}/rebalance-suggestions` | `portfolio.rebalance-suggestions` | `PortfolioController` | `getRebalanceSuggestions` |
 
+### Public endpoints that can start Python (abuse protection)
+`POST /company/{symbol}/load`: a symbol that is not in `stock_symbols`/`stocks` (and has no stored profile) is a 404 **without** running Python; `?force=1` (the "Làm mới" button) answers 401 JSON `{error, message, login_url}` to guests. `POST /gold/refresh`: 401 JSON to guests. `GET /exchange-rate/search?date=`: must be a real `Y-m-d` date, not in the future, at most 3 years back (`ExchangeRateService::MAX_HISTORY_DAYS`), otherwise the page shows "Ngày không hợp lệ" and nothing else happens. Every Python run a visitor's request does start is limited per visitor and globally — see "Python started by a visitor's web request" in `docs/PYTHON_INTEGRATION.md`.
+
 ### Admin-only writes
 The `users`, `roles` and `permissions` route groups carry `can:manage-*` **and** `admin.only`: reading follows the permission, everything that changes data (and the `create`/`edit` forms) needs the `admin` role. `roles` and `permissions` no longer expose a `show` route. Route parameters `id`, `itemId`, `transactionId`, `user`, `role`, `permission`, `stock`, `portfolio`, `news_category` must be 1–18 digits (`Route::pattern`), so oversized ids are a clean 404.
 

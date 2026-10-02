@@ -40,29 +40,46 @@ use Illuminate\Support\Facades\Log;
 class PythonRunner
 {
     /**
-     * @param string $scriptPath Absolute path to the .py file (base_path('py/...'))
-     * @param array<int, string|int> $args Positional arguments, shell-escaped individually
-     * @param int $timeoutSeconds Hard ceiling — must stay comfortably below whatever
-     *                            timeout (job $timeout, worker --timeout, PHP max_execution_time)
-     *                            governs the calling context, so a legitimate timeout here still
-     *                            leaves room to log/return cleanly instead of getting killed mid-return.
-     * @param bool $suppressStderr Redirect stderr away from $output (some scripts print warnings
-     *                             to stderr that would otherwise pollute the JSON-scan below)
-     * @return array{output: string[], exit_code: int, timed_out: bool}
+     * @param  string  $scriptPath  Absolute path to the .py file (base_path('py/...'))
+     * @param  array<int, string|int>  $args  Positional arguments, shell-escaped individually
+     * @param  int  $timeoutSeconds  Hard ceiling — must stay comfortably below whatever
+     *                               timeout (job $timeout, worker --timeout, PHP max_execution_time)
+     *                               governs the calling context, so a legitimate timeout here still
+     *                               leaves room to log/return cleanly instead of getting killed mid-return.
+     * @param  bool  $suppressStderr  Redirect stderr away from $output (some scripts print warnings
+     *                                to stderr that would otherwise pollute the JSON-scan below)
+     * @return array{output: string[], exit_code: int, timed_out: bool, refused?: bool} `refused` is only present (true) when a
+     *                                                                                  web request was not allowed to start the process
      */
     public static function run(string $scriptPath, array $args, int $timeoutSeconds, bool $suppressStderr = false): array
     {
+        // A run started by a visitor's web request is limited (concurrency + per-visitor budget, see PythonWebGuard);
+        // queue workers, the scheduler and artisan commands are not
+        $release = null;
+        if (PythonWebGuard::applies()) {
+            $release = PythonWebGuard::enter($timeoutSeconds);
+            if ($release === null) {
+                return ['output' => [], 'exit_code' => PythonWebGuard::EXIT_REFUSED, 'timed_out' => false, 'refused' => true];
+            }
+        }
+
         $pythonPath = config('services.python.path', 'python');
 
         $command = PHP_OS_FAMILY === 'Windows'
             ? self::buildCommand($pythonPath, $scriptPath, $args)
-            : self::homeOverride() . self::apiKeyEnv() . self::noAgentSetupEnv() . 'timeout ' . escapeshellarg((string) $timeoutSeconds) . ' ' . self::buildCommand($pythonPath, $scriptPath, $args);
+            : self::homeOverride().self::apiKeyEnv().self::noAgentSetupEnv().'timeout '.escapeshellarg((string) $timeoutSeconds).' '.self::buildCommand($pythonPath, $scriptPath, $args);
 
         if ($suppressStderr) {
             $command .= PHP_OS_FAMILY === 'Windows' ? ' 2>NUL' : ' 2>/dev/null';
         }
 
-        exec($command, $output, $exitCode);
+        try {
+            exec($command, $output, $exitCode);
+        } finally {
+            if ($release !== null) {
+                $release();
+            }
+        }
 
         // `timeout` exits 124 specifically when it had to kill the child — distinguish
         // that from a normal Python error so callers/logs can tell "hung" from "crashed".
@@ -120,12 +137,12 @@ class PythonRunner
         // root (artisan / queue worker) — and then www-data could not write vnstock's ~/.vnstock/api_key.json into it, so every
         // web-triggered Python call (fund detail, ...) failed with "[Errno 13] Permission denied".
         $uid = function_exists('posix_geteuid') ? posix_geteuid() : getmyuid();
-        $fallback = sys_get_temp_dir() . '/python-home-' . $uid;
+        $fallback = sys_get_temp_dir().'/python-home-'.$uid;
         if (! is_dir($fallback)) {
             @mkdir($fallback, 0700, true);
         }
 
-        return 'HOME=' . escapeshellarg($fallback) . ' ';
+        return 'HOME='.escapeshellarg($fallback).' ';
     }
 
     /**
@@ -137,7 +154,7 @@ class PythonRunner
         $key = trim((string) config('services.vnstock.api_key'));
 
         return ($key !== '' && preg_match('/^[A-Za-z0-9_\-.]{8,200}$/', $key))
-            ? 'VNSTOCK_API_KEY=' . escapeshellarg($key) . ' '
+            ? 'VNSTOCK_API_KEY='.escapeshellarg($key).' '
             : '';
     }
 
@@ -153,10 +170,10 @@ class PythonRunner
 
     private static function buildCommand(string $pythonPath, string $scriptPath, array $args): string
     {
-        $command = escapeshellarg($pythonPath) . ' ' . escapeshellarg($scriptPath);
+        $command = escapeshellarg($pythonPath).' '.escapeshellarg($scriptPath);
 
         foreach ($args as $arg) {
-            $command .= ' ' . escapeshellarg((string) $arg);
+            $command .= ' '.escapeshellarg((string) $arg);
         }
 
         return $command;

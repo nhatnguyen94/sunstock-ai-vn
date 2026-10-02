@@ -28,6 +28,9 @@ GROQ_API_KEY=your_own_groq_api_key   # Required for the AI chat feature — free
 AI_PREDICT_INTERVAL_MINUTES=15       # one market prediction per account every N minutes
 AI_CHAT_WINDOW_MINUTES=5             # AI chat: AI_CHAT_MAX_QUESTIONS questions per N minutes per account
 AI_CHAT_MAX_QUESTIONS=5
+PYTHON_WEB_MAX_CONCURRENT=3          # Python processes a visitor's request may have running at once (all visitors together)
+PYTHON_WEB_GUEST_PER_MINUTE=4        # per guest IP; PYTHON_WEB_GUEST_PER_HOUR=20
+PYTHON_WEB_USER_PER_MINUTE=10        # per signed-in user; PYTHON_WEB_USER_PER_HOUR=60
 ```
 
 ## 2. Install Dependencies

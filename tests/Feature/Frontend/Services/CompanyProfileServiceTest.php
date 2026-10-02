@@ -31,6 +31,7 @@ class CompanyProfileServiceTest extends TestCase
     private function service(CompanyProfileRepositoryInterface $repo, ?callable $stub = null): CompanyProfileService
     {
         $mock = Mockery::mock(CompanyProfileService::class, [$repo])->makePartial()->shouldAllowMockingProtectedMethods();
+        $mock->shouldReceive('isKnownCompany')->andReturn(true)->byDefault();   // a real lookup needs the database
         if ($stub) {
             $stub($mock);
         }

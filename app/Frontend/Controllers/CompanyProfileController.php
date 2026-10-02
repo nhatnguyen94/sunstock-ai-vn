@@ -5,6 +5,7 @@ namespace App\Frontend\Controllers;
 use App\Frontend\Services\CompanyProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class CompanyProfileController extends Controller
@@ -23,8 +24,8 @@ class CompanyProfileController extends Controller
         $profile = $this->service->find($symbol);
 
         return view('company.show', [
-            'symbol'   => $symbol,
-            'company'  => $profile ? $this->service->present($profile) : null,
+            'symbol' => $symbol,
+            'company' => $profile ? $this->service->present($profile) : null,
             'notFound' => ! $profile && $this->service->isKnownMissing($symbol),
         ]);
     }
@@ -33,6 +34,16 @@ class CompanyProfileController extends Controller
     public function load(Request $request, string $symbol): JsonResponse
     {
         $symbol = CompanyProfileService::normalizeSymbol($symbol) ?? abort(404);
+
+        // The manual "refresh" button re-runs the data source on demand: for signed-in users only
+        if ($request->boolean('force') && ! Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Vui lòng đăng nhập để làm mới dữ liệu.',
+                'message' => 'Vui lòng đăng nhập để làm mới dữ liệu.',
+                'login_url' => route('login'),
+            ], 401);
+        }
 
         $result = $this->service->load($symbol, $request->boolean('force'));
 
@@ -48,7 +59,7 @@ class CompanyProfileController extends Controller
         }
 
         return response()->json([
-            'success'   => true,
+            'success' => true,
             'synced_at' => $result['profile']->synced_at?->toIso8601String(),
         ]);
     }

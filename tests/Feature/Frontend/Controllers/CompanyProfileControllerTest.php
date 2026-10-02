@@ -6,6 +6,8 @@ use App\Frontend\Interfaces\CompanyProfileRepositoryInterface;
 use App\Frontend\Services\CompanyProfileService;
 use App\Jobs\SyncCompanyProfileJob;
 use App\Models\CompanyProfile;
+use App\Models\StockSymbol;
+use App\Models\User;
 use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -27,6 +29,7 @@ class CompanyProfileControllerTest extends TestCase
         parent::setUp();
         $this->withoutVite();
         Cache::flush();
+        StockSymbol::create(['symbol' => 'HPG', 'name' => 'Hòa Phát', 'exchange' => 'HSX']);   // only listed symbols may reach the data source
     }
 
     private function seedProfile(string $symbol = 'FPT', ?DateTimeInterface $syncedAt = null, array $over = []): CompanyProfile
@@ -143,6 +146,7 @@ class CompanyProfileControllerTest extends TestCase
     {
         // NB: one stubbed request per test — the router caches the resolved controller on the Route,
         // so re-binding the service between two requests to the same route would be ignored.
+        StockSymbol::create(['symbol' => 'ZZZ', 'name' => 'Đã hủy niêm yết', 'exchange' => 'HSX']);   // listed, but the source has no profile for it
         $this->stubService(['error' => 'Không tìm thấy', 'transient' => false]);
 
         $this->postJson('/company/ZZZ/load')->assertNotFound()->assertJsonPath('success', false);
@@ -163,6 +167,7 @@ class CompanyProfileControllerTest extends TestCase
     {
         $this->stubService(['symbol' => 'HPG', 'overview' => ['name' => 'Hòa Phát'], 'errors' => []]);
 
+        $this->actingAs(User::factory()->create());   // forced refresh is for signed-in users
         $this->postJson('/company/HPG/load?force=1')->assertOk();
         $this->postJson('/company/HPG/load?force=1')->assertStatus(429);
     }
