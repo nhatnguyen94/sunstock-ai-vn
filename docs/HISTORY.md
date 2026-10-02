@@ -6,6 +6,21 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## MOBILE_BOTTOM_NAV - October 3, 2026
+
+### Summary
+Item 6 of the UX proposal: on a phone the whole site was reachable only through the hamburger menu. Now a bottom bar offers the five places people open most.
+
+### Done
+- **`partials/mobile-nav.blade.php`** (included by `layouts/app.blade.php`, phones only via `d-md-none` + a `max-width: 767.98px` stylesheet): Trang chủ, Cổ phiếu, Theo dõi, Danh mục and, for a signed-in user, Tài khoản (`profile.show`) or, for a guest, Đăng nhập. The current page is marked (`is-active`, `aria-current="page"`, filled icon, a small indicator on the top edge); everything else (funds, gold, rates, news) stays in the top menu.
+- **`css/shared/mobile-nav.css`**: frosted bar with rounded top, safe-area padding for notched phones, tap feedback, the active icon pops once. The footer, the AI chat bubble, the back-to-top button, the exchange-rate FAB and the funds compare bar are all lifted clear of it.
+- **`js/shared/mobile-nav.js`**: the bar slides away while scrolling down and returns on scroll up, near the top, at the end of the page and when a form field gets focus; the decision is the pure `nextVisible()`.
+
+### Tests
+Group `mobileNav` (8 PHP: items for guest/user, one active item per page, filled icon, phone-only markup and `aria-hidden` icons, the stylesheet's phone breakpoint, safe area, reduced motion and floating-button offsets, layout wiring) + 6 Node tests (`tests/js/mobilenav.test.mjs`). Verified at 390 px with Playwright: bar visible at the top, hidden while scrolling down, back on scroll up and at the page end, floating buttons stacked above it.
+
+---
+
 ## HOME_PAGE_DATA_FIRST - October 2, 2026
 
 ### Summary

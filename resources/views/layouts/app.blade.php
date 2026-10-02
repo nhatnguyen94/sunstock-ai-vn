@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
     <!-- NProgress – page loading indicator -->
     <link rel="stylesheet" href="https://unpkg.com/nprogress@0.2.0/nprogress.css">
-    @vite(['resources/frontend/css/layouts/app.css', 'resources/frontend/css/shared/autocomplete.css'])
+    @vite(['resources/frontend/css/layouts/app.css', 'resources/frontend/css/shared/autocomplete.css', 'resources/frontend/css/shared/mobile-nav.css'])
     @yield('head')
 </head>
 <body>
@@ -273,6 +273,8 @@
             </div>
         </div>
     </footer>
+
+    @include('partials.mobile-nav')
 
     <!-- Back to top -->
     <button id="backToTop" title="Lên đầu trang"><i class="bi bi-arrow-up"></i></button>

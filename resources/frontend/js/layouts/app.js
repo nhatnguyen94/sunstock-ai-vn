@@ -1,4 +1,7 @@
 import { initAiChat } from '../shared/ai-chat.js';
+import { initMobileNav } from '../shared/mobile-nav.js';
+
+initMobileNav();   // bottom navigation on phones: hides while scrolling down, returns on scroll up
 
 // ── AOS Init ──────────────────────────────────────
         AOS.init({ duration: 650, once: true, offset: 60, easing: 'ease-out-cubic' });

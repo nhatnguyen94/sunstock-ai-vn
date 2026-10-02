@@ -1,0 +1,52 @@
+/* Bottom navigation for phones (markup: views/partials/mobile-nav.blade.php, behaviour: js/shared/mobile-nav.js).
+   Below 768 px only; on larger screens the bar is not rendered visible and the top menu does the job. */
+
+:root { --mnav-h: 62px; --mnav-safe: env(safe-area-inset-bottom, 0px); }
+
+.mnav { display: none; }
+
+@media (max-width: 767.98px) {
+    .mnav {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 9980;
+        display: flex; height: calc(var(--mnav-h) + var(--mnav-safe)); padding: 0 6px var(--mnav-safe);
+        background: rgba(255, 255, 255, .92); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+        border-top: 1px solid rgba(37, 99, 235, .12); border-radius: 18px 18px 0 0;
+        box-shadow: 0 -8px 24px rgba(15, 23, 42, .1);
+        transition: transform .3s ease;
+    }
+    .mnav.is-hidden { transform: translateY(100%); }
+
+    .mnav-item {
+        position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+        color: #64748b; font-size: .68rem; font-weight: 600; text-decoration: none; line-height: 1;
+        -webkit-tap-highlight-color: transparent; transition: color .2s ease, transform .15s ease;
+    }
+    .mnav-item:hover { color: var(--primary-blue); text-decoration: none; }
+    .mnav-item:active { transform: scale(.92); }
+    .mnav-item i { font-size: 1.35rem; line-height: 1; transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+
+    .mnav-item.is-active { color: var(--primary-blue); font-weight: 700; }
+    .mnav-item.is-active i { transform: translateY(-2px) scale(1.12); }
+    /* a small indicator on the top edge of the active item */
+    .mnav-item.is-active::before {
+        content: ''; position: absolute; top: 0; width: 28px; height: 3px; border-radius: 0 0 4px 4px;
+        background: linear-gradient(90deg, var(--primary-blue), var(--secondary-blue));
+    }
+
+    /* the footer keeps its last lines clear of the bar; floating buttons and the funds compare bar sit above it */
+    .custom-footer { padding-bottom: calc(var(--mnav-h) + var(--mnav-safe)); }
+    #aiChatBubble { bottom: calc(var(--mnav-h) + var(--mnav-safe) + 14px) !important; right: 14px !important; }
+    #backToTop { bottom: calc(var(--mnav-h) + var(--mnav-safe) + 80px) !important; right: 18px !important; }
+    .fab-container { bottom: calc(var(--mnav-h) + var(--mnav-safe) + 14px) !important; }
+    body .fd-compare-bar { bottom: calc(var(--mnav-h) + var(--mnav-safe)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mnav, .mnav-item, .mnav-item i { transition: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 767.98px) {
+    /* the active item's icon pops once when the page opens */
+    .mnav-item.is-active i { animation: mnav-pop .5s cubic-bezier(.3, 1.6, .5, 1) .15s backwards; }
+}
+@keyframes mnav-pop { from { transform: translateY(6px) scale(.7); opacity: 0; } to { transform: translateY(-2px) scale(1.12); opacity: 1; } }

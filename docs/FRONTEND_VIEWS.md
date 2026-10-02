@@ -34,6 +34,7 @@ resources/
 │   │   │   ├── autocomplete.css ← Dropdown + search-input styles (replaces the CDN awesomplete.css and 3 per-page copies); loaded by layouts/app.blade.php
 │   │   │   └── charts.css       ← Styles for shared/charts.js (legend) and shared/svgcharts.js (donut, bars)
 │   │   │   ├── watchlist.css    ← ★ follow buttons (.wl-star, .wl-btn, .wl-toggle)
+│   │   │   ├── mobile-nav.css   ← Phone bottom navigation bar (below 768 px) and the offsets that keep floating buttons above it
 │   │   │   ├── skeleton.css     ← Shimmering grey placeholders (.sk, .sk-text, .sk-bar, .sk-chart, .sk-row) + .is-loading-soft; honours reduced motion
 │   │   ├── company/
 │   │   │   └── show.css         ← Company profile page
@@ -70,6 +71,7 @@ resources/
 │       │   ├── charts.js        ← Lightweight Charts setup: theme, `makeChart`, legend, helpers (toDay/cleanSeries/sliceByDays/rebase)
 │       │   ├── indicators.js    ← SMA/EMA/RSI/MACD/Bollinger (pure, unit-tested)
 │       │   ├── svgcharts.js     ← Dependency-free donut + diverging bars (what Lightweight Charts cannot draw)
+│       │   ├── mobile-nav.js    ← Hide-on-scroll-down / show-on-scroll-up for the phone bottom bar (pure `nextVisible()`, unit-tested)
 │       │   ├── pricefx.js       ← Number cues: `countUp()` from the previous value, `flash()` once in the move's colour (both skipped for reduced motion) + pure helpers (`direction`, `valueAt`, `formatNumber`), unit-tested
 │       │   └── toast.js         ← Toast helper for page scripts
 │       ├── company/
@@ -250,6 +252,12 @@ npm run build
 - The compact rules are appended to `css/index.css` under `.hero-compact`; the original `.search-card` / `.hero-*` rules stay as the base (the card no longer overlaps the hero with a negative margin). On a phone the input and the search button share a row and the button shows only its icon.
 - **Background and motion**: the hero is one even blue (`#2563eb → #3b82f6`) so `.mk::before` (market.css) can fade the same blue out behind the market title and the index cards; the white-on-blue title/status styles live in `.mk-head`. `.home-body` wraps the market and everything below with ONE continuous gradient (colour-wheel scheme documented in `index.css`: analogous blues to violet + a small amber complement; change hues together, keep saturation soft), a dot grid (`::before`) and five `.home-glow` blobs; cards inside it are frosted glass (`.home-body .mk-card/.mk-idx/.info-section/.stock-card/.news-card`); do not add a second background zone, it reads as separate pieces; `.hero-fx` holds the hero orbs and candle bars. Motion (cards rising, `clip-path` reveals of sparklines/chart/breadth bar, bar growth, glow drift) is declared only inside `@media (prefers-reduced-motion: no-preference)`; use `animation-fill-mode: backwards` (not `both`) on anything that also has a hover transform. `home.js` counts the index levels and breadth numbers up on load and flashes (`pricefx.flash`) the numbers a 60 s poll changed. Decorative elements are `aria-hidden`.
 - `js/index.js` binds to `#symbol`, `.search-form-wrapper`, `.search-btn`, `.btn-text`, `#notFoundMsg`: keep those hooks when restyling (covered by the `homeLayout` tests).
+
+## Phone bottom navigation
+
+- `partials/mobile-nav.blade.php` (included by the layout) renders five items below 768 px (`d-md-none`): Trang chủ, Cổ phiếu (`stock*`, `etf*`, `company*`), Theo dõi, Danh mục and Tài khoản (signed in) / Đăng nhập (guest). The current item gets `is-active`, `aria-current="page"` and the filled icon. To add or reorder items edit the `$mobileNav` array in the partial; keep it at five (more does not fit a 360 px screen) and leave the rest in the top menu.
+- `css/shared/mobile-nav.css` defines `--mnav-h` and the safe-area variable. Anything that is `position: fixed` at the bottom of a page must be lifted by `calc(var(--mnav-h) + var(--mnav-safe))` inside that file's phone media query (already done for `#aiChatBubble`, `#backToTop`, `.fab-container`, `.fd-compare-bar`; the footer gets bottom padding). A new fixed-bottom element needs a line there, otherwise the bar covers it.
+- `js/shared/mobile-nav.js` hides the bar while scrolling down and shows it on scroll up, near the top, at the page end and when an input gets focus.
 
 ## Stock page: units, header, history table, skeletons
 - **Units — never print a feed price as money.** `stock_prices` is quoted in thousands of VND (FPT 62.1 = 62,100 ₫); an index (`VNINDEX`, `VN30`…) is in points. `App\Support\StockQuoteSummary::build($rows, $symbol)` converts once, server-side, and returns the whole header model (close, change, day and 52-week range with position, volume vs 20-session average, 1T/3T/6T/1N returns, `scale`/`decimals`/`unit`). The page passes `const stockUnit = {scale, decimals, unit}` to the script, which multiplies the bars by `scale` so the chart axis, legend, table and header all read 62.100, and an index keeps 1.737,71. A new page that shows a price from `stock_prices` must go through `PriceUnit` / `StockQuoteSummary`, not format the raw number.
