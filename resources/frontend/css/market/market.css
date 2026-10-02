@@ -1,6 +1,6 @@
 /* Home page "Tổng quan thị trường": index cards, VN-Index chart, breadth, liquidity, movers, watchlist card. */
 
-.mk { padding: 2.25rem 0 0.5rem; }
+.mk { padding: 1.4rem 0 0.5rem; }
 .mk-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .mk-title { font-size: 1.55rem; font-weight: 800; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .55rem; }
 .mk-title i { color: var(--primary-blue); }
@@ -103,3 +103,39 @@
 
 @media (max-width: 991px) { .mk-indices { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .mk-indices { grid-template-columns: 1fr 1fr; gap: .6rem; } .mk-idx-close { font-size: 1.25rem; } .mk-title { font-size: 1.25rem; } }
+
+/* ── Title and status sit on the page background's first blue stretch (index.css .home-body) ── */
+.mk { position: relative; }
+.mk > .container { position: relative; z-index: 1; }
+.mk-head .mk-title, .mk-head .mk-title i { color: #fff; }
+.mk-head .mk-meta { color: rgba(255, 255, 255, .85); }
+.mk-head .mk-meta strong { color: #fff; }
+.mk-head .mk-status { background: rgba(255, 255, 255, .2); color: #fff; }
+.mk-head .mk-status i { background: rgba(255, 255, 255, .75); }
+.mk-head .mk-status.open { background: #fff; color: #047857; }
+.mk-head .mk-status.open i { background: #10b981; }
+.mk-idx { transition: transform .2s ease, box-shadow .2s ease; }
+.mk-idx:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+/* a number the live poll has just changed (see shared/pricefx.js flash()) */
+.mk .fx-flash-up { animation: mk-flash-up 900ms ease-out; border-radius: 6px; }
+.mk .fx-flash-down { animation: mk-flash-down 900ms ease-out; border-radius: 6px; }
+@keyframes mk-flash-up { 0% { background: rgba(16, 185, 129, .35); } 100% { background: transparent; } }
+@keyframes mk-flash-down { 0% { background: rgba(239, 68, 68, .35); } 100% { background: transparent; } }
+
+/* ── Motion (skipped when the visitor asks the OS for less) ── */
+@media (prefers-reduced-motion: no-preference) {
+    .mk-head { animation: mk-rise .5s ease-out backwards; }
+    .mk-idx { animation: mk-rise .6s cubic-bezier(.2, .7, .2, 1) backwards; }   /* backwards: the hover lift is not overridden afterwards */
+    .mk-idx:nth-child(1) { animation-delay: .05s; } .mk-idx:nth-child(2) { animation-delay: .15s; }
+    .mk-idx:nth-child(3) { animation-delay: .25s; } .mk-idx:nth-child(4) { animation-delay: .35s; }
+    .mk-idx::after { content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; pointer-events: none; transform: skewX(-18deg);
+        background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .7), transparent); transition: left .8s ease; }
+    .mk-idx:hover::after { left: 130%; }
+    .mk-spark { animation: mk-reveal 1.1s ease-out .45s backwards; }
+    .mk-chart { animation: mk-reveal 1.4s ease-out .6s backwards; }
+    .mk-breadth-bar { animation: mk-reveal 1s ease-out .3s backwards; }
+    .mk-liq-track i { transform-origin: left; animation: mk-grow 1.1s cubic-bezier(.2, .7, .2, 1) .5s backwards; }
+}
+@keyframes mk-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mk-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes mk-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }

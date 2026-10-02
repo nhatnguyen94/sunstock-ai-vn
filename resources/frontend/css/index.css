@@ -758,3 +758,92 @@
             grid-template-columns: repeat(2, 1fr);
         }
     }
+
+/* Compact hero: title and search share one band so the market overview starts on the first screen */
+.hero-search.hero-compact { padding: 1.9rem 0 1.6rem; }
+.hero-compact .hero-title { font-size: 2rem; margin-bottom: .2rem; }
+.hero-compact .hero-subtitle { font-size: 1rem; margin-bottom: 1.1rem; }
+.hero-compact .search-card { margin: 0 auto; padding: 1rem 1.15rem .75rem; border-radius: 18px; max-width: 780px; }
+.hero-compact .search-form-wrapper { margin-bottom: .6rem; }
+.hero-compact .search-input { padding: .85rem 1.25rem .85rem 3.1rem; font-size: 1rem; border-radius: 13px; }
+.hero-compact .search-icon { left: 1.05rem; font-size: 1.1rem; }
+.hero-compact .search-btn { padding: .85rem 1.8rem; font-size: 1rem; min-width: 130px; border-radius: 13px; }
+.hero-compact .search-input-group { gap: 10px; }
+.hero-compact .popular-tags { margin-top: 0; text-align: left; display: flex; flex-wrap: wrap; align-items: center; gap: .1rem 0; }
+.hero-compact .popular-label { color: var(--text-secondary); font-weight: 500; font-size: .85rem; margin-right: .6rem; }
+.hero-compact .popular-tags .tag { padding: .22rem .75rem; font-size: .85rem; margin: 0 .4rem .4rem 0; }
+.hero-compact .popular-tags .tag-tool { background: #fff; }
+.hero-compact .popular-kbd { margin: 0 0 .4rem auto; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1px 6px; font-size: .75rem; color: var(--text-secondary); }
+
+@media (max-width: 768px) {
+    .hero-search.hero-compact { padding: 1.25rem 0 1rem; }
+    .hero-compact .hero-title { font-size: 1.6rem; }
+    .hero-compact .hero-subtitle { font-size: .92rem; margin-bottom: .8rem; }
+    .hero-compact .search-card { margin: 0; padding: .85rem; }
+    .hero-compact .search-input-group { flex-direction: row; gap: 8px; }
+    .hero-compact .search-btn { min-width: auto; padding: .85rem 1rem; }
+    .hero-compact .search-btn .btn-text { display: none; }
+    .hero-compact .popular-label { display: none; }
+}
+
+/* Hero: one even blue so the page background can fade out of it without a seam; slow decorations */
+.hero-search.hero-compact { background: linear-gradient(180deg, #2563eb 0%, #3b82f6 100%); }
+.hero-fx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
+.hero-fx .orb { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .07); }
+.hero-fx .o1 { width: 380px; height: 380px; top: -45%; right: -5%; }
+.hero-fx .o2 { width: 260px; height: 260px; bottom: -55%; left: -3%; background: rgba(255, 255, 255, .05); }
+.hero-fx .bar { position: absolute; width: 3px; border-radius: 2px; transform-origin: bottom; }
+.hero-fx .b1 { left: 9%; top: 24%; height: 58px; background: rgba(251, 191, 36, .5); }
+.hero-fx .b2 { right: 11%; top: 38%; height: 42px; background: rgba(52, 211, 153, .45); }
+.hero-fx .b3 { left: 17%; bottom: 14%; height: 30px; background: rgba(248, 113, 113, .4); }
+
+/* ── One continuous page background, picked on the colour wheel ───────────────────────────────────────────
+   Scheme: analogous + one complement. The brand blue (217°) turns gradually to indigo (236°), violet (252°)
+   and orchid (268°) at the same soft saturation, so nothing "jumps"; amber (43°, the complement of blue,
+   already the hero's accent) appears only as a small warm spark. The hero's bottom blue is the first stop. */
+.home-body { position: relative; overflow-x: clip;
+    background: linear-gradient(180deg,
+        #3b82f6 0, #3b82f6 90px,      /* hero blue carries on behind the market title */
+        #7fa9fa 230px,                /* 217° */
+        #c9dcfd 480px,                /* 217° light */
+        #dde6ff 760px,                /* 225° */
+        #e4e6ff 1300px,               /* 236° */
+        #ebe4ff 2000px,               /* 252° */
+        #f1e6fd 2700px,               /* 268° */
+        #ece8ff 3300px); }
+.home-body::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background-image: radial-gradient(rgba(79, 70, 229, .13) 1px, transparent 1.5px); background-size: 24px 24px; }
+.home-glow { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.home-glow i { position: absolute; border-radius: 50%; will-change: transform; }
+.home-glow .g1 { width: 680px; height: 680px; top: 520px; left: -230px; background: radial-gradient(closest-side, rgba(99, 102, 241, .26), transparent); }   /* indigo 239° */
+.home-glow .g2 { width: 720px; height: 720px; top: 1250px; right: -250px; background: radial-gradient(closest-side, rgba(168, 85, 247, .22), transparent); }  /* violet 270° */
+.home-glow .g3 { width: 660px; height: 660px; top: 2000px; left: -240px; background: radial-gradient(closest-side, rgba(56, 189, 248, .26), transparent); }   /* sky 199° */
+.home-glow .g4 { width: 720px; height: 720px; top: 2750px; right: -250px; background: radial-gradient(closest-side, rgba(129, 140, 248, .24), transparent); } /* periwinkle 234° */
+.home-glow .g5 { width: 360px; height: 360px; top: 1650px; left: 48%; background: radial-gradient(closest-side, rgba(251, 191, 36, .16), transparent); }       /* amber 43°: the warm spark */
+.home-body > .container { position: relative; z-index: 1; }
+
+/* Cards become frosted glass, so the colour behind them shows through and every block shares the page's tint */
+.home-body .mk-card, .home-body .mk-idx, .home-body .info-section, .home-body .stock-card, .home-body .news-card {
+    background: rgba(255, 255, 255, .8); border-color: rgba(255, 255, 255, .75);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+
+/* A market line that draws itself across the bottom of the hero */
+.hero-line { position: absolute; left: 0; bottom: 0; width: 100%; height: 55%; }
+
+@media (prefers-reduced-motion: no-preference) {
+    .hero-fx .orb { animation: home-float 11s ease-in-out infinite alternate; }
+    .hero-fx .o2 { animation-duration: 14s; animation-delay: -4s; }
+    .hero-fx .bar { animation: home-bar 4.5s ease-in-out infinite; }
+    .hero-fx .b2 { animation-delay: -1.5s; }
+    .hero-fx .b3 { animation-delay: -3s; }
+    .hero-line { animation: hero-line 10s ease-in-out infinite; }
+    .home-glow i { animation: home-drift 20s ease-in-out infinite alternate; }
+    .home-glow .g2 { animation-duration: 26s; animation-delay: -7s; }
+    .home-glow .g3 { animation-duration: 23s; animation-delay: -12s; }
+    .home-glow .g4 { animation-duration: 29s; animation-delay: -4s; }
+    .home-glow .g5 { animation-duration: 17s; animation-delay: -9s; }
+}
+@keyframes home-float { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(26px, 22px, 0); } }
+@keyframes home-drift { 0% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(60px, -40px, 0) scale(1.1); } 100% { transform: translate3d(-30px, 50px, 0) scale(.94); } }
+@keyframes home-bar { 0%, 100% { transform: scaleY(1); opacity: .9; } 50% { transform: scaleY(.55); opacity: .5; } }
+@keyframes hero-line { 0% { clip-path: inset(0 100% 0 0); opacity: 1; } 55% { clip-path: inset(0 0 0 0); opacity: 1; } 85% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 0; } }

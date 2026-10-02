@@ -58,7 +58,7 @@
                 <div id="mkChart" class="mk-chart"></div>
             </div>
         </div>
-        <div class="col-lg-4">
+        <div class="col-lg-4" data-aos="fade-up" data-aos-delay="120">
             <div class="mk-card">
                 <div class="mk-card-head"><h3><i class="bi bi-bar-chart-steps"></i> Độ rộng thị trường</h3></div>
                 <div class="mk-breadth">
@@ -101,7 +101,7 @@
     </div>
 
     <div class="row">
-        <div class="col-lg-8">
+        <div class="col-lg-8" data-aos="fade-up">
             <div class="mk-card">
                 <div class="mk-card-head">
                     <h3><i class="bi bi-trophy"></i> Cổ phiếu nổi bật trong phiên</h3>
@@ -122,7 +122,7 @@
                 <p class="mk-note-line">Chỉ xếp hạng cổ phiếu có giá trị giao dịch từ 5 tỷ đồng để loại các lệnh lẻ. Bấm ★ để theo dõi.</p>
             </div>
         </div>
-        <div class="col-lg-4">
+        <div class="col-lg-4" data-aos="fade-up" data-aos-delay="120">
             <div class="mk-card mk-watch" id="mkWatch">
                 <div class="mk-card-head">
                     <h3><i class="bi bi-star-fill" style="color:#f59e0b"></i> Danh sách theo dõi</h3>

@@ -6,6 +6,27 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## HOME_PAGE_DATA_FIRST - October 2, 2026
+
+### Summary
+Owner asked for changes users see at once (item 2 of the UX proposal). The home page opened with a ~700 px blue hero (title, badge, two buttons, four marketing numbers) and the search box under it; the market overview started below the first screen. Now data comes first. A dark mode was tried first and reverted on the owner's request (it clashed with the blue brand look); nothing of it remains in the code.
+
+### Done
+- **Compact hero**: title, one-line subtitle and the search box share one ~280 px band; popular tickers, a "So sánh" chip and the Ctrl+K hint sit under the input. The "Dữ liệu cập nhật…" pill, the 700+/20+/AI/Free numbers and the hero's register button are gone (the guest banner at the bottom still offers sign-up).
+- **Order of the page**: search → **market overview** (indices, VN-Index chart, breadth, liquidity, movers, watchlist) → AI prediction button → featured stocks → exchange rates → hot industries → news → (guests only) "Tại sao chọn Sun Stock AI?" → (guests only) sign-up banner. A signed-in user no longer gets the product pitch.
+- Phone: input and a text-less search button on one row, smaller title, label hidden.
+- No controller, service, route or JS change: `index.js` binds to the same ids/classes (`#symbol`, `.search-form-wrapper`, `.search-btn`, `.btn-text`, `#notFoundMsg`), `market/home.js` is untouched.
+
+### Background and motion (second pass, same day)
+Owner: the middle of the page looked empty and cut off from the blue hero. Now: the hero is one even blue and the market section opens with the same blue fading out behind the title and the index cards (`.mk::before`), first a split (plain top, tinted bottom) which read as separate pieces. Final: **one continuous background** (`.home-body`) chosen on the colour wheel, analogous blues (217° brand blue → 236° indigo → 252° violet → 268° orchid, same soft saturation) with one complement (amber 43°, the hero's accent) as a small warm glow; its first stop is the hero's bottom blue, so hero, market and the rest flow into each other. Cards are frosted glass (`rgba(255,255,255,.8)` + blur) so the tint shows through everywhere. More motion: a market line that draws itself across the hero, five glows drifting on different paths, a light sheen sweeping over an index card on hover. Motion: hero orbs and candle bars drift, index cards rise in one after another, sparklines and the VN-Index chart are revealed left to right, the breadth bar sweeps and the exchange bars grow, cards below the first screen use AOS, index levels and breadth counts count up, a card lifts on hover, and numbers flash green/red when the 60 s poll changes them (`home.js` + `shared/pricefx.js`). Every `animation` lives inside `@media (prefers-reduced-motion: no-preference)` (tested); decoration is `aria-hidden`.
+
+### Tests
+Group `homeLayout` (10; the first 7 cover the layout, the last 3 the shared background wrapper, scroll animation and the reduced-motion guard): search before market, nothing but the hero between them, script hooks kept, old marketing gone, order of the working blocks, guest pitch + banner last, signed-in user sees neither, page still renders when the market service has no data. `marketOverview`, `codeStyle` and `ExampleTest` still green; Pint clean.
+
+### Not done
+Phone bottom navigation (item 6) and the rest of the proposal.
+
+---
 ## STOCK_PAGE_UX_REFRESH - October 2, 2026
 
 ### Summary

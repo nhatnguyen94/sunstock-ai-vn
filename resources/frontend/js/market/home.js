@@ -2,6 +2,7 @@
 // 60-second poll while the market is open. First paint is server-rendered; this adds interactivity + live data.
 
 import { AreaSeries, HistogramSeries, attachLegend, fmtCompact, fmtDec, makeChart } from '../shared/charts.js';
+import { countUp, direction, flash } from '../shared/pricefx.js';
 import { initWatchlistStars, paintStars } from '../shared/watchlist.js';
 import { dirClass, esc, exchangeLabel, fmtInt, fmtPct, fmtValue, fmtVolume } from './format.js';
 
@@ -28,7 +29,7 @@ if (cfg) {
             return `<tr>
                 <td><button type="button" class="wl-star" data-watch="${esc(m.symbol)}" aria-label="Theo dõi ${esc(m.symbol)}"><i class="bi bi-star"></i></button></td>
                 <td><a class="mk-sym" href="/stock?symbol=${encodeURIComponent(m.symbol)}">${esc(m.symbol)}</a><span class="mk-sub">${esc(exchangeLabel(m.exchange))}</span></td>
-                <td class="num"><strong>${fmtInt(m.price)}</strong></td>
+                <td class="num"><strong data-px="${esc(m.symbol)}">${fmtInt(m.price)}</strong></td>
                 <td class="num"><span class="mk-pct ${d}">${fmtPct(m.percent)}</span></td>
                 <td class="num">${fmtValue(m.value)}</td>
                 <td class="num d-none d-md-table-cell">${fmtVolume(m.volume)}</td>
@@ -112,10 +113,28 @@ if (cfg) {
     }
 
     // ── live updates ─────────────────────────────────────────────────────────
+    // the number shown in a vi-VN formatted element (1.737,71 -> 1737.71)
+    const readVi = (el) => Number(el.textContent.replace(/\./g, '').replace(',', '.'));
+
+    // first paint: the index levels and the breadth counts count up to the server-rendered text (which stays the final text)
+    document.querySelectorAll('.mk-idx-close').forEach((el) => {
+        const v = readVi(el);
+        countUp(el, v * 0.985, v, { decimals: 2, duration: 900 });
+    });
+    ['mkAdv', 'mkUnch', 'mkDec'].forEach((id) => {
+        const el = $(id);
+        if (el) countUp(el, 0, readVi(el), { decimals: 0, duration: 900 });
+    });
+
     function applyData(d) {
+        // prices on screen before this update, to flash only the rows that moved
+        const before = new Map([...document.querySelectorAll('[data-px]')].map((el) => [el.dataset.px, readVi(el)]));
         state.movers = d.movers || state.movers;
         state.open = d.market_open;
         renderMovers();
+        document.querySelectorAll('[data-px]').forEach((el) => {
+            if (before.has(el.dataset.px)) flash(el, direction(before.get(el.dataset.px), readVi(el)));
+        });
         if (d.watchlist) renderWatch(d.watchlist);
 
         (d.indices || []).forEach((i) => {
@@ -123,7 +142,10 @@ if (cfg) {
             if (!card) return;
             const cls = dirClass(i.change);
             card.className = `mk-idx ${cls}`;
-            card.querySelector('.mk-idx-close').textContent = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(i.close);
+            const closeEl = card.querySelector('.mk-idx-close');
+            const prevClose = readVi(closeEl);
+            closeEl.textContent = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(i.close);
+            flash(closeEl, direction(prevClose, i.close));
             const chg = card.querySelector('.mk-idx-chg');
             chg.className = `mk-idx-chg ${cls}`;
             chg.querySelector('i').className = 'bi ' + (i.change > 0 ? 'bi-caret-up-fill' : i.change < 0 ? 'bi-caret-down-fill' : 'bi-dash');
