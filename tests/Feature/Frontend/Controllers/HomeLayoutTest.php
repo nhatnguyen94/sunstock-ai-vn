@@ -56,7 +56,7 @@ class HomeLayoutTest extends TestCase
         $this->assertLessThan($market, $search, 'search comes before the market overview');
         // nothing but the hero sits between the search box and the market overview
         $between = substr($html, $search, $market - $search);
-        foreach (['featured-section', 'aiPredictBtn', 'Tại sao chọn', 'info-section'] as $later) {
+        foreach (['id="explore"', 'aiPredictBtn', 'Tại sao chọn', 'info-section'] as $later) {
             $this->assertStringNotContainsString($later, $between, "'{$later}' must come after the market overview");
         }
     }
@@ -88,7 +88,7 @@ class HomeLayoutTest extends TestCase
     {
         $html = $this->get('/')->assertOk()->getContent();
 
-        $order = ['id="market"', 'id="aiPredictBtn"', 'class="featured-section"', 'Tỷ giá ngoại tệ hôm nay', 'id="hot-industries-section"'];
+        $order = ['id="market"', 'id="aiPredictBtn"', 'id="explore"', 'id="exPanelFeatured"', 'id="exPanelHot"', 'id="exPanelRates"'];
         $last = -1;
         foreach ($order as $needle) {
             $pos = $this->positionOf($html, $needle);
@@ -141,10 +141,10 @@ class HomeLayoutTest extends TestCase
     {
         $html = $this->get('/')->assertOk()->getContent();
 
-        $wrapper = $this->positionOf($html, 'class="home-body"');
+        $wrapper = $this->positionOf($html, 'class="home-body');
         $this->assertGreaterThan($this->positionOf($html, 'hero-compact'), $wrapper, 'the wrapper starts under the hero');
         $this->assertLessThan($this->positionOf($html, 'id="market"'), $wrapper, 'the market section is inside the wrapper');
-        $this->assertLessThan($this->positionOf($html, 'class="featured-section"'), $wrapper);
+        $this->assertLessThan($this->positionOf($html, 'id="explore"'), $wrapper);
         $this->assertStringNotContainsString('home-lower', $html, 'one continuous background, not a second tinted zone');
         $this->assertSame(5, substr_count($html, '<i class="g'), 'five glows share the one background');
         $this->assertStringContainsString('<svg class="hero-line"', $html);
@@ -159,8 +159,8 @@ class HomeLayoutTest extends TestCase
     {
         $html = $this->get('/')->assertOk()->getContent();
 
-        $this->assertGreaterThanOrEqual(4, substr_count($html, 'data-aos="fade-up"'));
-        $this->assertGreaterThan(0, preg_match('/<div class="col-lg-4" data-aos="fade-up"[^>]*>\s*<div class="mk-card">/', $html), 'breadth card');
+        $this->assertGreaterThanOrEqual(2, substr_count($html, 'data-aos="fade-up"'));
+        $this->assertMatchesRegularExpression('/<section class="mk-card mk-explore" id="explore" data-aos="fade-up">/', $html);
     }
 
     #[Group('homeLayout')]

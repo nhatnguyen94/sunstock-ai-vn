@@ -34,6 +34,7 @@ class MarketOverviewService
 
     /** Sparkline drawing box (viewBox 0 0 100 32). */
     private const SPARK_W = 100;
+
     private const SPARK_H = 32;
 
     public function __construct(private readonly MarketSnapshotRepositoryInterface $repo) {}
@@ -116,6 +117,7 @@ class MarketOverviewService
                 'change_percent' => ($sessionComplete && $previousValue > 0) ? round(($value / $previousValue - 1) * 100, 1) : null,
             ],
             'movers' => $data['movers'] ?? [],
+            'foreign' => $data['foreign'] ?? null,   // estimates from the price board (see py/get_market_overview.py foreign_flow); null in older snapshots
             'vnindex_series' => $vnindex['series'] ?? [],
         ];
     }
@@ -123,7 +125,7 @@ class MarketOverviewService
     /**
      * Quotes for the given symbols from the newest snapshot (whole VND).
      *
-     * @param  string[] $symbols
+     * @param  string[]  $symbols
      * @return array<string, array{price: int, reference: int, change: int, percent: float, volume: int, value: int, ceiling: ?int, floor: ?int, open: ?int, high: ?int, low: ?int}>
      */
     public function quotes(array $symbols): array
@@ -213,7 +215,7 @@ class MarketOverviewService
             // A half-empty payload would overwrite a good snapshot of the same session
             $why = $data['errors']['board'] ?? ($data['errors'] ? implode('; ', $data['errors']) : 'thiếu dữ liệu');
 
-            return ['error' => 'Dữ liệu thị trường chưa đầy đủ: ' . $why];
+            return ['error' => 'Dữ liệu thị trường chưa đầy đủ: '.$why];
         }
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($data['trade_date'] ?? ''))) {
             return ['error' => 'Không xác định được ngày giao dịch.'];
@@ -269,7 +271,7 @@ class MarketOverviewService
     /**
      * Polyline points ("x,y x,y ...") for a sparkline in a 100×32 box; empty string with fewer than 2 points.
      *
-     * @param array<int, int|float> $values
+     * @param  array<int, int|float>  $values
      */
     public function sparkPoints(array $values): string
     {
@@ -288,7 +290,7 @@ class MarketOverviewService
         foreach ($values as $i => $v) {
             $x = round($i / ($n - 1) * self::SPARK_W, 2);
             $y = round($pad + (1 - ($v - $min) / $span) * (self::SPARK_H - 2 * $pad), 2);
-            $points[] = $x . ',' . $y;
+            $points[] = $x.','.$y;
         }
 
         return implode(' ', $points);

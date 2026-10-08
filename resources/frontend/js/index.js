@@ -1,5 +1,7 @@
 import { stockAutocomplete } from './shared/autocomplete.js';
 import { formatAiText } from './shared/ai-text.js';
+import { initTabs } from './shared/tabs.js';
+import { initJumpBar, initReveal, initTilt } from './shared/fx.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     const symbolInput = document.getElementById('symbol');
@@ -67,6 +69,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Ctrl/Cmd + K is the global command palette now (js/shared/palette.js)
+
+    // Explore card tabs (featured / hot industries / exchange rates)
+    const explore = initTabs(document.getElementById('exploreTabs'));
+
+    // A page of the hot-industries list was asked for: open that list and scroll to it
+    if (explore && window.location.hash === '#hot-industries-section') {
+        const hot = document.getElementById('exTabHot');
+        if (hot) explore.select(hot);
+        setTimeout(() => document.getElementById('hot-industries-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    }
+
+    // Visual effects (decoration only; skipped for reduced motion): 3D tilt, rise-into-view, the sticky jump bar
+    initTilt('.mk-idx, .mk-pc, .stock-card, .ai-hero');
+    initReveal('.home-sec-head, .home-section .mk-card:not(.mk-heat), .mk-indices, .info-section, .home-section .feature-card');
+    initJumpBar(document.getElementById('homeJump'));
 
     // Scroll to hot industries section when paginate is clicked
     document.addEventListener('click', function(e) {

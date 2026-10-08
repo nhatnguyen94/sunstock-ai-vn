@@ -35,6 +35,49 @@ class PortfolioService
             : $this->portfolioRepository->getAllByUser($userId);
     }
 
+    /**
+     * The few numbers the home page's "Của tôi" card shows: the user's ACTIVE portfolios added together, from the prices already
+     * stored on the holdings (no refresh, no queue job, no Python — the portfolio page does the refreshing). Holdings with no price
+     * yet are counted in `unpriced` and left out of the money figures, so a missing price never shows up as a 100 % loss.
+     *
+     * @return array{count: int, holdings: int, unpriced: int, value: float, invested: float, pnl: float, pnl_percent: ?float, day: float, day_percent: ?float}
+     */
+    public function homeSummary(int $userId): array
+    {
+        $portfolios = $this->portfolioRepository->getActiveByUser($userId);
+        $value = $invested = $day = 0.0;
+        $holdings = $unpriced = 0;
+
+        foreach ($portfolios as $portfolio) {
+            foreach ($portfolio->items as $item) {
+                if ((float) $item->current_price <= 0) {
+                    $unpriced++;
+
+                    continue;
+                }
+                $holdings++;
+                $value += $item->current_value;
+                $invested += $item->total_invested;
+                $day += $item->day_change_value;
+            }
+        }
+
+        $pnl = $value - $invested;
+        $previous = $value - $day;
+
+        return [
+            'count' => $portfolios->count(),
+            'holdings' => $holdings,
+            'unpriced' => $unpriced,
+            'value' => $value,
+            'invested' => $invested,
+            'pnl' => $pnl,
+            'pnl_percent' => $invested > 0 ? $pnl / $invested * 100 : null,
+            'day' => $day,
+            'day_percent' => $previous > 0 ? $day / $previous * 100 : null,
+        ];
+    }
+
     public function getPortfoliosPaginated(int $userId, int $perPage = 10): LengthAwarePaginator
     {
         return $this->portfolioRepository->paginate($userId, $perPage);

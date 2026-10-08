@@ -13,8 +13,10 @@ use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Frontend\Services\AiService;
 use App\Frontend\Services\CompanyFinancialService;
 use App\Frontend\Services\ExchangeRateService;
+use App\Frontend\Services\HomeDashboardService;
 use App\Frontend\Services\MarketHeatmapService;
 use App\Frontend\Services\MarketOverviewService;
+use App\Frontend\Services\PortfolioService;
 use App\Frontend\Services\StockPriceFreshness;
 use App\Frontend\Services\StockService;
 use App\Frontend\Services\WatchlistService;
@@ -63,7 +65,7 @@ class StockController extends Controller
      *
      * @return View
      */
-    public function home(Request $request, NewsServiceInterface $newsService, MarketOverviewService $marketService, WatchlistService $watchlistService, MarketHeatmapService $heatmapService)
+    public function home(Request $request, NewsServiceInterface $newsService, MarketOverviewService $marketService, WatchlistService $watchlistService, MarketHeatmapService $heatmapService, PortfolioService $portfolioService, HomeDashboardService $dashboard)
     {
         $symbols = ['FPT', 'VNM', 'ACB'];
 
@@ -136,10 +138,21 @@ class StockController extends Controller
                 report($e);
             }
         }
+        // "Của tôi" (signed-in visitors only): their portfolios in one line, never able to take the page down
+        $mine = null;
+        if (Auth::check()) {
+            try {
+                $mine = ['portfolio' => $portfolioService->homeSummary(Auth::id())];
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+        // world strip, "Vàng · Tỷ giá · Quỹ", sentiment, signals and events: each part tolerates its own failure (null)
+        $extras = $dashboard->build($market, Auth::id());
         $watchRows = Auth::check() ? $watchlistService->rows(Auth::id(), 8) : null;
         $watched = Auth::check() ? $watchlistService->symbols(Auth::id()) : [];
 
-        return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news', 'market', 'watchRows', 'watched', 'heatmap', 'brief'));
+        return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news', 'market', 'watchRows', 'watched', 'heatmap', 'brief', 'mine', 'extras'));
     }
 
     /**

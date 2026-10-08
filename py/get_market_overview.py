@@ -19,6 +19,7 @@ Output: one JSON line
   "indices":   [{"code","name","close","change","percent","volume","series":[[date, close, volume], ...]}],
   "exchanges": {"HOSE": {"count","advancers","decliners","unchanged","ceiling","floor","value","volume"}, ...},
   "movers":    {"ALL": {"gainers":[row], "losers":[row], "value":[row]}, "HOSE": {...}, ...},
+  "foreign":   {"buy_value","sell_value","net_value","by_exchange":{"HOSE":{"buy","sell","net"},...},"top_buy":[row],"top_sell":[row]}   # ESTIMATES, see foreign_flow()
   "quotes":    {"FPT": [price, reference, percent, volume, value, ceiling, floor, open, high, low, exchange], ...},   # whole VND; exchange HOSE/HNX/UPCOM (heat map filter)
   "errors": {...}, "warnings": [...]
 }
@@ -55,6 +56,8 @@ INDICES = [('VNINDEX', 'VN-Index'), ('VN30', 'VN30'), ('HNXINDEX', 'HNX-Index'),
 EXCHANGES = ['HOSE', 'HNX', 'UPCOM']
 MIN_VALUE = 5_000_000_000        # 5 billion VND traded before a stock can be ranked as a gainer/loser
 TOP_N = 10
+FOREIGN_TOP = 5                  # rows in the foreign top-buy / top-sell lists
+FOREIGN_MIN_VALUE = 1_000_000_000   # a net foreign position under 1 billion VND is noise in a top list
 SERIES_DAYS = 45                 # calendar days of index history (~30 sessions)
 BOARD_CHUNK = 2500        # one request for the whole market (guest tier allows only 20 requests/min)
 STOCK_RE = re.compile(r'^[A-Z][A-Z0-9]{2}$')
@@ -168,10 +171,49 @@ def analyse(df, exch):
     return quotes, stats, movers
 
 
+def foreign_flow(df, exch):
+    """
+    Foreign buying and selling of STOCKS from the same price board (foreign_buy_volume / foreign_sell_volume, accumulated for the session).
+
+    The board has no foreign matched VALUE, so every value here is an ESTIMATE: volume x the last price (the reference price for a stock that
+    has not traded). The page says so. Returns totals, a net figure per exchange and the stocks with the biggest net foreign buying/selling.
+    """
+    by_ex = {e: {'buy': 0.0, 'sell': 0.0} for e in EXCHANGES}
+    rows = []
+    for r in df.to_dict('records'):
+        sym = str(r.get('symbol', '')).upper()
+        ex = exch.get(sym) or r.get('exchange')
+        if ex not in by_ex or not STOCK_RE.match(sym):
+            continue
+        price = num(r.get('close_price'))
+        if not price or price <= 0:
+            price = num(r.get('reference_price'))
+        if not price or price <= 0:
+            continue
+        buy = num(r.get('foreign_buy_volume'), 0) or 0
+        sell = num(r.get('foreign_sell_volume'), 0) or 0
+        if buy <= 0 and sell <= 0:
+            continue
+        buy_value, sell_value = buy * price, sell * price
+        by_ex[ex]['buy'] += buy_value
+        by_ex[ex]['sell'] += sell_value
+        rows.append({'symbol': sym, 'exchange': ex, 'price': int(round(price)), 'buy_volume': int(buy), 'sell_volume': int(sell),
+                     'net_volume': int(buy - sell), 'net_value': int(round(buy_value - sell_value))})
+
+    buy_total = sum(v['buy'] for v in by_ex.values())
+    sell_total = sum(v['sell'] for v in by_ex.values())
+    return {
+        'buy_value': int(round(buy_total)), 'sell_value': int(round(sell_total)), 'net_value': int(round(buy_total - sell_total)),
+        'by_exchange': {e: {'buy': int(round(v['buy'])), 'sell': int(round(v['sell'])), 'net': int(round(v['buy'] - v['sell']))} for e, v in by_ex.items()},
+        'top_buy': sorted([r for r in rows if r['net_value'] >= FOREIGN_MIN_VALUE], key=lambda r: -r['net_value'])[:FOREIGN_TOP],
+        'top_sell': sorted([r for r in rows if r['net_value'] <= -FOREIGN_MIN_VALUE], key=lambda r: r['net_value'])[:FOREIGN_TOP],
+    }
+
+
 def main():
     result = {
         'fetched_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'trade_date': None, 'indices': [], 'exchanges': {}, 'movers': {}, 'quotes': {},
+        'trade_date': None, 'indices': [], 'exchanges': {}, 'movers': {}, 'quotes': {}, 'foreign': None,
         'errors': {}, 'warnings': [],
     }
 
@@ -189,6 +231,10 @@ def main():
             exch = f_list.result()
             df = fetch_board(sorted(exch.keys()))
             result['quotes'], result['exchanges'], result['movers'] = analyse(df, exch)
+            try:
+                result['foreign'] = foreign_flow(df, exch)
+            except Exception as exc:  # noqa: BLE001 - the foreign figures are an extra: never lose the quotes over them
+                result['errors']['foreign'] = str(exc)[:160]
         except Exception as exc:  # noqa: BLE001
             result['errors']['board'] = str(exc)[:160]
 

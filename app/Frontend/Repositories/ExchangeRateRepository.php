@@ -21,6 +21,14 @@ class ExchangeRateRepository implements ExchangeRateRepositoryInterface
             ->toArray();
     }
 
+    public function getRateBefore(string $currencyCode, string $date): ?ExchangeRate
+    {
+        return ExchangeRate::where('currency_code', $currencyCode)
+            ->where('date', '<', $date)
+            ->orderByDesc('date')
+            ->first();
+    }
+
     public function getRatesByDate($date)
     {
         return ExchangeRate::where('date', $date)->get()->map(function ($item) {

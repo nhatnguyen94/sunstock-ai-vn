@@ -32,6 +32,22 @@ interface StockRepositoryInterface
     public function symbolInfo(array $symbols): array;
 
     /**
+     * Per symbol, over the stored daily bars with `$from <= date < $before`: how many sessions, the highest high, the lowest low and the last
+     * date (feed units). The input of the "tín hiệu" breakout/breakdown rules.
+     *
+     * @return array<string, array{n: int, high: float, low: float, last_date: string}>
+     */
+    public function priceExtremes(string $from, string $before): array;
+
+    /**
+     * The stored [date, close, volume] bars with `$from <= date < $before` per symbol, oldest first (feed units): enough for an average
+     * volume and an RSI without loading a whole history.
+     *
+     * @return array<string, array<int, array{0: string, 1: float, 2: float}>>
+     */
+    public function recentBars(string $from, string $before): array;
+
+    /**
      * Latest close price for each symbol, as [symbol => close]. Symbols with no price yet are omitted.
      */
     public function getLatestPrices(array $symbols): array;

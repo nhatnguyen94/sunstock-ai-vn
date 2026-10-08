@@ -184,7 +184,7 @@ export function createHeatmap({ stage, tip, legend, back, chips, summary, data, 
         try { localStorage.setItem(STATE_KEY, collapsed ? 'closed' : 'open'); } catch (e) { /* not remembered in private mode */ }
     });
     card?.querySelector('.mk-card-head h3')?.addEventListener('click', (e) => {
-        if (e.target.closest('.mk-heat-toggle')) return;   // the button handles itself
+        if (e.target.closest('.mk-heat-toggle, .mk-vtabs')) return;   // the toggle button and the view tabs handle themselves
         toggle?.click();
     });
 

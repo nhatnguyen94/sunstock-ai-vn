@@ -6,7 +6,9 @@ import { countUp, direction, flash } from '../shared/pricefx.js';
 import { askAi } from '../shared/ai-chat.js';
 import { createHeatmap } from './heatmap.js';
 import { initWatchlistStars, paintStars } from '../shared/watchlist.js';
-import { dirClass, esc, exchangeLabel, fmtInt, fmtPct, fmtValue, fmtVolume } from './format.js';
+import { initTabs } from '../shared/tabs.js';
+import { renderForeign, renderSentiment } from './pulse.js';
+import { dirClass, esc, exchangeLabel, fmtInt, fmtPct, fmtValue } from './format.js';
 
 const cfg = window.__MARKET__;
 const $ = (id) => document.getElementById(id);
@@ -23,7 +25,7 @@ if (cfg) {
         if (!moversBody) return;
         const list = state.movers?.[state.ex]?.[state.tab] || [];
         if (!list.length) {
-            moversBody.innerHTML = '<tr><td colspan="6" class="mk-loading">Chưa có dữ liệu cho bộ lọc này.</td></tr>';
+            moversBody.innerHTML = '<tr><td colspan="5" class="mk-loading">Chưa có dữ liệu cho bộ lọc này.</td></tr>';
             return;
         }
         moversBody.innerHTML = list.map((m) => {
@@ -34,18 +36,19 @@ if (cfg) {
                 <td class="num"><strong data-px="${esc(m.symbol)}">${fmtInt(m.price)}</strong></td>
                 <td class="num"><span class="mk-pct ${d}">${fmtPct(m.percent)}</span></td>
                 <td class="num">${fmtValue(m.value)}</td>
-                <td class="num d-none d-md-table-cell">${fmtVolume(m.volume)}</td>
             </tr>`;
         }).join('');
         paintStars(moversBody);
     }
 
-    $('mkTabs')?.addEventListener('click', (e) => {
-        const b = e.target.closest('button[data-tab]');
-        if (!b) return;
-        state.tab = b.dataset.tab;
-        $('mkTabs').querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
-        renderMovers();
+    // the side card: Tăng / Giảm / Thanh khoản share the movers list, Theo dõi and Độ rộng are their own panels
+    initTabs($('mkSideTabs'), {
+        onChange: (tab) => {
+            if (['gainers', 'losers', 'value'].includes(tab.dataset.tab)) {
+                state.tab = tab.dataset.tab;
+                renderMovers();
+            }
+        },
     });
     $('mkExchanges')?.addEventListener('click', (e) => {
         const b = e.target.closest('button[data-ex]');
@@ -58,7 +61,22 @@ if (cfg) {
     // ── watchlist card ───────────────────────────────────────────────────────
     const watchBody = $('mkWatchBody');
 
+    // "Của tôi" strip (signed-in visitors): the same rows as chips, so their watchlist is the first thing on the page
+    function renderMine(rows) {
+        const box = $('mkMineWatch');
+        if (!box) return;
+        if (!rows || !rows.length) {
+            box.innerHTML = '<span class="mk-mine-empty">Chưa theo dõi mã nào. Bấm ★ ở bảng bên cạnh để thêm.</span>';
+            return;
+        }
+        box.innerHTML = rows.slice(0, 8).map((r) => {
+            const d = dirClass(r.percent);
+            return `<a class="mk-sym-chip ${d}" href="/stock?symbol=${encodeURIComponent(r.symbol)}" title="${esc(r.name)}"><b>${esc(r.symbol)}</b><span>${fmtInt(r.price)}</span><small>${fmtPct(r.percent)}</small></a>`;
+        }).join('');
+    }
+
     function renderWatch(rows) {
+        renderMine(rows);
         if (!watchBody) return;
         if (!rows || !rows.length) {
             watchBody.innerHTML = `<div class="mk-cta"><i class="bi bi-star"></i><h4>Chưa theo dõi mã nào</h4>
@@ -82,9 +100,11 @@ if (cfg) {
     const chartEl = $('mkChart');
     let priceSeries = null;
     let volSeries = null;
+    let vnChart = null;
 
     if (chartEl && cfg.series?.length) {
         const chart = makeChart(chartEl, { timeScale: { borderVisible: false, rightOffset: 2, timeVisible: false } });
+        vnChart = chart;
         const up = cfg.series.length > 1 && cfg.series[cfg.series.length - 1][1] >= cfg.series[0][1];
         const color = up ? '#10b981' : '#ef4444';
 
@@ -119,8 +139,50 @@ if (cfg) {
         ? createHeatmap({ stage: $('mkHeatStage'), tip: $('mkHeatTip'), legend: $('mkHeatLegend'), back: $('mkHeatBack'), chips: $('mkHeatEx'), summary: [$('mkHeatSummary'), $('mkHeatMini')], data: cfg.heatmap, card: $('mkHeat'), toggle: $('mkHeatToggle') })
         : null;
 
+    // ── heat map | VN-Index switch (the chart is drawn while its panel is hidden, so it is fitted when it is shown) ──
+    initTabs($('mkViewTabs'), {
+        onChange: (tab) => {
+            const tools = $('mkHeatTools');
+            if (tools) tools.hidden = tab.dataset.view !== 'map';
+            if (tab.dataset.view === 'chart') requestAnimationFrame(() => vnChart?.timeScale().fitContent());
+        },
+    });
+
+    // ── foreign flow + sentiment gauge (drawn in the browser, redrawn with every poll) ──
+    const pulse = { foreign: cfg.foreign, sentiment: cfg.sentiment };
+    function renderPulse(foreign = pulse.foreign, sentiment = pulse.sentiment) {
+        pulse.foreign = foreign;
+        pulse.sentiment = sentiment;
+        const fx = $('mkForeign');
+        if (fx && foreign !== undefined) fx.innerHTML = renderForeign(foreign);
+
+        const box = $('mkSentiment');
+        if (box && sentiment !== undefined) {
+            box.innerHTML = renderSentiment(sentiment);
+            const needle = box.querySelector('.mk-needle');
+            if (needle) requestAnimationFrame(() => requestAnimationFrame(() => { needle.style.transform = `rotate(${needle.dataset.angle}deg)`; }));   // sweeps in from the far left
+        }
+    }
+    renderPulse(cfg.foreign, cfg.sentiment);
+    // the gauge needle sweeps in when the card scrolls into view (it was drawn off-screen)
+    const pulseRow = $('mkPulse');
+    if (pulseRow && 'IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+            if (!entries.some((en) => en.isIntersecting)) return;
+            io.disconnect();
+            document.querySelectorAll('#mkSentiment .mk-needle').forEach((n) => { n.style.transform = 'rotate(-90deg)'; });
+            renderPulse();
+        }, { threshold: 0.3 });
+        io.observe(pulseRow);
+    }
+
     // ── session brief ────────────────────────────────────────────────────────
-    $('mkBriefAsk')?.addEventListener('click', (e) => askAi(e.currentTarget.dataset.ask, { send: true }));
+    // the headline is always there, the detail cards unfold on request (remembered, applied before first paint by the partial)
+    $('mkBriefToggle')?.addEventListener('click', (e) => {
+        const collapsed = $('mkBrief').classList.toggle('is-collapsed');
+        e.currentTarget.setAttribute('aria-expanded', String(!collapsed));
+        try { localStorage.setItem('sunstock-brief', collapsed ? 'closed' : 'open'); } catch (err) { /* private mode: not remembered */ }
+    });    $('mkBriefAsk')?.addEventListener('click', (e) => askAi(e.currentTarget.dataset.ask, { send: true }));
 
     // the poll brings new sentences: update them in place (textContent only), keeping the cards that are there
     function renderBrief(b) {
@@ -158,6 +220,7 @@ if (cfg) {
     function applyData(d) {
         if (heat && d.heatmap) heat.update(d.heatmap);
         if (d.brief) renderBrief(d.brief);
+        renderPulse(d.foreign, d.sentiment);
         // prices on screen before this update, to flash only the rows that moved
         const before = new Map([...document.querySelectorAll('[data-px]')].map((el) => [el.dataset.px, readVi(el)]));
         state.movers = d.movers || state.movers;

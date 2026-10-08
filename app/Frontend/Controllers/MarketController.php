@@ -6,6 +6,7 @@ use App\Frontend\Services\MarketHeatmapService;
 use App\Frontend\Services\MarketOverviewService;
 use App\Frontend\Services\WatchlistService;
 use App\Support\MarketBrief;
+use App\Support\MarketSentiment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Throwable;
@@ -41,6 +42,13 @@ class MarketController extends Controller
             $brief = null;
         }
 
+        try {
+            $sentiment = MarketSentiment::compute($o);
+        } catch (Throwable $e) {
+            report($e);
+            $sentiment = null;
+        }
+
         return response()->json([
             'success' => true,
             'market_open' => $o['market_open'],
@@ -53,6 +61,8 @@ class MarketController extends Controller
             'movers' => $o['movers'],
             'heatmap' => $heatmap,
             'brief' => $brief,
+            'foreign' => $o['foreign'] ?? null,
+            'sentiment' => $sentiment,
             'watchlist' => Auth::check() ? $this->watchlist->rows(Auth::id(), 8) : null,
         ]);
     }

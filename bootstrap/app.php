@@ -103,6 +103,21 @@ return Application::configure(basePath: dirname(__DIR__))
             ->timezone('Asia/Ho_Chi_Minh')
             ->runInBackground();
 
+        // "Tín hiệu" tab of the home page: 52-week breakouts, volume spikes, RSI extremes from today's quotes and the stored history
+        // (about 1.3 s of queries, so it is built here and in a queued job, never in a page view)
+        $schedule->command('signals:build')->weekdays()->everyThirtyMinutes()
+            ->timezone('Asia/Ho_Chi_Minh')->between('9:10', '15:20')
+            ->withoutOverlapping()
+            ->runInBackground();
+        $schedule->command('signals:build')->weekdays()->dailyAt('18:15')
+            ->timezone('Asia/Ho_Chi_Minh')
+            ->runInBackground();
+
+        // World indices for the home page strip (S&P 500, Nasdaq, Nikkei...): daily bars from vnstock's MSN source, every 30 minutes
+        $schedule->command('sync:world-markets')->everyThirtyMinutes()
+            ->withoutOverlapping()
+            ->runInBackground();
+
         // Gold/silver (SJC + BTMC) and world gold: quotes change through the day and there is no free history
         // API, so we snapshot every 15 minutes during Vietnam business hours to build our own.
         $schedule->command('sync:gold-prices')->everyFifteenMinutes()
@@ -121,9 +136,9 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping()
             ->runInBackground();
 
-        // Company profiles are cached on demand (first page view). Weekly, refresh the ones that went
-        // stale and warm up to 50 not-yet-cached stocks; the queue fans it out.
-        $schedule->command('sync:company-profiles --seed --limit=50 --dispatch')->weeklyOn(0, '03:00')
+        // Company profiles are cached on demand (first page view). Daily, refresh the ones that went
+        // stale and warm up to 40 not-yet-cached stocks, the most traded first (they feed the home page events calendar); the queue fans it out.
+        $schedule->command('sync:company-profiles --seed --limit=40 --dispatch')->dailyAt('03:00')
             ->withoutOverlapping()
             ->runInBackground();
 

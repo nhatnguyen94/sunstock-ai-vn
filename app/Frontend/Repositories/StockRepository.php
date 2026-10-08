@@ -15,6 +15,7 @@ use App\Models\StockPrice;
 use App\Models\StockSymbol;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class StockRepository implements StockRepositoryInterface
 {
@@ -162,6 +163,37 @@ class StockRepository implements StockRepositoryInterface
             ->get(['symbol', 'name', 'exchange', 'industry'])
             ->mapWithKeys(fn (StockSymbol $s) => [$s->symbol => ['name' => $s->name, 'exchange' => $s->exchange, 'industry' => $s->industry]])
             ->all();
+    }
+
+    public function priceExtremes(string $from, string $before): array
+    {
+        return DB::table('stock_prices as p')
+            ->join('stocks as s', 's.id', '=', 'p.stock_id')
+            ->where('p.date', '>=', $from)
+            ->where('p.date', '<', $before)
+            ->groupBy('s.symbol')
+            ->selectRaw('s.symbol as symbol, COUNT(*) as n, MAX(p.high) as high, MIN(p.low) as low, MAX(p.date) as last_date')
+            ->get()
+            ->mapWithKeys(fn ($r) => [$r->symbol => ['n' => (int) $r->n, 'high' => (float) $r->high, 'low' => (float) $r->low, 'last_date' => (string) $r->last_date]])
+            ->all();
+    }
+
+    public function recentBars(string $from, string $before): array
+    {
+        $out = [];
+        $rows = DB::table('stock_prices as p')
+            ->join('stocks as s', 's.id', '=', 'p.stock_id')
+            ->where('p.date', '>=', $from)
+            ->where('p.date', '<', $before)
+            ->orderBy('s.symbol')
+            ->orderBy('p.date')
+            ->get(['s.symbol as symbol', 'p.date as date', 'p.close as close', 'p.volume as volume']);
+
+        foreach ($rows as $r) {
+            $out[$r->symbol][] = [(string) $r->date, (float) $r->close, (float) $r->volume];
+        }
+
+        return $out;
     }
 
     /**

@@ -53,7 +53,8 @@ class MarketHomeAndWatchlistTest extends TestCase
         $r->assertSee('Tổng quan thị trường');
         $r->assertSee('1.815,66', false);
         $r->assertSee('VN30');
-        $r->assertSee('Độ rộng thị trường');
+        $r->assertSee('id="mkBreadthCard"', false);
+        $r->assertSee('Độ rộng');
         $r->assertSee('22,9 nghìn tỷ');
         $r->assertSee('id="mkChart"', false);
         $r->assertSee('window.__MARKET__', false);
@@ -65,10 +66,10 @@ class MarketHomeAndWatchlistTest extends TestCase
     {
         $this->seedMarketSnapshot();
 
-        $this->get('/')->assertSee('Theo dõi cổ phiếu yêu thích')->assertDontSee('Xem tất cả');
+        $this->get('/')->assertSee('Theo dõi cổ phiếu yêu thích')->assertDontSee('id="mkWatchBody"', false);
 
         $this->actingAs(User::factory()->create());
-        $this->get('/')->assertSee('Xem tất cả')->assertDontSee('Theo dõi cổ phiếu yêu thích');
+        $this->get('/')->assertSee('id="mkWatchBody"', false)->assertSee('Xem tất cả')->assertDontSee('Theo dõi cổ phiếu yêu thích');
     }
 
     #[Group('marketOverview')]

@@ -6,6 +6,77 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## HOME_SCROLL_SECTIONS_AND_FX - October 8, 2026
+
+### Summary
+After layout pass 2 and the six extra features the owner said the home page looked **more** cluttered than the old one and asked to research the 3 most-starred GitHub repositories on UI/UX and structure. Read for real (raw files): **Maybe** (54k★ — a few full-width sections per page, one H1, one primary action), **Ghostfolio** (9.4k★ — a thin tab bar, each tab its own view; the fear/greed gauge lives in its Markets tab), **Wealthfolio** (9.1k★ — few modules per dashboard). OpenBB could not be read.
+
+### Round 1 — four tabs (tried, then replaced)
+The page was split into Tổng quan | Thị trường | Tín hiệu & sự kiện | Khám phá tabs (with a row of three "teaser" cards on the overview, because the first cut looked like "nothing to see"). The owner then said it was tidy but "lost its character": having to click a tab to see anything, the AI prediction hidden in a tab, and the page looked flat with no animation or 3D. **Lesson: a market page should reward scrolling; do not hide content behind tabs — organise it with sections and navigation instead.** The tab bar, the `hometab` event and the teasers were removed.
+
+### What the page is now
+- **One continuous scroll in four numbered sections** (`#hpOverview`, `#hpMarkets`, `#hpSignals`, `#hpExplore`) plus the news / guest signup banner (`#homeNews`). `index.blade.php` defines the shared variables once and `@include`s `partials/home/{overview,markets,signals,explore,news}.blade.php`; sections 02–04 have a numbered header (big gradient number, title, one-line description).
+- **Sticky jump bar** (`#homeJump`, a frosted pill under the hero): links to the sections, the one being read is highlighted (`initJumpBar`, `activeIndex()`), smooth scrolling comes from the page's existing anchor handler; it scrolls sideways on a phone.
+- **AI prediction is a banner** (`.ai-hero`): animated indigo→violet gradient, two drifting blurred orbs, equaliser-like bars, a button with a moving shine. Same element ids as before (`aiPredictBtn`, `aiPredictResult`, `aiPredictLoading`, `aiPredictContent`), so the click handler in `index.js` is unchanged.
+- **Visual effects** (`resources/frontend/js/shared/fx.js`, decoration only, off for `prefers-reduced-motion`): index cards, pulse cards, featured-stock cards and the AI banner **tilt in 3D** towards a real mouse with a soft light following it (`initTilt`, never on touch); cards, headers and indices **rise into view** as they are scrolled to, staggered (`initReveal` — the `.fx-reveal` class is added by the script, so without JS everything simply shows); the sentiment needle sweeps in when its card is first seen (`IntersectionObserver` in `home.js`).
+- "Độ rộng" is a card of its own next to the movers list (`#mkBreadthCard`); signals and events are two stand-alone cards. The "Thế giới" label was recoloured (it now sits on a light background).
+- A page of the hot-industries list (`?page=N`) still opens the hot list inside the Khám phá card and scrolls to it.
+
+### Tests
+`homeLayoutV2` now covers the jump bar and its targets, the section order and which block lives in which section, the AI banner ids, `?page=2`, the guest banner at the end and the script hooks; `tests/js/fx.test.mjs` covers the tilt maths and the active-section rule. `homeLayout`, `homePulse`, `marketOverview` were adapted. Nothing committed yet — the owner wanted to check the page first.
+
+---
+## HOME_PULSE_SIX_FEATURES - October 8, 2026
+
+### Summary
+After the layout pass the owner found the page "a bit empty" and asked for more content, possibly from vnstock or elsewhere, then said "do 1 to 6". Before proposing, the data was checked for real (see "Found"). **Still not committed**, as the owner asked for the layout pass.
+
+### Found
+- The KBS price board that `get_market_overview.py` already requests carries `foreign_buy_volume`, `foreign_sell_volume` and `foreign_room` for every stock; they were thrown away. Real values checked (e.g. FPT bought 821 k / sold 1,81 m shares).
+- vnstock's **MSN** source answers daily bars for world indices without a key (S&P 500, Nasdaq, Dow, FTSE, DAX, Nikkei, Hang Seng, Shanghai; BTC came back empty and oil is not in its map, so neither is used).
+- `stock_prices` holds 3,4 m daily rows, but only ~870 stocks had a bar for the latest day, so signals compare TODAY'S snapshot quote (all ~1.550 stocks) with the stored history instead.
+- Only 61 company profiles are cached, and none had an upcoming event today: the events calendar needed more coverage, not just a widget.
+
+### Done
+1. **Khối ngoại** (`foreign_flow()` in the script → `snapshot.data.foreign`, no schema change): totals, net per exchange and the five biggest net buyers/sellers. Every value is an **estimate** (net volume × last price; the board has no foreign matched value) and the card says so. Drawn by `js/market/pulse.js` (pure, tested) on load and on every poll.
+2. **Vàng · Tỷ giá · Quỹ** (`MarketPulseService`, DB-only): SJC sell price with its change since the previous Vietnam day and the world price, Vietcombank USD with its change (new `ExchangeRateRepository::getRateBefore`), the three best equity funds over 12 months (funds without a 12-month figure never rank). Each part fails independently.
+3. **Tâm lý thị trường** (`App\Support\MarketSentiment`, pure): a 0–100 reading from breadth 35 %, VN-Index move 30 %, ceilings vs floors 15 % (needs ≥ 5 limit stocks), net foreign flow 20 %; missing components are left out and the weights re-scaled; < 2 components = no reading. SVG gauge with a needle that sweeps in, four bars showing each part. Labelled as our own indicator, not an official index and not advice.
+4. **Tín hiệu** (`StockSignals` pure + `StockSignalService`): 52-week breakouts/breakdowns, volume ≥ 2× the 20-session average with ≥ 5 bn traded, RSI(14) ≥ 70 / ≤ 30, for stocks with ≥ 3 bn traded today and ≥ 100 stored sessions. The build reads ~300 k bars (≈ 1,3 s), so **a page view only reads the cache**; a missing or old result queues one deduplicated `BuildStockSignalsJob` (also `signals:build` on the scheduler every 30 min in the session + 18:15). Description of what happened, never a recommendation.
+5. **Thế giới** (`py/get_world_markets.py` + `WorldMarketService`): thin strip under the Vietnamese indices; cache-only reads, refreshed by `sync:world-markets` every 30 min or by a deduplicated job when missing/old (> 90 min).
+6. **Sự kiện** (`HomeEventsService`): upcoming dividends / bonus shares / meetings (next 60 days) from the cached profiles plus the visitor's own watchlist and portfolio symbols (flagged "của bạn"; a symbol without a profile queues one, at most 15 per visit). Coverage grows: `sync:company-profiles --seed` now seeds the **most traded stocks first** and runs **daily** (40 a night; 60 were queued by hand today). The tab states how many companies it covers.
+
+Layout: a new row **"Nhịp thị trường"** (foreign flow | sentiment | gold·USD·funds) between the workspace and the AI button, a world strip under the index cards, and two more tabs (Tín hiệu, Sự kiện) in "Khám phá thêm". Desktop height ≈ 4.700 px (was 3.450 before the additions, 8.257 originally); phone 8.100 px stacked, no horizontal overflow.
+
+### Safety of the test suite
+`Tests\TestCase` now fakes `SyncWorldMarketsJob` and `BuildStockSignalsJob` (the test queue is `sync`, so rendering the home page would otherwise have run a real Python call and the heavy build). Writing the page tests also showed that a test which deletes all exchange rates makes `home()` fall back to a live Python fetch: such a test was removed, keep a rate row in home tests.
+
+### Tests
+Groups `foreignFlow`, `marketSentiment`, `stockSignals`, `stockSignalsService`, `worldMarkets`, `marketPulse`, `homeEvents`, `homePulse` (≈ 130 PHP tests incl. the real `foreign_flow()` and the world script with a stand-in `Quote`) + Node `pulse.test.mjs` (13). 478 PHP tests across the groups touching the home page / layout and 112 Node tests pass; Pint clean.
+
+---
+
+## HOME_LAYOUT_PASS_2 (A + B) - October 8, 2026
+
+### Summary
+Owner: the home page felt cluttered and not optimised; asked for researched layout options, then chose **A + B** and asked not to commit until checked. Measured first (Chrome): the page was **8.257 px (about 9 screens)**; the same stock list appeared in four places; two long tables (exchange rates 1.344 px, hot industries 1.104 px) sat in the tail.
+
+### Sources used for the options
+NN/g, [Scrolling and attention](https://www.nngroup.com/articles/scrolling-and-attention/) (2018 eyetracking: ~57 % of viewing time above the fold, ~74 % in the first two screens, ~81 % in the first three; put priority content first, keep a clear visual hierarchy) · NN/g, [Progressive disclosure](https://www.nngroup.com/articles/progressive-disclosure/) (show few important things first, defer the rest, two levels at most) · NN/g, [F-shaped reading pattern](https://www.nngroup.com/articles/f-shaped-pattern-reading-web-content-discovered/) · W3C, [Manageable quantity of content](https://www.w3.org/WAI/WCAG2/supplemental/patterns/o5p03-manageable-quantity) (about five main choices per screen, extras behind a clear "more"). Vendor blogs on dashboard hierarchy were only used as colour. Not verified: the actual layouts of TradingView / Yahoo Finance / SSI iBoard.
+
+### A — "one screen, two levels"
+- Index cards became a **compact strip** (166 → ~90 px). The **brief** shows only its headline; the five cards unfold on "Chi tiết" (remembered).
+- **Workspace**: heat map and VN-Index chart are two views (tabs) of one card on the left; the right card has five tabs (Tăng, Giảm, GTGD, Theo dõi, Độ rộng) replacing the movers table + watchlist card + breadth card. The movers table dropped its volume column to fit 350 px. The heat map card grows to the height of the list beside it; folded, it shrinks to its header.
+- **"Khám phá thêm"**: featured stocks, hot industries (still paginated) and exchange rates in one tabbed card; rates show the six main currencies with a link to all of them. News shows three cards. On phones the featured cards swipe sideways and the brief fits one row.
+- Result: **~3.450 px** on desktop (about 3.9 screens), no horizontal overflow at 390 px.
+
+### B — "mine first" (signed-in visitors)
+- `PortfolioService::homeSummary()` adds the user's active portfolios from the **stored** prices (no refresh, queue job or Python; holdings without a price are counted apart, never a −100 % loss) and the home page shows value, profit/loss and today's move above the market, with the watchlist as chips. It can never take the page down (try/catch → card absent). Verified with a demo account (141 triệu ₫, −6,33 %).
+
+### Tests
+Group `homeLayoutV2` (19): tab ARIA wiring for all three tablists, five side tabs and a five-column movers table, heat map + chart in one card, chart-only fallback, folded brief, explore card and `?page=` tab, main currencies in fixed order (and the first six as fallback), three news cards, personal card for guest / user without portfolio / user with portfolio / failing service / other users' data, and four `homeSummary` cases. Node: `tabs.test.mjs` (4). The old `homeLayout` and `marketOverview` tests were adapted to the new markup. **Not committed yet, on the owner's request.**
+
+---
+
 ## MARKET_BRIEF - October 8, 2026
 
 ### Summary

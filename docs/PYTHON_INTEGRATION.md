@@ -127,6 +127,10 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 - **Args**: Fund short name (regex-validated) — `FundService::runDetailScript()` via `GET /funds/{code}/detail`
 - **Output**: NAV thinned to daily for the last 3 years and weekly before that (~1.7k points instead of ~4k); cached 6h in `Cache` behind `SingleFlight`
 
+### `py/get_world_markets.py`
+
+World indices for the home strip (S&P 500, Nasdaq, Dow, FTSE, DAX, Nikkei, Hang Seng, Shanghai) from vnstock's **MSN** source (`Quote(source='MSN', symbol=code).history(...)`, daily bars, no key, ~0,5 s each, fetched 4 at a time). One JSON line `{fetched_at, markets:[{code,name,region,close,previous,change,percent,date,series}], errors}`; a market that fails goes to `errors`, none answering gives `{error}`. Called only by `WorldMarketService::sync()` from `sync:world-markets` (every 30 min) or `SyncWorldMarketsJob` (timeout 60 s), never from a page request; the answer lives in the cache (`world:markets:v1`). Tested with a stand-in `Quote` (`GetWorldMarketsScriptTest`).
+
 ### `py/get_market_overview.py`
 - **Purpose**: The whole market in one go for the home page / ticker / watchlist — four indices with a 30-session series, breadth and liquidity per exchange, top gainers / losers / most-traded (overall and per exchange) and a quote for every symbol
 - **Args**: None — `MarketOverviewService::runScript()` (page first-visit loader, `SyncMarketOverviewJob`, `sync:market-overview`)
@@ -165,6 +169,7 @@ for ($i = count($result['output']) - 1; $i >= 0; $i--) {
 | `EtfService::runListScript()` | `get_etf_list.py` | `sync:etfs` (weekly) + first `/etf` visit | 60s |
 | `FundService::runDetailScript()` | `get_fund_detail.py` | Web request (`GET /funds/{code}/detail`) | 60s |
 | `GoldPriceService::runScript()` | `get_gold_price.py` | Web request (first visit / "Làm mới") + `SyncGoldPricesJob` (`$timeout=90`) + `sync:gold-prices` (every 15 min, 07:00–19:00 VN) | 60s |
+| `WorldMarketService::runScript()` | `get_world_markets.py` | `sync:world-markets` (every 30 min) + `SyncWorldMarketsJob` (`$timeout=90`) — never a page request | 60s |
 | `MarketOverviewService::runScript()` | `get_market_overview.py` | Web request (first visit only) + `SyncMarketOverviewJob` (`$timeout=90`) + `sync:market-overview` (every 5 min in session, 18:00) | 60s |
 
 Changing a job's own `$timeout`/a command's expected runtime? Update the matching row here and the matching `PythonRunner::run()` call together — they're meant to move as a pair.

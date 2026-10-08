@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Frontend\Interfaces\CompanyProfileRepositoryInterface;
+use App\Frontend\Interfaces\MarketSnapshotRepositoryInterface;
 use App\Frontend\Services\CompanyProfileService;
 use App\Jobs\SyncCompanyProfileJob;
 use App\Models\Stock;
@@ -21,7 +22,8 @@ class SyncCompanyProfiles extends Command
 
     public function __construct(
         private readonly CompanyProfileService $service,
-        private readonly CompanyProfileRepositoryInterface $repo
+        private readonly CompanyProfileRepositoryInterface $repo,
+        private readonly MarketSnapshotRepositoryInterface $snapshots
     ) {
         parent::__construct();
     }
@@ -45,9 +47,13 @@ class SyncCompanyProfiles extends Command
 
             if ($this->option('seed') && count($targets) < $limit) {
                 $have = array_flip($this->repo->allSymbols());
-                $new  = Stock::orderBy('symbol')->pluck('symbol')
+                // the most traded stocks first (they are the ones whose events people look for), the rest alphabetically
+                $value = collect($this->snapshots->latest(true)?->quotes ?? [])->map(fn ($q) => (float) ($q[4] ?? 0));
+                $new = Stock::orderBy('symbol')->pluck('symbol')
                     ->reject(fn ($s) => isset($have[$s]))
+                    ->sortByDesc(fn ($s) => $value->get($s, 0))
                     ->take($limit - count($targets))
+                    ->values()
                     ->all();
                 $targets = array_merge($targets, $new);
             }
@@ -63,7 +69,7 @@ class SyncCompanyProfiles extends Command
             foreach ($targets as $symbol) {
                 SyncCompanyProfileJob::dispatch($symbol);
             }
-            $this->info('Dispatched ' . count($targets) . ' profile jobs.');
+            $this->info('Dispatched '.count($targets).' profile jobs.');
 
             return 0;
         }
@@ -80,6 +86,7 @@ class SyncCompanyProfiles extends Command
                     $this->warn("  ERR  {$symbol}: {$result['error']}");
                     $failed++;
                 }
+
                 continue;
             }
 
