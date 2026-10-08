@@ -1,6 +1,7 @@
 // Global command palette: Ctrl/⌘+K (or "/" outside a field, or any [data-palette-open] button) opens a box that jumps to a
 // stock, a page, or hands a question to the AI chat. Logic that does not need the DOM is in palette-core.js.
 
+import { askAi } from './ai-chat.js';
 import { buildSections, flatten, highlight, moveSelection, pushRecent } from './palette-core.js';
 
 const RECENT_KEY = 'sunstock-recent';
@@ -121,14 +122,6 @@ export function initPalette() {
     }
 
     // ── actions ──────────────────────────────────────────────────────────────
-    function openAi(text) {
-        const open = document.getElementById('aiChatOpenBtn');
-        const field = document.getElementById('aiChatInput');
-        if (!open || !field) return;
-        if (open.getAttribute('aria-expanded') !== 'true') open.click();
-        field.value = text;
-        setTimeout(() => { field.focus(); field.setSelectionRange(field.value.length, field.value.length); }, 80);
-    }
 
     function activate(item) {
         if (!item) return;
@@ -141,7 +134,7 @@ export function initPalette() {
             window.location.href = item.url;
         } else if (item.kind === 'ai') {
             close();
-            openAi(item.query);
+            askAi(item.query);
         }
     }
 

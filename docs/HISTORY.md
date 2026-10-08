@@ -6,6 +6,21 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## MARKET_BRIEF - October 8, 2026
+
+### Summary
+Owner was out of ideas and asked me to pick something good and build it. Chosen: a short written summary of the session, "Bản tin phiên", right under the index cards.
+
+### Done
+- **`App\Support\MarketBrief`** (pure, deterministic, no AI call, no extra query): from `MarketOverviewService::overview()` and the heat-map tiles it writes a one-sentence headline (`VN-Index giảm 11,59 điểm (0,66%) về 1.737,71. 266 mã tăng, 423 mã giảm. Thanh khoản 15,5 nghìn tỷ ₫ (+25,8% so với phiên trước).`; the verb is graded: gần như đi ngang / nhích / tăng-giảm / tăng-giảm mạnh) plus up to five cards: **Độ rộng** (who is in control, ceilings and floors), **Ngành** (strongest/weakest industry by value-weighted % among industries with ≥ 3 tiles and ≥ 2 % of the shown value, "Khác" excluded), **Các chỉ số** (VN30, HNX-Index, UPCoM-Index), **Nổi bật** (top gainer/loser of the all-exchanges board) and **Dòng tiền** (share of the market's value held by the five busiest stocks; left out rather than wrong when the tiles and the market total disagree). Every figure comes from the input; nothing is estimated.
+- **Home page**: a glass card between the index cards and the heat map with a slowly moving gradient border, cards rising in one after another, and a **"Hỏi AI vì sao"** button that opens the AI chat and sends a question built from the numbers (the chat's per-account limits and the guest login hint apply as if typed). The 60 s poll (`brief` key of `GET /market/data`) rewrites the sentences in place (text nodes only) and blinks a card whose text changed.
+- **Bug found and fixed on the way**: the AI chat closes itself on any click outside its bubble, so opening it from a mouse click on another widget was undone by the same click. `shared/ai-chat.js` now exports `askAi(text, {send})`, which opens the chat after the click has finished; the command palette's "Hỏi AI" uses it too (its own copy is gone).
+
+### Tests
+Group `marketBrief`: 20 pure tests (wording and number formats, verb thresholds, flat sessions, breadth tones, sector selection/weighting/thresholds/edge wording, indices, movers, concentration incl. inconsistent inputs, no invented figures) and 6 page tests (placement, ask question, poll wording, no data, escaping of hostile industry names, the deferred chat opening). Related groups (`marketHeatmap`, `commandPalette`, `homeLayout`, `marketOverview`, `aiFeatures`, `aiLimits`, `codeStyle`) green; Pint clean. Verified in Chrome with the real 8 Oct snapshot and with `fetch` stubbed (no real AI call).
+
+---
+
 ## MARKET_HEATMAP_AND_COMMAND_PALETTE - October 3, 2026
 
 ### Summary

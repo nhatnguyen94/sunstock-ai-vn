@@ -5,6 +5,7 @@ namespace App\Frontend\Controllers;
 use App\Frontend\Services\MarketHeatmapService;
 use App\Frontend\Services\MarketOverviewService;
 use App\Frontend\Services\WatchlistService;
+use App\Support\MarketBrief;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Throwable;
@@ -33,6 +34,12 @@ class MarketController extends Controller
             report($e);
             $heatmap = null;
         }
+        try {
+            $brief = MarketBrief::build($o, $heatmap);
+        } catch (Throwable $e) {
+            report($e);
+            $brief = null;
+        }
 
         return response()->json([
             'success' => true,
@@ -45,6 +52,7 @@ class MarketController extends Controller
             'liquidity' => $o['liquidity'],
             'movers' => $o['movers'],
             'heatmap' => $heatmap,
+            'brief' => $brief,
             'watchlist' => Auth::check() ? $this->watchlist->rows(Auth::id(), 8) : null,
         ]);
     }

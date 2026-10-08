@@ -21,6 +21,7 @@ use App\Frontend\Services\WatchlistService;
 use App\Models\HotIndustry;
 use App\Models\Stock;
 use App\Models\StockPrice;
+use App\Support\MarketBrief;
 use App\Support\StockQuoteSummary;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -122,9 +123,15 @@ class StockController extends Controller
         }
         // the heat map is an extra on top of the market section: it never takes the page down
         $heatmap = null;
+        $brief = null;
         if ($market['has_data'] ?? false) {
             try {
                 $heatmap = $heatmapService->heatmap();
+            } catch (Throwable $e) {
+                report($e);
+            }
+            try {
+                $brief = MarketBrief::build($market, $heatmap);
             } catch (Throwable $e) {
                 report($e);
             }
@@ -132,7 +139,7 @@ class StockController extends Controller
         $watchRows = Auth::check() ? $watchlistService->rows(Auth::id(), 8) : null;
         $watched = Auth::check() ? $watchlistService->symbols(Auth::id()) : [];
 
-        return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news', 'market', 'watchRows', 'watched', 'heatmap'));
+        return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news', 'market', 'watchRows', 'watched', 'heatmap', 'brief'));
     }
 
     /**

@@ -51,6 +51,26 @@
         @endforeach
     </div>
 
+    @if(! empty($brief))
+    {{-- Session brief: sentences written from the numbers on this page (App\Support\MarketBrief), refreshed by the poll --}}
+    <div class="mk-card mk-brief" id="mkBrief">
+        <div class="mk-brief-head">
+            <span class="mk-brief-badge"><i class="bi bi-stars" aria-hidden="true"></i> Bản tin phiên</span>
+            <span class="mk-brief-date">{{ $market['trade_date']->format('d/m/Y') }}</span>
+            <button type="button" class="mk-brief-ask" id="mkBriefAsk" data-ask="{{ $brief['ask'] }}"><i class="bi bi-robot" aria-hidden="true"></i> Hỏi AI vì sao</button>
+        </div>
+        <p class="mk-brief-headline {{ $brief['tone'] }}" id="mkBriefHeadline">{{ $brief['headline'] }}</p>
+        <ul class="mk-brief-points" id="mkBriefPoints">
+            @foreach($brief['points'] as $p)
+                <li class="mk-bp {{ $p['tone'] }}" data-key="{{ $p['key'] }}">
+                    <span class="mk-bp-icon"><i class="bi bi-{{ $p['icon'] }}" aria-hidden="true"></i></span>
+                    <span class="mk-bp-body"><b>{{ $p['title'] }}</b><span class="mk-bp-text">{{ $p['text'] }}</span></span>
+                </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     @if(! empty($heatmap['items']))
     {{-- Heat map: drawn by js/market/heatmap.js from window.__MARKET__.heatmap (size = traded value, colour = % change) --}}
     <div class="mk-card mk-heat" id="mkHeat">

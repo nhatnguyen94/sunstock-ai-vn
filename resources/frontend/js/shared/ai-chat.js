@@ -11,6 +11,30 @@ const TEXT = {
     en: { thinking: 'AI is thinking...', timeout: 'The request timed out, please try again!', error: 'Something went wrong, please try again!', hello: 'Hello! I am Sun Stock AI.<br>Ask me anything about the stock market!' },
 };
 
+/**
+ * Open the floating chat and put `text` in its box; with `send` also submit it (the chat applies its own per-account limits and
+ * answers a guest with the login hint, exactly as if the visitor had typed it).
+ */
+export function askAi(text, { send = false } = {}) {
+    const open = $('aiChatOpenBtn');
+    const field = $('aiChatInput');
+    if (!open || !field) return false;
+
+    // Deferred on purpose: when this runs from a mouse click, that same click is still travelling up to the document, where the chat
+    // closes itself on any click outside its bubble. Opening after the event has finished keeps the popup open.
+    setTimeout(() => {
+        if (open.getAttribute('aria-expanded') !== 'true') open.click();
+        field.value = text;
+        setTimeout(() => {
+            field.focus();
+            field.setSelectionRange(field.value.length, field.value.length);
+            if (send) $('aiChatSend')?.click();
+        }, 80);
+    }, 0);
+
+    return true;
+}
+
 export function initAiChat() {
     const bubble = $('aiChatBubble');
     const popup = $('aiChatPopup');

@@ -3,6 +3,7 @@
 
 import { AreaSeries, HistogramSeries, attachLegend, fmtCompact, fmtDec, makeChart } from '../shared/charts.js';
 import { countUp, direction, flash } from '../shared/pricefx.js';
+import { askAi } from '../shared/ai-chat.js';
 import { createHeatmap } from './heatmap.js';
 import { initWatchlistStars, paintStars } from '../shared/watchlist.js';
 import { dirClass, esc, exchangeLabel, fmtInt, fmtPct, fmtValue, fmtVolume } from './format.js';
@@ -118,6 +119,28 @@ if (cfg) {
         ? createHeatmap({ stage: $('mkHeatStage'), tip: $('mkHeatTip'), legend: $('mkHeatLegend'), back: $('mkHeatBack'), chips: $('mkHeatEx'), summary: [$('mkHeatSummary'), $('mkHeatMini')], data: cfg.heatmap, card: $('mkHeat'), toggle: $('mkHeatToggle') })
         : null;
 
+    // ── session brief ────────────────────────────────────────────────────────
+    $('mkBriefAsk')?.addEventListener('click', (e) => askAi(e.currentTarget.dataset.ask, { send: true }));
+
+    // the poll brings new sentences: update them in place (textContent only), keeping the cards that are there
+    function renderBrief(b) {
+        const head = $('mkBriefHeadline');
+        if (!b || !head) return;
+        head.textContent = b.headline;
+        head.className = `mk-brief-headline ${b.tone}`;
+        if ($('mkBriefAsk')) $('mkBriefAsk').dataset.ask = b.ask;
+        for (const p of b.points || []) {
+            const li = document.querySelector(`#mkBriefPoints [data-key="${p.key}"]`);
+            if (!li) continue;
+            li.className = `mk-bp ${p.tone}`;
+            const text = li.querySelector('.mk-bp-text');
+            if (text && text.textContent !== p.text) {
+                text.textContent = p.text;
+                flash(li, 'up');
+            }
+        }
+    }
+
     // ── live updates ─────────────────────────────────────────────────────────
     // the number shown in a vi-VN formatted element (1.737,71 -> 1737.71)
     const readVi = (el) => Number(el.textContent.replace(/\./g, '').replace(',', '.'));
@@ -134,6 +157,7 @@ if (cfg) {
 
     function applyData(d) {
         if (heat && d.heatmap) heat.update(d.heatmap);
+        if (d.brief) renderBrief(d.brief);
         // prices on screen before this update, to flash only the rows that moved
         const before = new Map([...document.querySelectorAll('[data-px]')].map((el) => [el.dataset.px, readVi(el)]));
         state.movers = d.movers || state.movers;
