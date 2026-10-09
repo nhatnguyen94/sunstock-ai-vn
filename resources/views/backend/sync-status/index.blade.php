@@ -16,24 +16,29 @@
 @section('content')
 @php
     $iconMap = ['news' => 'ti-news', 'currency' => 'ti-currency-dollar', 'flame' => 'ti-flame', 'trending-up' => 'ti-trending-up', 'database' => 'ti-database',
-                'report' => 'ti-report-analytics', 'building' => 'ti-building-skyscraper', 'chart-pie' => 'ti-chart-pie', 'chart-line' => 'ti-chart-line'];
+                'report' => 'ti-report-analytics', 'building' => 'ti-building-skyscraper', 'chart-pie' => 'ti-chart-pie', 'chart-line' => 'ti-chart-line', 'chart-arrows' => 'ti-chart-arrows'];
     $colorMap = ['purple' => 'purple', 'green' => 'green', 'orange' => 'orange', 'blue' => 'blue', 'cyan' => 'cyan', 'yellow' => 'orange', 'pink' => 'purple', 'red' => 'red', 'indigo' => 'blue'];
-    $fresh = collect($sources)->filter(fn ($s) => $s['last_sync'] && Carbon::parse($s['last_sync'])->gte(now()->subDay()))->count();
+    $ok = count($sources) - $late;
 @endphp
 
-<div class="alert alert-{{ $fresh === count($sources) ? 'success' : 'warning' }} d-flex align-items-center gap-2 mb-3" role="status">
-    <i class="ti ti-{{ $fresh === count($sources) ? 'circle-check' : 'alert-triangle' }} fs-3"></i>
-    <div><strong>{{ $fresh }}/{{ count($sources) }} nguồn</strong> đã đồng bộ trong 24 giờ qua.
-        @if($fresh < count($sources)) Các nguồn còn lại có thể cần chạy lại bằng nút <em>Sync ngay</em>. @endif</div>
+<div class="alert alert-{{ $late === 0 ? 'success' : 'warning' }} d-flex align-items-center gap-2 mb-3" role="status">
+    <i class="ti ti-{{ $late === 0 ? 'circle-check' : 'alert-triangle' }} fs-3"></i>
+    <div>
+        @if($late === 0)
+            <strong>Tất cả {{ count($sources) }} nguồn</strong> đang đúng lịch.
+        @else
+            <strong>{{ $late }}/{{ count($sources) }} nguồn trễ hoặc chưa có dữ liệu</strong> — xem nhãn đỏ bên dưới rồi bấm <em>Sync ngay</em> ở nguồn đó.
+        @endif
+        <span class="text-secondary">“Trễ” = lần cập nhật cuối cũ hơn mức cho phép của từng nguồn (nguồn chạy theo giờ giao dịch được cho phép lâu hơn qua cuối tuần).</span>
+    </div>
 </div>
-
 <div class="row row-cards g-3">
     @foreach($sources as $src)
     @php
         $lastSync = $src['last_sync'] ? Carbon::parse($src['last_sync']) : null;
-        $isStale = !$lastSync || $lastSync->lt(now()->subDay());
-        $state = !$lastSync ? 'off' : ($isStale ? 'bad' : 'ok');
-        $stateText = !$lastSync ? 'Chưa có dữ liệu' : ($isStale ? 'Cũ' : 'Mới');
+        $state = $src['state'] === 'late' ? 'bad' : $src['state'];
+        $stateText = ['off' => 'Chưa có dữ liệu', 'late' => 'Trễ', 'ok' => 'Đúng lịch'][$src['state']];
+        $run = $src['last_run'];
         $tone = $colorMap[$src['color']] ?? 'blue';
     @endphp
     <div class="col-md-6 col-xl-4">
@@ -58,7 +63,15 @@
                         <div class="ad-stat-label">Lần sync cuối</div>
                     </div>
                 </div>
-                <p class="text-secondary small mb-0">{{ $src['description'] }}</p>
+                <p class="text-secondary small mb-2">{{ $src['description'] }}</p>
+                <div class="small">
+                    @if($run)
+                        <i class="ti ti-{{ $run->ok ? 'circle-check text-success' : 'circle-x text-danger' }}"></i>
+                        Lần chạy cuối {{ $run->ran_at->diffForHumans() }} — {{ $run->ok ? 'thành công' : 'THẤT BẠI' }}, {{ number_format($run->duration_ms / 1000, 1, ',', '.') }}s
+                    @else
+                        <span class="text-secondary"><i class="ti ti-clock-question"></i> Chưa có lần chạy nào được ghi lại</span>
+                    @endif
+                </div>
             </div>
             <div class="card-footer">
                 <button class="btn btn-outline-primary w-100 btn-trigger" data-key="{{ $src['key'] }}" data-label="{{ $src['label'] }}">
@@ -68,6 +81,27 @@
         </div>
     </div>
     @endforeach
+</div>
+
+<div class="card mt-3">
+    <div class="card-header"><h3 class="card-title"><i class="ti ti-history me-2 text-primary"></i>Các lần chạy gần nhất</h3></div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+            <thead><tr><th>Lệnh</th><th>Kết quả</th><th>Thời lượng</th><th>Lúc</th></tr></thead>
+            <tbody>
+            @forelse($recentRuns as $r)
+                <tr>
+                    <td><code>{{ $r->command }}</code></td>
+                    <td><span class="ad-dot {{ $r->ok ? 'ok' : 'bad' }}">{{ $r->ok ? 'Thành công' : 'Thất bại' }}</span></td>
+                    <td class="tabular-nums">{{ number_format($r->duration_ms / 1000, 1, ',', '.') }}s</td>
+                    <td class="text-nowrap" title="{{ $r->ran_at->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i:s') }}">{{ $r->ran_at->diffForHumans() }}</td>
+                </tr>
+            @empty
+                <tr><td colspan="4" class="text-secondary text-center py-4">Chưa ghi lại lần chạy nào — bảng này đầy dần khi các lệnh đồng bộ chạy theo lịch hoặc khi bấm “Sync ngay”.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 @endsection
 

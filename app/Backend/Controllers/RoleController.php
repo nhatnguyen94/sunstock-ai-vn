@@ -7,6 +7,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Support\ActivityLogger;
 use App\Support\AdminGuard;
+use App\Support\TransformerResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -47,8 +48,7 @@ class RoleController extends Controller
 
         ActivityLogger::log('admin_action', "Tạo vai trò {$role->name}", ['role_id' => $role->id, 'permission_ids' => $validated['permissions'] ?? []]);
 
-        return redirect()->route('admin.roles.index')
-            ->with('success', 'Vai trò đã được tạo thành công!');
+        return TransformerResponse::redirectSuccess('admin.roles.index', TransformerResponse::createdMessage('Vai trò'));
     }
 
     public function edit(Role $role): View
@@ -72,7 +72,7 @@ class RoleController extends Controller
         ]);
 
         if ($problem = AdminGuard::roleProblem($role, $validated['name'], $validated['permissions'] ?? [])) {
-            return back()->withInput()->with('error', $problem);
+            return TransformerResponse::backWithInput('error', $problem);
         }
 
         $before = $role->permissions()->pluck('permissions.id')->all();
@@ -85,27 +85,23 @@ class RoleController extends Controller
             'permissions_after' => array_map('intval', $validated['permissions'] ?? []),
         ]);
 
-        return redirect()->route('admin.roles.index')
-            ->with('success', 'Vai trò đã được cập nhật thành công!');
+        return TransformerResponse::redirectSuccess('admin.roles.index', TransformerResponse::updatedMessage('Vai trò'));
     }
 
     public function destroy(Role $role): RedirectResponse
     {
         if ($this->roleService->isSystemRole($role)) {
-            return redirect()->route('admin.roles.index')
-                ->with('error', 'Không thể xoá vai trò hệ thống ('.$role->display_name.').');
+            return TransformerResponse::redirectError('admin.roles.index', 'Không thể xoá vai trò hệ thống ('.$role->display_name.').');
         }
 
         if ($role->users()->exists()) {
-            return redirect()->route('admin.roles.index')
-                ->with('error', 'Vai trò đang được gán cho ít nhất một user, không thể xoá.');
+            return TransformerResponse::redirectError('admin.roles.index', 'Vai trò đang được gán cho ít nhất một user, không thể xoá.');
         }
 
         ActivityLogger::log('admin_action', "Xoá vai trò {$role->name}", ['role_id' => $role->id]);
 
         $this->roleService->deleteRole($role);
 
-        return redirect()->route('admin.roles.index')
-            ->with('success', 'Vai trò đã được xoá thành công!');
+        return TransformerResponse::redirectSuccess('admin.roles.index', TransformerResponse::deletedMessage('Vai trò'));
     }
 }

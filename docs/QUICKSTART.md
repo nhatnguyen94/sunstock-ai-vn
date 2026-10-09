@@ -145,3 +145,10 @@ Admin login URL: `/admin/login`
 | `/admin/roles` | Manage roles + assign permissions (gate: `manage-roles`) |
 | `/admin/permissions` | Manage permissions (gate: `manage-permissions`) — see [docs/RBAC.md](RBAC.md) |
 | `/admin/queue` | Queue monitoring dashboard (gate: `manage-queue`) — see "Giám sát Queue" in [docs/DOCKER.md](DOCKER.md) |
+
+## Trying the admin features by hand
+
+```bash
+php artisan db:seed --class=DemoAdminFeaturesSeeder          # local only; admin@sunstock.test / support@sunstock.test / webadmin@sunstock.test, shared demo password
+php artisan db:seed --class=DemoAdminFeaturesCleanupSeeder   # removes exactly what the seeder created
+```

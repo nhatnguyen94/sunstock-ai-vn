@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\TransformerResponse;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +27,7 @@ class EnsureUserIsActive
             $request->session()->regenerateToken();
 
             if ($request->expectsJson()) {
-                return response()->json(['message' => 'Tài khoản của bạn hiện không được phép truy cập.'], 401);
+                return TransformerResponse::unauthorized(TransformerResponse::ACCOUNT_NOT_ALLOWED_MESSAGE);
             }
 
             return redirect()->route($request->is('admin*') ? 'admin.login' : 'login')

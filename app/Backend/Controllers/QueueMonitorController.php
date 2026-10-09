@@ -4,6 +4,7 @@ namespace App\Backend\Controllers;
 
 use App\Backend\Interfaces\QueueMonitorServiceInterface;
 use App\Support\ActivityLogger;
+use App\Support\TransformerResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
@@ -28,7 +29,7 @@ class QueueMonitorController extends Controller
      */
     public function stats(): JsonResponse
     {
-        return response()->json([
+        return TransformerResponse::json([
             'queues' => $this->queueMonitorService->getQueueStats(),
             ...$this->queueMonitorService->getLiveActivity(),
         ]);
@@ -39,11 +40,7 @@ class QueueMonitorController extends Controller
         $ok = $this->queueMonitorService->retryFailedJob($uuid);
         ActivityLogger::log('admin_action', 'Retry job lỗi '.$uuid, ['uuid' => $uuid, 'found' => $ok]);
 
-        return response()->json(
-            $ok ? ['success' => true, 'message' => 'Đã đưa job vào lại queue.']
-                : ['success' => false, 'message' => 'Không tìm thấy job.'],
-            $ok ? 200 : 404
-        );
+        return $ok ? TransformerResponse::success('Đã đưa job vào lại queue.') : TransformerResponse::notFound('Không tìm thấy job.');
     }
 
     public function destroy(string $uuid): JsonResponse
@@ -51,11 +48,7 @@ class QueueMonitorController extends Controller
         $ok = $this->queueMonitorService->deleteFailedJob($uuid);
         ActivityLogger::log('admin_action', 'Xoá job lỗi '.$uuid, ['uuid' => $uuid, 'found' => $ok]);
 
-        return response()->json(
-            $ok ? ['success' => true, 'message' => 'Đã xoá job khỏi danh sách fail.']
-                : ['success' => false, 'message' => 'Không tìm thấy job.'],
-            $ok ? 200 : 404
-        );
+        return $ok ? TransformerResponse::success('Đã xoá job khỏi danh sách fail.') : TransformerResponse::notFound('Không tìm thấy job.');
     }
 
     public function destroyAll(): JsonResponse
@@ -64,10 +57,7 @@ class QueueMonitorController extends Controller
 
         ActivityLogger::log('admin_action', "Xoá toàn bộ job thất bại: {$count} job");
 
-        return response()->json([
-            'success' => true,
-            'message' => "Đã xoá {$count} job thất bại.",
-        ]);
+        return TransformerResponse::success("Đã xoá {$count} job thất bại.");
     }
 
     public function retryAll(): JsonResponse
@@ -76,9 +66,6 @@ class QueueMonitorController extends Controller
 
         ActivityLogger::log('admin_action', "Retry toàn bộ job lỗi: {$count} job");
 
-        return response()->json([
-            'success' => true,
-            'message' => "Đã đưa {$count} job vào lại queue.",
-        ]);
+        return TransformerResponse::success("Đã đưa {$count} job vào lại queue.");
     }
 }

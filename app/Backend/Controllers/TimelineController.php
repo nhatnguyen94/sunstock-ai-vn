@@ -3,6 +3,7 @@
 namespace App\Backend\Controllers;
 
 use App\Backend\Interfaces\ActivityLogRepositoryInterface;
+use App\Support\TransformerResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -19,7 +20,7 @@ class TimelineController extends Controller
         Gate::authorize('view-timeline');
 
         $filters = $request->only('type', 'date', 'search');
-        $items   = $this->activityRepo->paginate($filters, 20);
+        $items = $this->activityRepo->paginate($filters, 20);
 
         // Quick-filter chips: how much of each kind happened in the last 7 days
         $counts = $this->activityRepo->countByType();
@@ -33,6 +34,6 @@ class TimelineController extends Controller
 
         $counts = $this->activityRepo->countByType();
 
-        return response()->json($counts);
+        return TransformerResponse::json($counts);
     }
 }

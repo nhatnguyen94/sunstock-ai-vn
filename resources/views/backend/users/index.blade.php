@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 @use('App\Models\Role')
 @use('App\Models\User')
+@use('App\Backend\Services\UserBulkService')
 
 @section('title', 'Quản lý Users')
 @section('page_pretitle', 'Hệ thống')
@@ -12,11 +13,28 @@
 
 @section('page_actions')
     @if(auth()->user()->hasRole(Role::ADMIN))
+    <a href="{{ route('admin.users.export', request()->only('search', 'status')) }}" class="btn btn-outline-secondary"><i class="ti ti-file-export me-1"></i> Xuất CSV</a>
     <a href="{{ route('admin.users.create') }}" class="btn btn-primary"><i class="ti ti-user-plus me-1"></i> Tạo User mới</a>
     @endif
 @endsection
 
 @section('content')
+    @php $isAdmin = auth()->user()->hasRole(Role::ADMIN); @endphp
+    @if($isAdmin)
+    <form method="POST" action="{{ route('admin.users.bulk') }}" id="bulkForm" class="card mb-3" hidden>
+        @csrf
+        <div class="card-body d-flex flex-wrap align-items-center gap-2 py-2">
+            <strong><span id="bulkCount">0</span> user đã chọn</strong>
+            <select name="action" class="form-select w-auto" aria-label="Thao tác hàng loạt" required>
+                <option value="">Chọn thao tác…</option>
+                @foreach(UserBulkService::ACTIONS as $key => $label)<option value="{{ $key }}">{{ ucfirst($label) }}</option>@endforeach
+            </select>
+            <button class="btn btn-primary">Áp dụng</button>
+            <span class="text-secondary small">Mỗi tài khoản đi qua cùng các quy tắc như khi sửa riêng lẻ (không tự khóa mình, không đụng admin cuối cùng).</span>
+        </div>
+    </form>
+    @endif
+
     <div class="card">
         <div class="card-header">
             <form method="GET" action="{{ route('admin.users.index') }}" class="ad-toolbar flex-fill">
@@ -42,6 +60,7 @@
             <table class="table table-vcenter table-hover card-table">
                 <thead>
                     <tr>
+                        @if($isAdmin)<th class="w-1"><input type="checkbox" class="form-check-input" id="bulkAll" aria-label="Chọn tất cả trên trang"></th>@endif
                         <th>User</th>
                         <th>Xác thực email</th>
                         <th>Vai trò</th>
@@ -52,6 +71,7 @@
                 <tbody>
                     @forelse($users as $user)
                     <tr>
+                        @if($isAdmin)<td><input type="checkbox" class="form-check-input bulk-row" name="ids[]" value="{{ $user->id }}" form="bulkForm" aria-label="Chọn {{ $user->email }}"></td>@endif
                         <td>
                             <div class="ad-avatar-cell">
                                 <span class="ad-avatar">{{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}</span>
@@ -113,7 +133,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5">
+                        <td colspan="{{ $isAdmin ? 6 : 5 }}">
                             <div class="empty">
                                 <div class="empty-icon"><i class="ti ti-users-minus"></i></div>
                                 <p class="empty-title">Không tìm thấy users nào</p>
@@ -134,3 +154,25 @@
         @endif
     </div>
 @endsection
+
+@if($isAdmin)
+@push('scripts')
+<script>
+(function () {
+    var form = document.getElementById('bulkForm');
+    if (!form) return;
+    var rows = Array.prototype.slice.call(document.querySelectorAll('.bulk-row'));
+    var all = document.getElementById('bulkAll');
+    var count = document.getElementById('bulkCount');
+    function refresh() {
+        var n = rows.filter(function (r) { return r.checked; }).length;
+        count.textContent = n;
+        form.hidden = n === 0;
+        if (all) all.checked = n > 0 && n === rows.length;
+    }
+    rows.forEach(function (r) { r.addEventListener('change', refresh); });
+    if (all) all.addEventListener('change', function () { rows.forEach(function (r) { r.checked = all.checked; }); refresh(); });
+})();
+</script>
+@endpush
+@endif

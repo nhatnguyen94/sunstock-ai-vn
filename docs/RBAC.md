@@ -160,6 +160,12 @@ permission; the numbers-only cards are shown to everyone.
 - **Admin > Hệ thống > Quản lý Users** (existing, unchanged) assigns *roles* to a user.
 - **Admin > Hệ thống > Giám sát Queue** (`admin.queue.*`, gate `manage-queue`) — `App\Backend\Controllers\QueueMonitorController`. Custom-built page (not a third-party package — see "Queue monitoring" in `docs/DOCKER.md` for why): per-queue pending/reserved/delayed counts, **real-time currently-processing job list + recently-finished job list + jobs-processed-today counter** (all auto-refreshing via polling `/admin/queue/stats`, powered by `App\Support\QueueJobLogger` — see `docs/STRUCTURE.md`), and a paginated failed-jobs list with retry/delete/retry-all/delete-all actions.
 
+### Admin-role-only actions inside delegated pages
+Reading the **Bảo mật** page follows `manage-users`, but blocking / unblocking an address goes through `admin.only`; **bulk user actions** too. The **CSV export** of users and **taking / downloading a database backup** check the `admin` role explicitly (a CSV is every e-mail address, a dump every password hash), even for a role that was given `manage-users` / `manage-features`.
+
+### Pages under `manage-features`
+Stocks, news, portfolios, **Sync Status**, **Quản lý AI** (`/admin/ai`) and **Giao diện & Cache** (`/admin/site`) all use `manage-features`: no separate permission was added for the AI and site controls (changing what visitors see is the same trust level as managing content). The AI page shows names and e-mails only to holders of `manage-users`; blocking an account from the AI is not a role/status change, so `AdminGuard` does not apply, but it is written to the audit trail.
+
 ## Adding a brand-new permission-gated feature (no code changes to AppServiceProvider needed)
 
 1. In **Admin > Quyền hạn**, create a permission, e.g. `manage-alerts`.

@@ -4,6 +4,7 @@ namespace App\Backend\Controllers;
 
 use App\Support\ActivityLogger;
 use App\Support\AuthRules;
+use App\Support\TransformerResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -49,7 +50,6 @@ class AccountController extends Controller
 
         ActivityLogger::log('admin_action', "Admin đổi mật khẩu: {$user->name}");
 
-        return redirect()->route('admin.account.edit')
-            ->with('success', 'Đã đổi mật khẩu thành công.');
+        return TransformerResponse::redirectSuccess('admin.account.edit', 'Đã đổi mật khẩu thành công.');
     }
 }

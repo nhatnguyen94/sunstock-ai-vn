@@ -97,7 +97,13 @@
                                 </td>
                                 <td class="text-secondary small">{{ $item->category?->name ?? '—' }}</td>
                                 <td class="text-nowrap small" title="{{ $item->published_at->format('d/m/Y H:i') }}">{{ $item->published_at->diffForHumans() }}</td>
-                                <td class="text-end">
+                                <td class="text-end text-nowrap">
+                                    @if($item->pinned_at)<span class="badge bg-orange-lt me-1">Đã ghim</span>@endif
+                                    @if($item->is_hidden)<span class="badge bg-red-lt me-1">Đã ẩn</span>@endif
+                                    @unless($item->is_hidden)
+                                        <form method="POST" action="{{ route('admin.news.pin', $item) }}" class="d-inline">@csrf <button class="btn btn-sm btn-ghost-secondary" title="{{ $item->pinned_at ? 'Bỏ ghim' : 'Ghim lên đầu trang chủ' }}"><i class="ti ti-pin{{ $item->pinned_at ? '-filled' : '' }}"></i></button></form>
+                                    @endunless
+                                    <form method="POST" action="{{ route('admin.news.hide', $item) }}" class="d-inline">@csrf <button class="btn btn-sm btn-ghost-secondary" title="{{ $item->is_hidden ? 'Hiện lại' : 'Ẩn khỏi website' }}"><i class="ti ti-eye{{ $item->is_hidden ? '' : '-off' }}"></i></button></form>
                                     <a href="{{ $item->url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">Xem gốc <i class="ti ti-external-link ms-1"></i></a>
                                 </td>
                             </tr>

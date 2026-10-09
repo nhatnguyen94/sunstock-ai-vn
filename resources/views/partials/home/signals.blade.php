@@ -1,5 +1,6 @@
 @use('Carbon\Carbon')
 {{-- Section "Tín hiệu & sự kiện": signals are built in the background and events come from cached profiles; this tab only reads them. --}}
+    @if($blocks['signals'])
     <section class="mk-card mk-explore" id="signals">
         <div class="mk-explore-head"><h3 class="mk-explore-title"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i> Tín hiệu hôm nay</h3></div>
         {{-- Tín hiệu: built in the background (StockSignalService), so this panel only reads the cached result --}}
@@ -42,6 +43,9 @@
         </div>
     </section>
 
+    @endif
+
+    @if($blocks['events'])
     <section class="mk-card mk-explore" id="events">
         <div class="mk-explore-head"><h3 class="mk-explore-title"><i class="bi bi-calendar-event" aria-hidden="true"></i> Sự kiện sắp tới</h3></div>
         {{-- Sự kiện: dividends / bonus shares / shareholder meetings coming up, from the profiles the site has cached (+ the visitor's own symbols) --}}
@@ -69,3 +73,4 @@
             @endif
         </div>
     </section>
+    @endif

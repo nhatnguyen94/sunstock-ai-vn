@@ -95,6 +95,9 @@
         'signals' => ['Tín hiệu & sự kiện', 'lightning-charge', 'Tín hiệu &amp; sự kiện', 'Điều vừa xảy ra trên bảng giá và lịch cổ tức, đại hội sắp tới'],
         'explore' => ['Khám phá', 'compass', 'Khám phá thêm', 'Cổ phiếu nổi bật, ngành hot và tỷ giá ngoại tệ'],
     ];
+    if (! $blocks['signals'] && ! $blocks['events']) {
+        unset($homeSections['signals']);   // both cards hidden by an admin: no empty section, no dead jump link
+    }
 @endphp
 <section class="mk" id="market">
 <div class="container">

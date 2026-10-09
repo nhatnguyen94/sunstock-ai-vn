@@ -28,6 +28,8 @@
     <!-- Toast container -->
     <div id="toastContainer"></div>
 
+    @include('partials.site-notice')
+
     <!-- Announcement Bar -->
     <div class="announcement-bar d-none d-md-block">
         <i class="bi bi-stars" style="margin-right:6px;"></i>

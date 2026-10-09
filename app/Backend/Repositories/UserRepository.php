@@ -4,6 +4,7 @@ namespace App\Backend\Repositories;
 
 use App\Backend\Interfaces\UserRepositoryInterface;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\UserProfile;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
@@ -12,16 +13,19 @@ class UserRepository implements UserRepositoryInterface
 {
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
-        return User::with(['roles', 'profile'])
+        return $this->filtered($filters)->with(['roles', 'profile'])->latest()->paginate($perPage)->withQueryString();
+    }
+
+    /** The list's search and status filters as a query: the screen and the CSV export share it, so they can never disagree. */
+    public function filtered(array $filters): Builder
+    {
+        return User::query()
             // grouped: an ungrouped OR would let the e-mail match escape the status filter below
             ->when($filters['search'] ?? null, function ($q, $search) {
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
             })
             // compared with null on purpose: when(0, ...) is falsy and would silently drop the "inactive" filter
-            ->when($this->validStatus($filters['status'] ?? null) !== null, fn ($q) => $q->where('status', $this->validStatus($filters['status'])))
-            ->latest()
-            ->paginate($perPage)
-            ->withQueryString();
+            ->when($this->validStatus($filters['status'] ?? null) !== null, fn ($q) => $q->where('status', $this->validStatus($filters['status'])));
     }
 
     /** A status filter is only applied when it is exactly one of the known numbers ("abc" must not silently mean 0). */

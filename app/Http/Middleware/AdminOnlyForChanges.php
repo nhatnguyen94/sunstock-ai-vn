@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Role;
+use App\Support\TransformerResponse;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +22,7 @@ class AdminOnlyForChanges
         $readOnly = $request->isMethodSafe() && ! $request->routeIs('*.create', '*.edit');
 
         if (! $readOnly && ! Auth::user()?->hasRole(Role::ADMIN)) {
-            abort(403, 'Chỉ quản trị viên (admin) mới được thay đổi người dùng, vai trò và quyền hạn.');
+            TransformerResponse::abortWith(TransformerResponse::HTTP_FORBIDDEN, TransformerResponse::ADMIN_ONLY_CHANGES_MESSAGE);
         }
 
         return $next($request);

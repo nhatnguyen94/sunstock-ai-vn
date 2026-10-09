@@ -7,6 +7,7 @@ use App\Frontend\Interfaces\PortfolioTransactionRepositoryInterface;
 use App\Models\PortfolioItem;
 use App\Models\PortfolioTransaction;
 use App\Models\StockSymbol;
+use App\Support\TransformerResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -44,14 +45,14 @@ class PortfolioLedgerService
     /**
      * Apply a buy or sell to the holding and record it.
      *
-     * @param  array{type: string, stock_symbol: string, quantity: int, price: float|int, fee?: float|int|null, traded_at?: string|null, notes?: string|null} $data
+     * @param  array{type: string, stock_symbol: string, quantity: int, price: float|int, fee?: float|int|null, traded_at?: string|null, notes?: string|null}  $data
      * @return array{ok: true, transaction: PortfolioTransaction, message: string}|array{ok: false, message: string, status: int}
      */
     public function trade(int $portfolioId, int $userId, array $data): array
     {
         $portfolio = $this->portfolios->findByIdAndUser($portfolioId, $userId);
         if (! $portfolio) {
-            return $this->fail('Danh mục không tồn tại hoặc bạn không có quyền truy cập.', 404);
+            return $this->fail('Danh mục không tồn tại hoặc bạn không có quyền truy cập.', TransformerResponse::HTTP_NOT_FOUND);
         }
 
         $type = $data['type'] ?? '';
@@ -62,7 +63,7 @@ class PortfolioLedgerService
         $date = $data['traded_at'] ?? now()->toDateString();
 
         if (! in_array($type, [PortfolioTransaction::TYPE_BUY, PortfolioTransaction::TYPE_SELL], true) || $symbol === '' || $qty < 1 || $price <= 0) {
-            return $this->fail('Thông tin giao dịch không hợp lệ.', 422);
+            return $this->fail('Thông tin giao dịch không hợp lệ.', TransformerResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         return DB::transaction(function () use ($portfolio, $type, $symbol, $qty, $price, $fee, $date, $data) {
@@ -86,15 +87,15 @@ class PortfolioLedgerService
         $tx = $this->transactions->find($transactionId);
         $portfolio = $tx ? $this->portfolios->findByIdAndUser($tx->portfolio_id, $userId) : null;
         if (! $tx || ! $portfolio) {
-            return $this->fail('Không tìm thấy giao dịch hoặc bạn không có quyền xóa.', 404);
+            return $this->fail('Không tìm thấy giao dịch hoặc bạn không có quyền xóa.', TransformerResponse::HTTP_NOT_FOUND);
         }
 
         $latest = $this->transactions->latestForSymbol($tx->portfolio_id, $tx->stock_symbol);
         if (! $latest || $latest->id !== $tx->id) {
-            return $this->fail("Chỉ hoàn tác được giao dịch gần nhất của {$tx->stock_symbol}. Hãy hoàn tác các giao dịch mới hơn trước.", 422);
+            return $this->fail("Chỉ hoàn tác được giao dịch gần nhất của {$tx->stock_symbol}. Hãy hoàn tác các giao dịch mới hơn trước.", TransformerResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        return DB::transaction(function () use ($tx, $portfolio) {
+        return DB::transaction(function () use ($tx) {
             $item = PortfolioItem::where(['portfolio_id' => $tx->portfolio_id, 'stock_symbol' => $tx->stock_symbol])->lockForUpdate()->first();
 
             if ($tx->isSell()) {
@@ -110,7 +111,7 @@ class PortfolioLedgerService
                 }
             } else {
                 if (! $item || $item->quantity < $tx->quantity) {
-                    return $this->fail('Không thể hoàn tác: số lượng đang giữ ít hơn lượng mua của giao dịch này (đã chỉnh sửa thủ công?).', 422);
+                    return $this->fail('Không thể hoàn tác: số lượng đang giữ ít hơn lượng mua của giao dịch này (đã chỉnh sửa thủ công?).', TransformerResponse::HTTP_UNPROCESSABLE_ENTITY);
                 }
 
                 $remaining = $item->quantity - $tx->quantity;
@@ -198,10 +199,10 @@ class PortfolioLedgerService
     private function applySell(int $portfolioId, ?PortfolioItem $item, string $symbol, int $qty, float $price, float $fee, string $date, ?string $notes): array
     {
         if (! $item) {
-            return $this->fail("Danh mục chưa có {$symbol} để bán.", 422);
+            return $this->fail("Danh mục chưa có {$symbol} để bán.", TransformerResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
         if ($qty > $item->quantity) {
-            return $this->fail("Bạn chỉ đang giữ " . number_format($item->quantity, 0, ',', '.') . " cổ phiếu {$symbol}, không thể bán {$qty}.", 422);
+            return $this->fail('Bạn chỉ đang giữ '.number_format($item->quantity, 0, ',', '.')." cổ phiếu {$symbol}, không thể bán {$qty}.", TransformerResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $costBasis = (float) $item->buy_price;
@@ -223,7 +224,7 @@ class PortfolioLedgerService
 
         return [
             'ok' => true, 'transaction' => $tx,
-            'message' => "Đã ghi nhận bán {$qty} {$symbol} — {$sign} " . number_format(abs($realized), 0, ',', '.') . ' ₫.',
+            'message' => "Đã ghi nhận bán {$qty} {$symbol} — {$sign} ".number_format(abs($realized), 0, ',', '.').' ₫.',
         ];
     }
 

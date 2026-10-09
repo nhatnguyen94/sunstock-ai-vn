@@ -7,6 +7,7 @@ use App\Frontend\Services\PortfolioLedgerService;
 use App\Frontend\Services\PortfolioService;
 use App\Models\PortfolioTransaction;
 use App\Support\ActivityLogger;
+use App\Support\TransformerResponse;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -60,7 +61,7 @@ class PortfolioController extends Controller
         $analytics = $this->portfolioService->getPortfolioAnalytics($id, $user->id);
 
         if (! $analytics) {
-            abort(404, 'Portfolio không tồn tại hoặc bạn không có quyền truy cập.');
+            TransformerResponse::abortWith(TransformerResponse::HTTP_NOT_FOUND, TransformerResponse::PORTFOLIO_NOT_FOUND_MESSAGE);
         }
 
         return view('portfolio.show', $this->insights->enhance($analytics));
@@ -95,13 +96,10 @@ class PortfolioController extends Controller
 
             // Came here from "add SYMBOL to portfolio": continue straight to the add form
             if ($request->filled('symbol')) {
-                return redirect()->route('portfolio.add-stock', ['id' => $portfolio->id, 'symbol' => strtoupper($request->input('symbol'))])
-                    ->with('success', 'Đã tạo danh mục. Nhập thông tin mua để hoàn tất.');
+                return TransformerResponse::redirectSuccess('portfolio.add-stock', 'Đã tạo danh mục. Nhập thông tin mua để hoàn tất.', ['id' => $portfolio->id, 'symbol' => strtoupper($request->input('symbol'))]);
             }
 
-            return redirect()
-                ->route('portfolio.show', $portfolio->id)
-                ->with('success', 'Tạo danh mục đầu tư thành công!');
+            return TransformerResponse::redirectSuccess('portfolio.show', 'Tạo danh mục đầu tư thành công!', [$portfolio->id]);
         } catch (Exception $e) {
             return back()
                 ->withErrors(['error' => 'Có lỗi xảy ra khi tạo danh mục đầu tư.'])
@@ -118,7 +116,7 @@ class PortfolioController extends Controller
         $portfolio = $this->portfolioService->getPortfolioById($id, $user->id);
 
         if (! $portfolio) {
-            abort(404, 'Portfolio không tồn tại hoặc bạn không có quyền truy cập.');
+            TransformerResponse::abortWith(TransformerResponse::HTTP_NOT_FOUND, TransformerResponse::PORTFOLIO_NOT_FOUND_MESSAGE);
         }
 
         return view('portfolio.edit', compact('portfolio'));
@@ -148,9 +146,7 @@ class PortfolioController extends Controller
                 return back()->withErrors(['error' => 'Portfolio không tồn tại hoặc bạn không có quyền chỉnh sửa.']);
             }
 
-            return redirect()
-                ->route('portfolio.show', $id)
-                ->with('success', 'Cập nhật danh mục đầu tư thành công!');
+            return TransformerResponse::redirectSuccess('portfolio.show', 'Cập nhật danh mục đầu tư thành công!', [$id]);
         } catch (Exception $e) {
             return back()
                 ->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật danh mục đầu tư.'])
@@ -170,9 +166,7 @@ class PortfolioController extends Controller
                 return back()->withErrors(['error' => 'Portfolio không tồn tại hoặc bạn không có quyền xóa.']);
             }
 
-            return redirect()
-                ->route('portfolio.index')
-                ->with('success', 'Xóa danh mục đầu tư thành công!');
+            return TransformerResponse::redirectSuccess('portfolio.index', 'Xóa danh mục đầu tư thành công!');
         } catch (Exception $e) {
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi xóa danh mục đầu tư.']);
         }
@@ -187,7 +181,7 @@ class PortfolioController extends Controller
         $portfolio = $this->portfolioService->getPortfolioById($id, $user->id);
 
         if (! $portfolio) {
-            abort(404, 'Portfolio không tồn tại hoặc bạn không có quyền truy cập.');
+            TransformerResponse::abortWith(TransformerResponse::HTTP_NOT_FOUND, TransformerResponse::PORTFOLIO_NOT_FOUND_MESSAGE);
         }
 
         $symbol = strtoupper((string) $request->query('symbol'));
@@ -232,9 +226,7 @@ class PortfolioController extends Controller
                 return back()->withErrors(['error' => 'Portfolio không tồn tại hoặc bạn không có quyền thêm cổ phiếu.']);
             }
 
-            return redirect()
-                ->route('portfolio.show', $id)
-                ->with('success', 'Thêm cổ phiếu vào danh mục thành công!');
+            return TransformerResponse::redirectSuccess('portfolio.show', 'Thêm cổ phiếu vào danh mục thành công!', [$id]);
         } catch (Exception $e) {
             return back()
                 ->withErrors(['error' => 'Có lỗi xảy ra khi thêm cổ phiếu vào danh mục.'])
@@ -266,9 +258,7 @@ class PortfolioController extends Controller
                 return back()->withErrors(['error' => 'Không tìm thấy cổ phiếu hoặc bạn không có quyền chỉnh sửa.']);
             }
 
-            return redirect()
-                ->route('portfolio.show', $item->portfolio_id)
-                ->with('success', 'Cập nhật thông tin cổ phiếu thành công!');
+            return TransformerResponse::redirectSuccess('portfolio.show', 'Cập nhật thông tin cổ phiếu thành công!', [$item->portfolio_id]);
         } catch (Exception $e) {
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật thông tin cổ phiếu.']);
         }
@@ -292,14 +282,10 @@ class PortfolioController extends Controller
             }
 
             if ($portfolioId) {
-                return redirect()
-                    ->route('portfolio.show', $portfolioId)
-                    ->with('success', 'Xóa cổ phiếu khỏi danh mục thành công!');
+                return TransformerResponse::redirectSuccess('portfolio.show', 'Xóa cổ phiếu khỏi danh mục thành công!', [$portfolioId]);
             }
 
-            return redirect()
-                ->route('portfolio.index')
-                ->with('success', 'Xóa cổ phiếu khỏi danh mục thành công!');
+            return TransformerResponse::redirectSuccess('portfolio.index', 'Xóa cổ phiếu khỏi danh mục thành công!');
         } catch (Exception $e) {
             return back()->withErrors(['error' => 'Có lỗi xảy ra khi xóa cổ phiếu khỏi danh mục.']);
         }
@@ -315,37 +301,29 @@ class PortfolioController extends Controller
             $result = $this->portfolioService->refreshPrices($id, Auth::id(), queueMissing: true);
 
             if ($result === null) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Danh mục không tồn tại hoặc bạn không có quyền truy cập.',
-                ], 404);
+                return TransformerResponse::notFound('Danh mục không tồn tại hoặc bạn không có quyền truy cập.');
             }
 
             if (! $result['ok']) {
-                return response()->json(['success' => false, 'message' => 'Không cập nhật được giá, vui lòng thử lại.'], 500);
+                return TransformerResponse::serverError('Không cập nhật được giá, vui lòng thử lại.');
             }
 
             $message = $result['updated'] > 0
-                ? "Đã cập nhật giá {$result['updated']} mã" . ($result['as_of'] ? ' (dữ liệu phiên ' . date('d/m/Y', strtotime($result['as_of'])) . ')' : '') . '.'
+                ? "Đã cập nhật giá {$result['updated']} mã".($result['as_of'] ? ' (dữ liệu phiên '.date('d/m/Y', strtotime($result['as_of'])).')' : '').'.'
                 : 'Chưa có dữ liệu giá cho các mã trong danh mục.';
 
             if ($result['missing']) {
-                $message .= ' Chưa có giá cho: ' . implode(', ', $result['missing'])
-                    . ($result['queued'] ? ' — đang tải dữ liệu, thử lại sau ít phút.' : ' (đang được tải).');
+                $message .= ' Chưa có giá cho: '.implode(', ', $result['missing'])
+                    .($result['queued'] ? ' — đang tải dữ liệu, thử lại sau ít phút.' : ' (đang được tải).');
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => $message,
+            return TransformerResponse::success($message, extra: [
                 'updated' => $result['updated'],
                 'missing' => $result['missing'],
                 'as_of' => $result['as_of'],
             ]);
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Có lỗi xảy ra khi cập nhật giá cổ phiếu.',
-            ], 500);
+            return TransformerResponse::serverError('Có lỗi xảy ra khi cập nhật giá cổ phiếu.');
         }
     }
 
@@ -355,8 +333,8 @@ class PortfolioController extends Controller
         $quote = $this->portfolioService->getQuote($symbol);
 
         return $quote
-            ? response()->json(['success' => true] + $quote)
-            : response()->json(['success' => false, 'message' => 'Không tìm thấy mã cổ phiếu.'], 404);
+            ? TransformerResponse::success(extra: $quote)
+            : TransformerResponse::notFound('Không tìm thấy mã cổ phiếu.');
     }
 
     /**
@@ -371,8 +349,7 @@ class PortfolioController extends Controller
         $portfolios = $this->portfolioService->getUserPortfolios(Auth::id(), true);
 
         if ($portfolios->isEmpty()) {
-            return redirect()->route('portfolio.create', ['symbol' => $symbol])
-                ->with('info', 'Tạo danh mục đầu tiên để thêm ' . ($symbol ?: 'cổ phiếu') . ' vào theo dõi.');
+            return TransformerResponse::redirectInfo('portfolio.create', 'Tạo danh mục đầu tiên để thêm '.($symbol ?: 'cổ phiếu').' vào theo dõi.', ['symbol' => $symbol]);
         }
 
         if ($portfolios->count() === 1) {
@@ -388,7 +365,7 @@ class PortfolioController extends Controller
         $analytics = $this->portfolioService->getPortfolioAnalytics($id, Auth::id());
 
         if (! $analytics) {
-            abort(404);
+            TransformerResponse::abortWith(TransformerResponse::HTTP_NOT_FOUND);
         }
 
         $name = Str::slug($analytics['portfolio']->name) ?: 'portfolio';
@@ -406,7 +383,7 @@ class PortfolioController extends Controller
                 ]);
             }
             fclose($out);
-        }, "portfolio-{$name}-" . now()->format('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, "portfolio-{$name}-".now()->format('Ymd').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**
@@ -451,14 +428,14 @@ class PortfolioController extends Controller
         $result = $this->ledger->trade($id, Auth::id(), $validated);
 
         if (! $result['ok']) {
-            abort_if($result['status'] === 404, 404);
+            TransformerResponse::abortIf($result['status'] === TransformerResponse::HTTP_NOT_FOUND, TransformerResponse::HTTP_NOT_FOUND);
 
             return redirect()->route('portfolio.show', $id)->withErrors(['error' => $result['message']])->withInput();
         }
 
         ActivityLogger::log('portfolio_trade', $result['message'], ['portfolio_id' => $id, 'type' => $validated['type'], 'symbol' => $validated['stock_symbol']]);
 
-        return redirect()->route('portfolio.show', $id)->with('success', $result['message']);
+        return TransformerResponse::redirectSuccess('portfolio.show', $result['message'], [$id]);
     }
 
     /** Undo the newest transaction of a symbol. */
@@ -470,18 +447,18 @@ class PortfolioController extends Controller
         $result = $this->ledger->undo($transactionId, Auth::id());
 
         if (! $result['ok']) {
-            abort_if($result['status'] === 404, 404);
+            TransformerResponse::abortIf($result['status'] === TransformerResponse::HTTP_NOT_FOUND, TransformerResponse::HTTP_NOT_FOUND);
 
             return redirect()->route('portfolio.show', $portfolioId)->withErrors(['error' => $result['message']]);
         }
 
-        return redirect()->route('portfolio.show', $result['portfolio_id'])->with('success', $result['message']);
+        return TransformerResponse::redirectSuccess('portfolio.show', $result['message'], [$result['portfolio_id']]);
     }
 
     /** CSV of the ledger (UTF-8 with BOM). */
     public function exportTransactions(int $id): StreamedResponse
     {
-        $portfolio = $this->portfolioService->getPortfolioById($id, Auth::id()) ?? abort(404);
+        $portfolio = $this->portfolioService->getPortfolioById($id, Auth::id()) ?? TransformerResponse::abortWith(TransformerResponse::HTTP_NOT_FOUND);
         $rows = $this->ledger->history($portfolio->id, 5000)->sortBy([['traded_at', 'asc'], ['id', 'asc']]);
         $name = Str::slug($portfolio->name) ?: 'portfolio';
 
@@ -497,7 +474,7 @@ class PortfolioController extends Controller
                 ]);
             }
             fclose($out);
-        }, "transactions-{$name}-" . now()->format('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, "transactions-{$name}-".now()->format('Ymd').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**
@@ -509,21 +486,12 @@ class PortfolioController extends Controller
             $suggestions = $this->portfolioService->getRebalanceSuggestions($id, Auth::id());
 
             if ($suggestions === null) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Portfolio không tồn tại hoặc bạn không có quyền truy cập.',
-                ], 403);
+                return TransformerResponse::forbidden(TransformerResponse::PORTFOLIO_NOT_FOUND_MESSAGE);
             }
 
-            return response()->json([
-                'success' => true,
-                'suggestions' => $suggestions,
-            ]);
+            return TransformerResponse::success(extra: ['suggestions' => $suggestions]);
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Có lỗi xảy ra khi tạo gợi ý rebalance.',
-            ], 500);
+            return TransformerResponse::serverError('Có lỗi xảy ra khi tạo gợi ý rebalance.');
         }
     }
 }

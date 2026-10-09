@@ -69,11 +69,19 @@ use App\Frontend\Services\CompanyProfileService;
 use App\Frontend\Services\NewsService;
 use App\Frontend\Services\PortfolioLedgerService;
 use App\Frontend\Services\PortfolioService;
+use App\Support\LoginAuditor;
 use App\Support\QueueJobLogger;
+use App\Support\SyncRunRecorder;
+use App\Support\TransformerResponse;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
@@ -235,6 +243,15 @@ class AppServiceProvider extends ServiceProvider
 
         // Ghi log tiến trình xử lý job cho Admin > Giám sát Queue
         $this->registerQueueMonitoring();
+
+        // Lịch sử chạy của mọi lệnh sync:* / signals:* (Admin > Sync Status), dù do scheduler, nút "Sync ngay" hay terminal chạy
+        $this->app->singleton(SyncRunRecorder::class);
+        Event::listen(CommandStarting::class, [SyncRunRecorder::class, 'starting']);
+        Event::listen(CommandFinished::class, [SyncRunRecorder::class, 'finished']);
+
+        // Lịch sử đăng nhập cho Admin > Bảo mật (cổng thường và /admin)
+        Event::listen(Login::class, [LoginAuditor::class, 'succeeded']);
+        Event::listen(Failed::class, [LoginAuditor::class, 'failed']);
     }
 
     /**
@@ -305,11 +322,7 @@ class AppServiceProvider extends ServiceProvider
                 $retry = (int) ($headers['Retry-After'] ?? 60);
                 $wait = max(1, (int) ceil($retry / 60));
 
-                return response()->json([
-                    'error' => true,
-                    'message' => "Mỗi tài khoản chỉ được dự đoán 1 lần mỗi {$minutes} phút. Vui lòng thử lại sau khoảng {$wait} phút.",
-                    'retry_after' => $retry,
-                ], 429, $headers);
+                return TransformerResponse::tooManyRequests("Mỗi tài khoản chỉ được dự đoán 1 lần mỗi {$minutes} phút. Vui lòng thử lại sau khoảng {$wait} phút.", $retry, ['error' => true])->withHeaders($headers);
             });
         });
 
@@ -321,11 +334,7 @@ class AppServiceProvider extends ServiceProvider
                 $retry = (int) ($headers['Retry-After'] ?? 60);
                 $wait = max(1, (int) ceil($retry / 60));
 
-                return response()->json([
-                    'error' => true,
-                    'message' => "Bạn đã hỏi tối đa {$max} câu trong {$minutes} phút. Vui lòng thử lại sau khoảng {$wait} phút.",
-                    'retry_after' => $retry,
-                ], 429, $headers);
+                return TransformerResponse::tooManyRequests("Bạn đã hỏi tối đa {$max} câu trong {$minutes} phút. Vui lòng thử lại sau khoảng {$wait} phút.", $retry, ['error' => true])->withHeaders($headers);
             });
         });
     }

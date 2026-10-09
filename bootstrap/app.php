@@ -2,14 +2,17 @@
 
 use App\Http\Middleware\AdminAccess;
 use App\Http\Middleware\AdminOnlyForChanges;
+use App\Http\Middleware\BlockedIps;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\SecurityHeaders;
+use App\Support\TransformerResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -31,6 +34,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(
             fn ($request) => $request->is('admin*') ? route('admin.login') : route('login')
         );
+
+        $middleware->web(prepend: [
+            // addresses an admin blocked answer 403 before anything else runs
+            BlockedIps::class,
+        ]);
 
         $middleware->web(append: [
             SecurityHeaders::class,
@@ -152,16 +160,20 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('queue-logs:prune')->hourly()
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Rolling 90-day window of sign-in attempts (Admin > Bảo mật)
+        $schedule->command('logins:prune')->dailyAt('04:10');
+
+        // Heartbeat: proves the scheduler itself is alive (Admin > Sức khỏe hệ thống reads it). Stale data with no failed job usually
+        // means nobody is running `schedule:work` / cron — this is the one line that tells the difference.
+        $schedule->call(fn () => Cache::put('scheduler:heartbeat', now()->toIso8601String(), 3600))
+            ->name('scheduler-heartbeat')->everyMinute();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // AJAX callers (AI chat / prediction) get a readable message instead of Laravel's English default
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->expectsJson()) {
-                return response()->json([
-                    'error' => true,
-                    'message' => 'Vui lòng đăng nhập để sử dụng tính năng này.',
-                    'login_url' => route('login'),
-                ], 401);
+                return TransformerResponse::unauthorized(extra: ['error' => true, 'login_url' => route('login')]);
             }
         });
     })->create();

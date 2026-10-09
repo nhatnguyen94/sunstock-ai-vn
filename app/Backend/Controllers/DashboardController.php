@@ -2,6 +2,9 @@
 
 namespace App\Backend\Controllers;
 
+use App\Backend\Services\DashboardInsightsService;
+use App\Frontend\Services\StockSignalService;
+use App\Frontend\Services\WorldMarketService;
 use App\Models\ActivityLog;
 use App\Models\CompanyFinancial;
 use App\Models\ExchangeRate;
@@ -23,7 +26,7 @@ use Throwable;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(DashboardInsightsService $insightsService)
     {
         $stats = [
             'total_users' => User::count(),
@@ -59,12 +62,18 @@ class DashboardController extends Controller
 
         $sources = $this->sources($stats);
 
+        // Charts: aggregates only, nothing that identifies a person; the hourly activity needs the same permission as the timeline
+        $insights = $insightsService->insights();
+        $activityHours = Gate::allows('view-timeline') ? $insightsService->activityByHour() : null;
+
         return view('backend.dashboard.index', compact(
             'stats',
             'recent_users',
             'recent_portfolios',
             'recent_activity',
-            'sources'
+            'sources',
+            'insights',
+            'activityHours'
         ));
     }
 
@@ -78,12 +87,16 @@ class DashboardController extends Controller
     {
         $market = MarketSnapshot::max('synced_at');
         $gold = GoldPrice::max('synced_at');
+        $world = Cache::get(WorldMarketService::CACHE_KEY);
+        $signals = Cache::get(StockSignalService::CACHE_KEY);
 
         return [
             $this->source('Giá cổ phiếu', 'ti-chart-candle', $stats['stock_price_rows'], $stats['stock_last_sync'] ? Carbon::parse($stats['stock_last_sync'])->endOfDay() : null, 96, 240, 'Phiên gần nhất'),
             $this->source('Tổng quan thị trường', 'ti-activity', MarketSnapshot::count(), $market ? Carbon::parse($market) : null, 30, 96, 'Snapshot 5 phút/lần trong phiên'),
             $this->source('Tỷ giá ngoại tệ', 'ti-currency-dollar', $stats['exchange_rate_rows'], $stats['exchange_last_sync'] ? Carbon::parse($stats['exchange_last_sync']) : null, 48, 120, 'Vietcombank'),
             $this->source('Giá vàng', 'ti-coin', GoldPrice::count(), $gold ? Carbon::parse($gold) : null, 30, 96, 'SJC · BTMC · thế giới'),
+            $this->source('Chỉ số thế giới', 'ti-world', count($world['markets'] ?? []), isset($world['synced_at']) ? Carbon::parse($world['synced_at']) : null, 3, 24, 'S&P 500 · Nasdaq · Nikkei … (cache)'),
+            $this->source('Tín hiệu hôm nay', 'ti-bolt', (int) ($signals['universe'] ?? 0), isset($signals['built_at']) ? Carbon::parse($signals['built_at']) : null, 72, 120, 'Đột phá · khối lượng · RSI (cache)'),
             $this->source('Tin tức', 'ti-news', $stats['total_news'], $stats['news_last_sync'] ? Carbon::parse($stats['news_last_sync']) : null, 6, 48, '5 nguồn RSS'),
         ];
     }

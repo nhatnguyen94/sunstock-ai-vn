@@ -1,4 +1,5 @@
 @php
+    use App\Backend\Services\AdminAlertsService;
     use Illuminate\Support\Facades\Cache;
     use Illuminate\Support\Facades\DB;
     use Illuminate\Support\Facades\Gate;
@@ -11,6 +12,10 @@
         try { $failedJobs = (int) Cache::remember('admin:failed-jobs-count', 30, fn () => DB::table('failed_jobs')->count()); } catch (\Throwable) { $failedJobs = 0; }
     }
 
+    // The bell: what needs attention (cached a minute, filtered to what this role may open, never breaks the page)
+    $alerts = [];
+    try { $alerts = collect(app(AdminAlertsService::class)->all())->filter(fn ($a) => Gate::allows($a['perm']))->values()->all(); } catch (\Throwable) { $alerts = []; }
+
     // One navigation definition drives the sidebar AND the command palette
     $navGroups = [
         ['label' => 'Tổng quan', 'items' => array_filter([
@@ -21,6 +26,8 @@
             Gate::allows('manage-users') ? ['title' => 'Quản lý Users', 'icon' => 'ti-users', 'route' => 'admin.users.index', 'active' => 'admin.users*', 'keywords' => 'người dùng tài khoản email'] : null,
             Gate::allows('manage-roles') ? ['title' => 'Vai trò', 'icon' => 'ti-shield-lock', 'route' => 'admin.roles.index', 'active' => 'admin.roles*', 'keywords' => 'role phân quyền'] : null,
             Gate::allows('manage-permissions') ? ['title' => 'Quyền hạn', 'icon' => 'ti-key', 'route' => 'admin.permissions.index', 'active' => 'admin.permissions*', 'keywords' => 'permission'] : null,
+            Gate::allows('manage-users') ? ['title' => 'Bảo mật', 'icon' => 'ti-shield-check', 'route' => 'admin.security.index', 'active' => 'admin.security*', 'keywords' => 'đăng nhập sai ip chặn mật khẩu lịch sử'] : null,
+            Gate::allows('manage-features') ? ['title' => 'Sức khỏe hệ thống', 'icon' => 'ti-heartbeat', 'route' => 'admin.health', 'active' => 'admin.health*', 'keywords' => 'scheduler lịch chạy sao lưu backup đĩa'] : null,
             Gate::allows('manage-queue') ? ['title' => 'Giám sát Queue', 'icon' => 'ti-activity-heartbeat', 'route' => 'admin.queue.index', 'active' => 'admin.queue*', 'count' => $failedJobs, 'keywords' => 'job hàng đợi redis failed'] : null,
         ])],
         ['label' => 'Nội dung & dữ liệu', 'items' => Gate::allows('manage-features') ? [
@@ -29,6 +36,9 @@
             ['title' => 'Danh mục Tin tức', 'icon' => 'ti-tags', 'route' => 'admin.news-categories.index', 'active' => 'admin.news-categories*', 'keywords' => 'category'],
             ['title' => 'Quản lý Portfolio', 'icon' => 'ti-briefcase', 'route' => 'admin.portfolios.index', 'active' => 'admin.portfolios*', 'keywords' => 'danh mục đầu tư'],
             ['title' => 'Sync Status', 'icon' => 'ti-refresh-dot', 'route' => 'admin.sync-status', 'active' => 'admin.sync-status*', 'keywords' => 'đồng bộ dữ liệu nguồn'],
+            ['title' => 'Chất lượng dữ liệu', 'icon' => 'ti-checkup-list', 'route' => 'admin.data-quality', 'active' => 'admin.data-quality*', 'keywords' => 'kiểm tra giá thiếu cũ bất thường mã lạ'],
+            ['title' => 'Quản lý AI', 'icon' => 'ti-robot', 'route' => 'admin.ai.index', 'active' => 'admin.ai*', 'keywords' => 'groq chatbot dự đoán hạn mức khóa lượt'],
+            ['title' => 'Giao diện & Cache', 'icon' => 'ti-layout-dashboard', 'route' => 'admin.site.index', 'active' => 'admin.site*', 'keywords' => 'trang chủ khối thông báo bảo trì cache xóa'],
         ] : []],
     ];
     $navGroups = array_values(array_filter($navGroups, fn ($g) => count($g['items'])));
@@ -130,6 +140,23 @@
           <i class="ti ti-search"></i><span>Tìm trang, chức năng…</span><kbd>Ctrl K</kbd>
         </button>
         <div class="ms-auto d-flex align-items-center gap-1">
+          <div class="dropdown">
+            <button type="button" class="ad-icon-btn position-relative" data-bs-toggle="dropdown" aria-label="Cảnh báo ({{ count($alerts) }})" title="Cảnh báo">
+              <i class="ti ti-bell"></i>
+              @if(count($alerts))<span class="position-absolute badge rounded-pill bg-{{ collect($alerts)->contains('level', 'danger') ? 'red' : 'orange' }}" style="top:2px;right:0;font-size:.62rem;padding:.2em .45em">{{ count($alerts) }}</span>@endif
+            </button>
+            <div class="dropdown-menu dropdown-menu-end p-0" style="min-width:22rem;max-width:92vw">
+              <div class="px-3 py-2 border-bottom fw-semibold">Cần chú ý</div>
+              @forelse($alerts as $a)
+                <a href="{{ route($a['route']) }}" class="dropdown-item d-flex gap-2 align-items-start py-2" style="white-space:normal">
+                  <i class="ti ti-{{ $a['level'] === 'danger' ? 'alert-octagon text-danger' : 'alert-triangle text-warning' }} mt-1"></i>
+                  <span><b class="d-block">{{ $a['title'] }}</b><small class="text-secondary">{{ $a['detail'] }}</small></span>
+                </a>
+              @empty
+                <div class="px-3 py-3 text-secondary"><i class="ti ti-circle-check text-success"></i> Mọi thứ đang ổn.</div>
+              @endforelse
+            </div>
+          </div>
           <a href="{{ route('home') }}" class="ad-icon-btn" target="_blank" rel="noopener" title="Xem website" aria-label="Xem website"><i class="ti ti-world"></i></a>
           <div class="dropdown">
             <button type="button" class="ad-icon-btn" data-bs-toggle="dropdown" aria-label="Giao diện sáng / tối" title="Giao diện"><i class="ti ti-sun" data-theme-icon></i></button>

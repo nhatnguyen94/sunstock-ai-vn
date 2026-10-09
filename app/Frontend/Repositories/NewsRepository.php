@@ -13,6 +13,9 @@ class NewsRepository implements NewsRepositoryInterface
     public function getLatest(int $limit = 8): Collection
     {
         return News::with('category')
+            ->where('is_hidden', false)
+            ->orderByRaw('pinned_at is null')   // pinned articles first (an admin's choice), then the newest
+            ->orderByDesc('pinned_at')
             ->orderByDesc('published_at')
             ->limit($limit)
             ->get();
@@ -22,6 +25,7 @@ class NewsRepository implements NewsRepositoryInterface
     {
         return News::query()
             ->with('category')
+            ->where('is_hidden', false)
             ->when($filters['category'] ?? null, function ($q, $slug) {
                 $q->whereHas('category', fn($c) => $c->where('slug', $slug));
             })

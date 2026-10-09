@@ -65,6 +65,25 @@ When adding ANY new feature (or changing an existing one):
 - Validate every free-text account field with `AuthRules` (whitelist). Output is escaped by Blade, but a stored `<script>` still reaches e-mails, exports and any future `innerHTML`.
 - Tests that must exercise CSRF set `$this->app['env'] = 'local'` (the middleware is skipped under `testing`).
 
+### Console-only registrations are invisible to a web request
+`->withSchedule()` (bootstrap/app.php) is wrapped in `Artisan::starting()`, so `Schedule::events()` is empty in an HTTP request. Code that reads the schedule from the web (Admin > Sức khỏe hệ thống) must call `Artisan::all()` first. Likewise `CommandStarting` / `CommandFinished` are not dispatched by `Artisan::call()` inside a test.
+
+### Responses: everything goes through `App\Support\TransformerResponse`
+**One class owns the HTTP status codes, the stock messages and the response shapes** (JSON, view, redirect with a flash, abort). No number such as 404 / 429 and no stock sentence belongs in a controller, middleware, service or route; the `NoScatteredResponsesTest` (groups `transformerResponse` + `codeStyle`) fails when one creeps back.
+
+- It **extends `JsonResponse`** (so it is a `Response`, and every `: JsonResponse` signature keeps working): `return TransformerResponse::success('…', $data)`.
+- **JSON envelope**: `{ success, code, message, data, ...extra }`. `extra` is merged on top-level *after* the envelope, so a page script that already reads `answer`, `result`, `error`, `login_url`, `synced_at`… keeps working; on a clash the legacy key wins (a fund's own `code` is not overwritten by the HTTP code).
+- **JSON**: `success()`, `created()`, `accepted()`, `noContent()`, `failed($message, $code)`, `badRequest()`, `unauthorized()`, `forbidden()`, `notFound()`, `unprocessable($message, $errors)`, `tooManyRequests($message, $retryAfter)` (adds `Retry-After`), `serverError()`, `badGateway()` (a source we depend on failed), `serviceUnavailable()`, `json($payload, $code)` (a body exactly as given: an autocomplete list, a chart map), `make(...)` (the envelope with a cookie).
+- **Views / redirects / aborts**: `view($name, $data, $status)`, `backSuccess/backError/backWarning/backInfo()`, `backWithInput($level, $message, except: [...])`, `redirectSuccess/Error/Warning/Info($route, $message, $params)`, `redirectIntended()`, `redirectTo()`, `abortWith($code, $message?)`, `abortIf()`, `abortUnless()`, and `negotiated($request, $ok, $message)` for an action reached both by `fetch()` and by a form (JSON for the first, redirect + flash for the second).
+- **Constants**: `HTTP_*` (re-declared from the framework so the file is the visible list), `*_MESSAGE` (Vietnamese stock sentences: `NOT_FOUND_MESSAGE`, `UNAUTHORIZED_MESSAGE`, `NO_PERMISSION_MESSAGE`, `PORTFOLIO_NOT_FOUND_MESSAGE`…), and builders `createdMessage('Vai trò')` / `updatedMessage()` / `deletedMessage()`. A service that reports a failure to its controller returns `'status' => TransformerResponse::HTTP_UNPROCESSABLE_ENTITY`, never `422`.
+- **When something is missing, add it to the class** (a code, a sentence, a helper) rather than writing the number or the text at the call site. Tests may still assert numbers (`assertStatus(404)`): they pin the contract.
+
+### Pint: run it on the files you wrote, never on a directory
+A repo-wide `./vendor/bin/pint app/Backend app/Support ...` reformatted 56 files that had nothing to do with the task (and had to be reverted). Name the files: `./vendor/bin/pint path/a.php path/b.php`; if a run touches other files, `git checkout` them.
+
+### Anything an admin can switch must be read through `SiteSettings`
+The home blocks, the site notice and the AI kill switch / quota live in `site_settings` behind `App\Support\SiteSettings` (1-minute cache, defaults when a row or the table is missing). A hidden home block must also skip its computation (`HomeDashboardService::build(..., $blocks)`), otherwise it still queues refresh jobs for something nobody sees.
+
 ### Imports (mandatory — see AGENTS.md "Imports")
 - `use` the class at the top, use the short name in the body. No `\App\Models\User::STATUS_ACTIVE`, no `new \RuntimeException`, no `@var \Foo\Bar`, in any file type — **including Blade (`@use(...)`) and tests**.
 - Same short name twice → alias one with `as`. Function calls/constants like `\count()` / `\PHP_EOL` are exempt.

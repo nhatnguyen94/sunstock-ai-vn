@@ -6,6 +6,7 @@ use App\Frontend\Interfaces\UserProfileRepositoryInterface;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Support\AuthRules;
+use App\Support\TransformerResponse;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +46,7 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         if (! $user) {
-            return redirect()->route('login')->with('error', 'Vui lòng đăng nhập để tiếp tục.');
+            return TransformerResponse::redirectError('login', 'Vui lòng đăng nhập để tiếp tục.');
         }
 
         // findByUserId() can return null — accounts created via the admin
@@ -108,7 +109,7 @@ class ProfileController extends Controller
                 Auth::logoutOtherDevices($request->password);
             }
 
-            return redirect()->route('profile.show')->with('success', 'Cập nhật profile thành công!');
+            return TransformerResponse::redirectSuccess('profile.show', 'Cập nhật profile thành công!');
         } catch (Exception $e) {
             report($e);
 

@@ -2,7 +2,7 @@
 {{-- Section "Tin tức" + the signup banner for guests: the end of the page. --}}
 <div id="homeNews" class="home-end">
     <!-- 4. NEWS -->
-    @if(isset($news) && $news->isNotEmpty())
+    @if($blocks['news'] && isset($news) && $news->isNotEmpty())
     <section class="info-section" data-aos="fade-up">
         <h3>
             <i class="bi bi-newspaper" style="color: var(--primary-blue); margin-right: 10px;"></i>

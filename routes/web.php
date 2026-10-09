@@ -2,15 +2,20 @@
 
 use App\Backend\Controllers\AccountController;
 use App\Backend\Controllers\AdminAuthController;
+use App\Backend\Controllers\AiMonitorController;
 use App\Backend\Controllers\DashboardController;
+use App\Backend\Controllers\DataQualityController;
 use App\Backend\Controllers\NewsCategoryController;
 use App\Backend\Controllers\NewsController;
 use App\Backend\Controllers\PermissionController;
 use App\Backend\Controllers\PortfolioController as AdminPortfolioController;
 use App\Backend\Controllers\QueueMonitorController;
 use App\Backend\Controllers\RoleController;
+use App\Backend\Controllers\SecurityController;
+use App\Backend\Controllers\SiteControlController;
 use App\Backend\Controllers\StockController as AdminStockController;
 use App\Backend\Controllers\SyncStatusController;
+use App\Backend\Controllers\SystemHealthController;
 use App\Backend\Controllers\TimelineController;
 use App\Backend\Controllers\UserController;
 use App\Frontend\Controllers\AiController;
@@ -183,6 +188,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Users Management — Admin only
         Route::middleware(['can:manage-users', 'admin.only'])->group(function () {
+            Route::get('/users/export', [UserController::class, 'export'])->name('users.export');   // before the resource: "export" is not a user id
+            Route::post('/users/bulk', [UserController::class, 'bulk'])->name('users.bulk');
             Route::resource('users', UserController::class);
             Route::post('/users/{user}/verify', [EmailVerificationController::class, 'adminVerify'])->name('users.verify');
             Route::post('/users/{user}/unverify', [EmailVerificationController::class, 'adminUnverify'])->name('users.unverify');
@@ -204,6 +211,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             Route::get('/news', [NewsController::class, 'index'])->name('news.index');
             Route::post('/news/update-rss', [NewsController::class, 'updateRss'])->name('news.update-rss');
+            Route::post('/news/{news}/pin', [NewsController::class, 'togglePin'])->name('news.pin');
+            Route::post('/news/{news}/hide', [NewsController::class, 'toggleHide'])->name('news.hide');
             Route::resource('news-categories', NewsCategoryController::class)->except(['show']);
 
             Route::get('/portfolios', [AdminPortfolioController::class, 'index'])->name('portfolios.index');
@@ -219,6 +228,33 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/sync-status/trigger/{key}', [SyncStatusController::class, 'trigger'])
                 ->middleware('throttle:5,1')
                 ->name('sync-status.trigger');
+        });
+
+        // AI usage + site controls (home blocks, notice, cache) — manage-features
+        Route::middleware('can:manage-features')->group(function () {
+            Route::get('/ai', [AiMonitorController::class, 'index'])->name('ai.index');
+            Route::post('/ai/settings', [AiMonitorController::class, 'updateSettings'])->name('ai.settings');
+            Route::post('/ai/users/{user}/toggle-block', [AiMonitorController::class, 'toggleBlock'])->name('ai.users.toggle-block');
+
+            Route::get('/data-quality', [DataQualityController::class, 'index'])->name('data-quality');
+            Route::post('/data-quality/refresh', [DataQualityController::class, 'refresh'])->middleware('throttle:6,1')->name('data-quality.refresh');
+
+            Route::get('/health', [SystemHealthController::class, 'index'])->name('health');
+            Route::post('/health/backup', [SystemHealthController::class, 'backup'])->middleware('throttle:3,1')->name('health.backup');
+            Route::get('/health/backup/{id}', [SystemHealthController::class, 'download'])->where('id', '[a-f0-9]{24}')->name('health.backup.download');
+
+            Route::get('/site', [SiteControlController::class, 'index'])->name('site.index');
+            Route::put('/site/blocks', [SiteControlController::class, 'updateBlocks'])->name('site.blocks');
+            Route::put('/site/featured', [SiteControlController::class, 'updateFeatured'])->name('site.featured');
+            Route::put('/site/announcement', [SiteControlController::class, 'updateAnnouncement'])->name('site.announcement');
+            Route::post('/site/cache/{group}', [SiteControlController::class, 'clearCache'])->middleware('throttle:10,1')->name('site.cache');
+        });
+
+        // Security: reading follows manage-users, changing (block / unblock an address) is admin-only through admin.only
+        Route::middleware(['can:manage-users', 'admin.only'])->group(function () {
+            Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
+            Route::post('/security/blocked-ips', [SecurityController::class, 'block'])->name('security.block');
+            Route::delete('/security/blocked-ips/{blockedIp}', [SecurityController::class, 'unblock'])->name('security.unblock');
         });
 
         // Queue Monitor — custom Redis queue/failed-jobs dashboard, see docs/RBAC.md

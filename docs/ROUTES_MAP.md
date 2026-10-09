@@ -142,6 +142,26 @@ The `users`, `roles` and `permissions` route groups carry `can:manage-*` **and**
 | DELETE | `/admin/portfolios/{portfolio}` | `admin.portfolios.destroy` | `PortfolioController` | `destroy` | `manage-features` |
 | GET | `/admin/portfolios-stats` | `admin.portfolios.stats` | `PortfolioController` | `stats` | `manage-features` |
 | GET | `/admin/sync-status` | `admin.sync-status` | `SyncStatusController` | `index` | `manage-features` |
+| GET | `/admin/health` | `admin.health` | `SystemHealthController` | `index` | `manage-features` |
+| POST | `/admin/health/backup` | `admin.health.backup` | `SystemHealthController` | `backup` | `manage-features` + admin role (3/min) |
+| GET | `/admin/health/backup/{id}` | `admin.health.backup.download` | `SystemHealthController` | `download` | `manage-features` + admin role |
+| GET | `/admin/data-quality` | `admin.data-quality` | `DataQualityController` | `index` | `manage-features` |
+| POST | `/admin/data-quality/refresh` | `admin.data-quality.refresh` | `DataQualityController` | `refresh` | `manage-features` (6/min) |
+| GET | `/admin/security` | `admin.security.index` | `SecurityController` | `index` | `manage-users` (read) |
+| POST | `/admin/security/blocked-ips` | `admin.security.block` | `SecurityController` | `block` | `manage-users` + `admin.only` |
+| DELETE | `/admin/security/blocked-ips/{blockedIp}` | `admin.security.unblock` | `SecurityController` | `unblock` | `manage-users` + `admin.only` |
+| GET | `/admin/users/export` | `admin.users.export` | `UserController` | `export` | `manage-users` + admin role |
+| POST | `/admin/users/bulk` | `admin.users.bulk` | `UserController` | `bulk` | `manage-users` + `admin.only` |
+| POST | `/admin/news/{news}/pin` | `admin.news.pin` | `NewsController` | `togglePin` | `manage-features` |
+| POST | `/admin/news/{news}/hide` | `admin.news.hide` | `NewsController` | `toggleHide` | `manage-features` |
+| PUT | `/admin/site/featured` | `admin.site.featured` | `SiteControlController` | `updateFeatured` | `manage-features` |
+| GET | `/admin/ai` | `admin.ai.index` | `AiMonitorController` | `index` | `manage-features` |
+| POST | `/admin/ai/settings` | `admin.ai.settings` | `AiMonitorController` | `updateSettings` | `manage-features` |
+| POST | `/admin/ai/users/{user}/toggle-block` | `admin.ai.users.toggle-block` | `AiMonitorController` | `toggleBlock` | `manage-features` |
+| GET | `/admin/site` | `admin.site.index` | `SiteControlController` | `index` | `manage-features` |
+| PUT | `/admin/site/blocks` | `admin.site.blocks` | `SiteControlController` | `updateBlocks` | `manage-features` |
+| PUT | `/admin/site/announcement` | `admin.site.announcement` | `SiteControlController` | `updateAnnouncement` | `manage-features` |
+| POST | `/admin/site/cache/{group}` | `admin.site.cache` | `SiteControlController` | `clearCache` | `manage-features` (10/min) |
 | POST | `/admin/sync-status/trigger/{key}` | `admin.sync-status.trigger` | `SyncStatusController` | `trigger` | `manage-features` |
 | GET | `/admin/queue` | `admin.queue.index` | `QueueMonitorController` | `index` | `manage-queue` |
 | GET | `/admin/queue/stats` | `admin.queue.stats` | `QueueMonitorController` | `stats` | `manage-queue` |

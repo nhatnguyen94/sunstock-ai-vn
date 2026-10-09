@@ -4,6 +4,7 @@ namespace App\Frontend\Controllers;
 
 use App\Frontend\Services\EtfService;
 use App\Frontend\Services\WatchlistService;
+use App\Support\TransformerResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -23,7 +24,7 @@ class EtfController extends Controller
 
     public function show(string $symbol): View
     {
-        $detail = $this->service->detail($symbol) ?? abort(404);
+        $detail = $this->service->detail($symbol) ?? TransformerResponse::abortWith(TransformerResponse::HTTP_NOT_FOUND);
 
         return view('etf.show', $detail + ['max' => EtfService::MAX_COMPARE] + $this->watchData());
     }

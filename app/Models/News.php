@@ -22,6 +22,8 @@ class News extends Model
     protected $casts = [
         'published_at' => 'datetime',
         'synced_at'    => 'datetime',
+        'is_hidden'    => 'boolean',
+        'pinned_at'    => 'datetime',
     ];
 
     public function category(): BelongsTo

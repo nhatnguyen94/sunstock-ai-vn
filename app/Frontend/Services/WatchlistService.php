@@ -6,6 +6,7 @@ use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Frontend\Interfaces\WatchlistRepositoryInterface;
 use App\Models\StockSymbol;
 use App\Support\PriceUnit;
+use App\Support\TransformerResponse;
 
 /**
  * A user's list of followed symbols, priced from the market snapshot (live during the session) and falling
@@ -48,19 +49,19 @@ class WatchlistService
     {
         $symbol = self::normalize($symbol);
         if ($symbol === null) {
-            return ['ok' => false, 'message' => 'Mã cổ phiếu không hợp lệ.', 'status' => 422];
+            return ['ok' => false, 'message' => 'Mã cổ phiếu không hợp lệ.', 'status' => TransformerResponse::HTTP_UNPROCESSABLE_ENTITY];
         }
 
         $info = StockSymbol::where('symbol', $symbol)->first(['symbol', 'name']);
         if (! $info) {
-            return ['ok' => false, 'message' => 'Không tìm thấy mã cổ phiếu này. Hãy chọn mã từ danh sách gợi ý.', 'status' => 422];
+            return ['ok' => false, 'message' => 'Không tìm thấy mã cổ phiếu này. Hãy chọn mã từ danh sách gợi ý.', 'status' => TransformerResponse::HTTP_UNPROCESSABLE_ENTITY];
         }
 
         if ($this->repo->has($userId, $symbol)) {
             return ['ok' => true, 'symbol' => $symbol, 'name' => $info->name, 'added' => false];
         }
         if ($this->repo->count($userId) >= self::MAX_ITEMS) {
-            return ['ok' => false, 'message' => 'Danh sách theo dõi tối đa ' . self::MAX_ITEMS . ' mã. Hãy bỏ bớt mã cũ trước khi thêm.', 'status' => 422];
+            return ['ok' => false, 'message' => 'Danh sách theo dõi tối đa '.self::MAX_ITEMS.' mã. Hãy bỏ bớt mã cũ trước khi thêm.', 'status' => TransformerResponse::HTTP_UNPROCESSABLE_ENTITY];
         }
 
         $this->repo->add($userId, $symbol);

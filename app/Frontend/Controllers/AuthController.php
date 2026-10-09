@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserProfile;
 use App\Support\ActivityLogger;
 use App\Support\AuthRules;
+use App\Support\TransformerResponse;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +42,7 @@ class AuthController extends Controller
         if (Auth::attempt($credentials + [$mayEnter], $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            return redirect()->intended('/')->with('success', 'Đăng nhập thành công!');
+            return TransformerResponse::redirectIntended('/', 'success', 'Đăng nhập thành công!');
         }
 
         // Only someone who already knows the right password learns why the account may not enter
@@ -113,7 +114,7 @@ class AuthController extends Controller
             ActivityLogger::log('user_register', "User đăng ký: {$user->email}", ['email' => $user->email], $user);
 
             // Not logged in automatically: the e-mail has to be verified first
-            return redirect()->route('login')->with('success', 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập.');
+            return TransformerResponse::redirectSuccess('login', 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập.');
         } catch (Exception $e) {
             report($e);
 
@@ -129,6 +130,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/')->with('success', 'Đã đăng xuất thành công!');
+        return TransformerResponse::redirectTo('/', 'success', 'Đã đăng xuất thành công!');
     }
 }

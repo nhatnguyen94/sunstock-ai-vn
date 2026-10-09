@@ -263,3 +263,16 @@ tr:hover .table-row-actions { opacity: 1; }
 .ad-tl-item:last-child { padding-bottom: .2rem; }
 .ad-tl-dot { position: absolute; left: -2.6rem; top: 0; width: 2.15rem; height: 2.15rem; border-radius: 50%; display: grid; place-items: center; font-size: 1.05rem; border: 3px solid var(--ad-surface); box-shadow: 0 0 0 1px var(--ad-line); }
 .ad-tl-body { background: var(--ad-surface-2); border: 1px solid var(--ad-line); border-radius: 12px; padding: .75rem 1rem; }
+
+/* ── Dashboard charts (plain bars, no chart library) ───────────────────────────────────────────────────────────── */
+.ad-bars { display: flex; align-items: stretch; gap: 3px; height: 150px; }
+.ad-bar { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
+.ad-bar i { display: block; width: 100%; height: max(var(--h), 3px); border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--ad-brand), var(--ad-brand-2)); transition: height .5s cubic-bezier(.2, .8, .2, 1), opacity .15s; }
+.ad-bar i.is-zero { background: var(--ad-line); }
+.ad-bar:hover i { opacity: .75; }
+.ad-bar span { margin-top: .3rem; height: .9rem; font-size: .66rem; line-height: .9rem; color: var(--ad-muted); white-space: nowrap; }
+.ad-bars-hours { gap: 2px; }
+.ad-hbar { display: grid; grid-template-columns: 6.2rem 1fr auto; align-items: center; gap: .75rem; padding: .3rem 0; }
+.ad-hbar-track { height: .55rem; border-radius: 999px; background: var(--ad-line); overflow: hidden; }
+.ad-hbar-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--ad-brand), var(--ad-brand-2)); }
+@media (prefers-reduced-motion: reduce) { .ad-bar i { transition: none; } }

@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Support\ActivityLogger;
 use App\Support\AuthRules;
+use App\Support\TransformerResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -64,8 +65,7 @@ class AdminAuthController extends Controller
                 // Đăng nhập thành công
                 ActivityLogger::log('admin_login', "Admin đăng nhập: {$user->name}");
 
-                return redirect()->intended(route('admin.dashboard'))
-                    ->with('success', "Chào mừng {$user->name}, bạn đã đăng nhập thành công!");
+                return TransformerResponse::redirectIntended(route('admin.dashboard'), 'success', "Chào mừng {$user->name}, bạn đã đăng nhập thành công!");
             }
         }
 
@@ -87,8 +87,7 @@ class AdminAuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.login')
-            ->with('success', 'Đã đăng xuất khỏi khu vực quản trị thành công.');
+        return TransformerResponse::redirectSuccess('admin.login', 'Đã đăng xuất khỏi khu vực quản trị thành công.');
     }
 
     /**
@@ -98,8 +97,7 @@ class AdminAuthController extends Controller
     {
         // Chỉ Admin mới có quyền xem
         if (! Auth::user()->hasRole(Role::ADMIN)) {
-            return redirect()->route('admin.dashboard')
-                ->with('error', 'Bạn không có quyền truy cập tính năng này.');
+            return TransformerResponse::redirectError('admin.dashboard', TransformerResponse::NO_PERMISSION_MESSAGE);
         }
 
         // Lấy danh sách user đang online (giả lập)

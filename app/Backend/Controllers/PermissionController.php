@@ -6,6 +6,7 @@ use App\Backend\Interfaces\PermissionServiceInterface;
 use App\Models\Permission;
 use App\Support\ActivityLogger;
 use App\Support\AdminGuard;
+use App\Support\TransformerResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -43,8 +44,7 @@ class PermissionController extends Controller
 
         ActivityLogger::log('admin_action', "Tạo quyền {$permission->name}", ['permission_id' => $permission->id]);
 
-        return redirect()->route('admin.permissions.index')
-            ->with('success', 'Quyền hạn đã được tạo thành công!');
+        return TransformerResponse::redirectSuccess('admin.permissions.index', TransformerResponse::createdMessage('Quyền hạn'));
     }
 
     public function edit(Permission $permission): View
@@ -66,7 +66,7 @@ class PermissionController extends Controller
         ]);
 
         if ($problem = AdminGuard::permissionProblem($permission, $validated['name'])) {
-            return back()->withInput()->with('error', $problem);
+            return TransformerResponse::backWithInput('error', $problem);
         }
 
         $oldName = $permission->name;
@@ -75,22 +75,19 @@ class PermissionController extends Controller
 
         ActivityLogger::log('admin_action', "Cập nhật quyền {$oldName}", ['permission_id' => $permission->id, 'new_name' => $validated['name']]);
 
-        return redirect()->route('admin.permissions.index')
-            ->with('success', 'Quyền hạn đã được cập nhật thành công!');
+        return TransformerResponse::redirectSuccess('admin.permissions.index', TransformerResponse::updatedMessage('Quyền hạn'));
     }
 
     public function destroy(Permission $permission): RedirectResponse
     {
         if ($this->permissionService->isCorePermission($permission)) {
-            return redirect()->route('admin.permissions.index')
-                ->with('error', 'Không thể xoá quyền hạn lõi ('.$permission->display_name.') — hệ thống dùng nó để tự bảo vệ.');
+            return TransformerResponse::redirectError('admin.permissions.index', 'Không thể xoá quyền hạn lõi ('.$permission->display_name.') — hệ thống dùng nó để tự bảo vệ.');
         }
 
         ActivityLogger::log('admin_action', "Xoá quyền {$permission->name}", ['permission_id' => $permission->id]);
 
         $this->permissionService->deletePermission($permission);
 
-        return redirect()->route('admin.permissions.index')
-            ->with('success', 'Quyền hạn đã được xoá thành công!');
+        return TransformerResponse::redirectSuccess('admin.permissions.index', TransformerResponse::deletedMessage('Quyền hạn'));
     }
 }

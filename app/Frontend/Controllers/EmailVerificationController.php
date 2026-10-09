@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\ActivityLogger;
 use App\Support\AdminGuard;
 use App\Support\AuthRules;
+use App\Support\TransformerResponse;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,7 +35,7 @@ class EmailVerificationController extends Controller
         // `signed` already proved the URL came from us; the hash binds it to the address it was issued for, so a
         // link for an old e-mail address stops working once the address changes.
         if (! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
-            abort(403, 'Link xác thực không hợp lệ.');
+            TransformerResponse::abortWith(TransformerResponse::HTTP_FORBIDDEN, TransformerResponse::INVALID_VERIFICATION_LINK_MESSAGE);
         }
 
         if (! $user->hasVerifiedEmail() && $user->markEmailAsVerified()) {
@@ -47,10 +48,10 @@ class EmailVerificationController extends Controller
         }
 
         if (Auth::check()) {
-            return redirect('/')->with('success', 'Email đã được xác thực thành công! Chào mừng bạn đến với Stock App.');
+            return TransformerResponse::redirectTo('/', 'success', 'Email đã được xác thực thành công! Chào mừng bạn đến với Stock App.');
         }
 
-        return redirect()->route('login')->with('success', 'Email đã được xác thực thành công! Bạn có thể đăng nhập ngay bây giờ.');
+        return TransformerResponse::redirectSuccess('login', 'Email đã được xác thực thành công! Bạn có thể đăng nhập ngay bây giờ.');
     }
 
     /**
@@ -70,7 +71,7 @@ class EmailVerificationController extends Controller
         }
 
         // The same answer whatever the address is, so this cannot be used to find out who is registered
-        return back()->with('success', 'Nếu email này đang chờ xác thực, chúng tôi đã gửi lại link xác thực. Vui lòng kiểm tra hộp thư (cả thư mục spam).');
+        return TransformerResponse::backSuccess('Nếu email này đang chờ xác thực, chúng tôi đã gửi lại link xác thực. Vui lòng kiểm tra hộp thư (cả thư mục spam).');
     }
 
     /**
@@ -82,7 +83,7 @@ class EmailVerificationController extends Controller
         $user = User::findOrFail($userId);
 
         if ($user->hasVerifiedEmail()) {
-            return back()->with('info', 'Tài khoản này đã được xác thực trước đó.');
+            return TransformerResponse::backInfo('Tài khoản này đã được xác thực trước đó.');
         }
 
         $user->markEmailAsVerified();
@@ -92,7 +93,7 @@ class EmailVerificationController extends Controller
 
         ActivityLogger::log('admin_action', "Xác thực thủ công email {$user->email}", ['target_user_id' => $user->id]);
 
-        return back()->with('success', "Đã xác thực thủ công tài khoản {$user->email} thành công.");
+        return TransformerResponse::backSuccess("Đã xác thực thủ công tài khoản {$user->email} thành công.");
     }
 
     /**
@@ -104,12 +105,12 @@ class EmailVerificationController extends Controller
         $user = User::findOrFail($userId);
 
         if (! $user->hasVerifiedEmail()) {
-            return back()->with('info', 'Tài khoản này chưa được xác thực.');
+            return TransformerResponse::backInfo('Tài khoản này chưa được xác thực.');
         }
 
         $newStatus = $user->status === User::STATUS_ACTIVE ? User::STATUS_PENDING : $user->status;
         if ($problem = AdminGuard::userChangeProblem($request->user(), $user, $user->getRoleNames(), $newStatus)) {
-            return back()->with('error', $problem);
+            return TransformerResponse::backError($problem);
         }
 
         $user->applyStatus($newStatus);
@@ -118,6 +119,6 @@ class EmailVerificationController extends Controller
 
         ActivityLogger::log('admin_action', "Hủy xác thực email {$user->email}", ['target_user_id' => $user->id, 'status' => $user->status]);
 
-        return back()->with('success', "Đã hủy xác thực tài khoản {$user->email}. User cần verify lại email.");
+        return TransformerResponse::backSuccess("Đã hủy xác thực tài khoản {$user->email}. User cần verify lại email.");
     }
 }

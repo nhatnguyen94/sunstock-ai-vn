@@ -25,16 +25,19 @@ class HomeDashboardService
 
     /**
      * @param  array<string, mixed>  $market  MarketOverviewService::overview()
+     * @param  array<string, bool>  $blocks  SiteSettings::homeBlocks(): a part whose block is off is not built at all (and queues nothing)
      * @return array{pulse: ?array, world: ?array, sentiment: ?array, signals: ?array, events: ?array}
      */
-    public function build(array $market, ?int $userId): array
+    public function build(array $market, ?int $userId, array $blocks = []): array
     {
+        $on = fn (string $key, callable $part) => ($blocks[$key] ?? true) ? $this->safely($part) : null;
+
         return [
-            'pulse' => $this->safely(fn () => $this->pulse->build()),
-            'world' => $this->safely(fn () => $this->world->snapshot()),
-            'sentiment' => $this->safely(fn () => ($market['has_data'] ?? false) ? MarketSentiment::compute($market) : null),
-            'signals' => $this->safely(fn () => $this->signals->cached()),
-            'events' => $this->safely(fn () => $this->events->forHome($this->mySymbols($userId))),
+            'pulse' => $on('pulse', fn () => $this->pulse->build()),
+            'world' => $on('world', fn () => $this->world->snapshot()),
+            'sentiment' => $on('sentiment', fn () => ($market['has_data'] ?? false) ? MarketSentiment::compute($market) : null),
+            'signals' => $on('signals', fn () => $this->signals->cached()),
+            'events' => $on('events', fn () => $this->events->forHome($this->mySymbols($userId))),
         ];
     }
 

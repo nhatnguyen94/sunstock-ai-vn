@@ -4,6 +4,7 @@ namespace App\Frontend\Controllers;
 
 use App\Models\User;
 use App\Support\AuthRules;
+use App\Support\TransformerResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -94,7 +95,7 @@ class PasswordResetController extends Controller
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('success', 'Mật khẩu đã được đặt lại thành công! Vui lòng đăng nhập.');
+            return TransformerResponse::redirectSuccess('login', 'Mật khẩu đã được đặt lại thành công! Vui lòng đăng nhập.');
         }
 
         return back()

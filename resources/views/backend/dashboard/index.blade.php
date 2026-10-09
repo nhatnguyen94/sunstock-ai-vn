@@ -140,6 +140,8 @@
     </div>
 </div>
 
+@include('backend.dashboard._charts')
+
 <div class="row row-deck row-cards g-3 mb-3">
     @can('manage-users')
     <div class="col-lg-6">

@@ -5,6 +5,7 @@ namespace App\Backend\Controllers;
 use App\Backend\Interfaces\StockServiceInterface;
 use App\Models\Stock;
 use App\Support\ActivityLogger;
+use App\Support\TransformerResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -56,8 +57,7 @@ class StockController extends Controller
 
         $this->stockService->createStock($validated);
 
-        return redirect()->route('admin.stocks.index')
-            ->with('success', 'Stock created successfully.');
+        return TransformerResponse::redirectSuccess('admin.stocks.index', 'Stock created successfully.');
     }
 
     /**
@@ -98,8 +98,7 @@ class StockController extends Controller
 
         $this->stockService->updateStock($stock, $validated);
 
-        return redirect()->route('admin.stocks.index')
-            ->with('success', 'Stock updated successfully.');
+        return TransformerResponse::redirectSuccess('admin.stocks.index', 'Stock updated successfully.');
     }
 
     /**
@@ -112,8 +111,7 @@ class StockController extends Controller
     {
         $this->stockService->deleteStock($stock);
 
-        return redirect()->route('admin.stocks.index')
-            ->with('success', 'Stock deleted successfully.');
+        return TransformerResponse::redirectSuccess('admin.stocks.index', 'Stock deleted successfully.');
     }
 
     /**
@@ -125,7 +123,6 @@ class StockController extends Controller
 
         ActivityLogger::log('stock_price_sync', 'Admin trigger cập nhật giá cổ phiếu');
 
-        return redirect()->route('admin.stocks.index')
-            ->with('success', 'Price update has been queued. This may take a few minutes.');
+        return TransformerResponse::redirectSuccess('admin.stocks.index', 'Price update has been queued. This may take a few minutes.');
     }
 }

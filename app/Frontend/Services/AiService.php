@@ -26,6 +26,14 @@ class AiService
     private const TIMEOUT_SECONDS = 20;
 
     /** @return list<string> */
+    /** The model that produced the last answer of this instance (null when none did, or the answer came from the cache). */
+    private ?string $lastModel = null;
+
+    public function lastModel(): ?string
+    {
+        return $this->lastModel;
+    }
+
     public function models(): array
     {
         $configured = config('services.groq.models');
@@ -94,6 +102,8 @@ class AiService
 
                 $content = $this->clean((string) $response->json('choices.0.message.content'));
                 if ($content !== '') {
+                    $this->lastModel = $attemptModel;
+
                     return $content;
                 }
 
@@ -112,7 +122,7 @@ class AiService
      */
     public function predictMarket(string $prompt, $user = null): ?string
     {
-        $cacheKey = 'ai_market_predict_v2_' . date('oW'); // unique mỗi tuần (ISO year + week)
+        $cacheKey = 'ai_market_predict_v2_'.date('oW'); // unique mỗi tuần (ISO year + week)
 
         $cached = Cache::get($cacheKey);
         if (is_string($cached) && $cached !== '') {
@@ -120,9 +130,9 @@ class AiService
         }
 
         $context = $this->marketContext();
-        $answer = $this->tryAsk($context !== '' ? $prompt . "
+        $answer = $this->tryAsk($context !== '' ? $prompt.'
 
-" . $context : $prompt, 'vi');
+'.$context : $prompt, 'vi');
         if ($answer !== null) {
             Cache::put($cacheKey, $answer, now()->addHours(2));
         }
@@ -161,7 +171,7 @@ class AiService
         foreach (['gainers' => 'Tăng mạnh nhất', 'losers' => 'Giảm mạnh nhất'] as $key => $label) {
             $rows = array_slice($d['movers']['ALL'][$key] ?? [], 0, 5);
             if ($rows) {
-                $lines[] = "- {$label}: " . implode(', ', array_map(fn ($m) => sprintf('%s %+.1f%%', $m['symbol'], $m['percent']), $rows));
+                $lines[] = "- {$label}: ".implode(', ', array_map(fn ($m) => sprintf('%s %+.1f%%', $m['symbol'], $m['percent']), $rows));
             }
         }
 

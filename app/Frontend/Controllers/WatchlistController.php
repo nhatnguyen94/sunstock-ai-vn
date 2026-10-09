@@ -5,6 +5,7 @@ namespace App\Frontend\Controllers;
 use App\Frontend\Services\MarketOverviewService;
 use App\Frontend\Services\WatchlistService;
 use App\Support\ActivityLogger;
+use App\Support\TransformerResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,8 +34,7 @@ class WatchlistController extends Controller
     /** Polled by the page while the market is open. */
     public function data(): JsonResponse
     {
-        return response()->json([
-            'success' => true,
+        return TransformerResponse::success(extra: [
             'market_open' => $this->market->isMarketOpen(),
             'rows' => $this->watchlist->rows(Auth::id()),
         ]);
@@ -45,25 +45,23 @@ class WatchlistController extends Controller
         $result = $this->watchlist->add(Auth::id(), (string) $request->input('symbol'));
 
         if (! $result['ok']) {
-            return response()->json(['success' => false, 'message' => $result['message']], $result['status']);
+            return TransformerResponse::failed($result['message'], $result['status']);
         }
 
         if ($result['added']) {
             ActivityLogger::log('watchlist_added', "Theo dõi {$result['symbol']}", ['symbol' => $result['symbol']]);
         }
 
-        return response()->json([
-            'success' => true,
-            'watched' => true,
-            'symbol' => $result['symbol'],
-            'message' => $result['added'] ? "Đã thêm {$result['symbol']} vào danh sách theo dõi." : "{$result['symbol']} đã có trong danh sách theo dõi.",
-        ]);
+        return TransformerResponse::success(
+            $result['added'] ? "Đã thêm {$result['symbol']} vào danh sách theo dõi." : "{$result['symbol']} đã có trong danh sách theo dõi.",
+            extra: ['watched' => true, 'symbol' => $result['symbol']],
+        );
     }
 
     public function destroy(string $symbol): JsonResponse
     {
         $this->watchlist->remove(Auth::id(), $symbol);
 
-        return response()->json(['success' => true, 'watched' => false, 'symbol' => strtoupper($symbol), 'message' => 'Đã bỏ theo dõi ' . strtoupper($symbol) . '.']);
+        return TransformerResponse::success('Đã bỏ theo dõi '.strtoupper($symbol).'.', extra: ['watched' => false, 'symbol' => strtoupper($symbol)]);
     }
 }

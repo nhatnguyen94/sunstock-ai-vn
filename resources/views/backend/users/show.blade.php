@@ -87,6 +87,15 @@
                         </div>
                     </div>
                     @endif
+                    <div class="list-group-item">
+                        <strong>Đăng nhập gần nhất</strong>
+                        <div class="text-muted small">
+                            @if($insights['last_login'])
+                                {{ $insights['last_login']->created_at->diffForHumans() }} · <code>{{ $insights['last_login']->ip ?? '—' }}</code>
+                            @else chưa có dữ liệu @endif
+                            @if($insights['failed_7d'] > 0)<br><span class="text-danger">{{ $insights['failed_7d'] }} lần nhập sai e-mail này trong 7 ngày</span>@endif
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -132,6 +141,50 @@
                             <p class="empty-subtitle text-muted">User này chưa tạo portfolio nào.</p>
                         </div>
                     @endif
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header"><h3 class="card-title"><i class="ti ti-star me-2 text-primary"></i>Theo dõi ({{ count($insights['watchlist']) }})</h3></div>
+                        <div class="card-body">
+                            @forelse($insights['watchlist'] as $sym)<a href="{{ url('/stock?symbol='.$sym) }}" target="_blank" rel="noopener" class="badge bg-blue-lt me-1 mb-1 text-decoration-none">{{ $sym }}</a>@empty<span class="text-secondary">Chưa theo dõi mã nào.</span>@endforelse
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header"><h3 class="card-title"><i class="ti ti-briefcase me-2 text-primary"></i>Đang nắm giữ ({{ count($insights['holdings']) }})</h3></div>
+                        <div class="card-body">
+                            @forelse($insights['holdings'] as $sym)<a href="{{ url('/stock?symbol='.$sym) }}" target="_blank" rel="noopener" class="badge bg-green-lt me-1 mb-1 text-decoration-none">{{ $sym }}</a>@empty<span class="text-secondary">Chưa có mã nào trong danh mục.</span>@endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="ti ti-robot me-2 text-primary"></i>AI</h3>
+                    <span class="ms-auto small text-secondary">hôm nay {{ $insights['ai']['today'] }} · 7 ngày {{ $insights['ai']['week'] }} · lỗi {{ $insights['ai']['errors'] }}@if($insights['ai']['blocked']) · <span class="text-danger">đang bị khóa AI</span>@endif</span>
+                </div>
+                <div class="list-group list-group-flush">
+                    @forelse($insights['ai']['recent'] as $q)
+                        <div class="list-group-item d-flex gap-3"><span class="text-truncate flex-fill">{{ $q->question }}</span><span class="text-secondary small text-nowrap">{{ $q->created_at->diffForHumans() }}</span></div>
+                    @empty
+                        <div class="list-group-item text-secondary">Chưa hỏi AI câu nào.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header"><h3 class="card-title"><i class="ti ti-timeline-event me-2 text-primary"></i>Hoạt động gần đây</h3></div>
+                <div class="list-group list-group-flush">
+                    @forelse($insights['activity'] as $log)
+                        <div class="list-group-item d-flex gap-3"><span class="text-truncate flex-fill">{{ $log->description }}</span><span class="text-secondary small text-nowrap">{{ $log->created_at->diffForHumans() }}</span></div>
+                    @empty
+                        <div class="list-group-item text-secondary">Chưa có hoạt động nào được ghi lại.</div>
+                    @endforelse
                 </div>
             </div>
         </div>

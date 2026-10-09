@@ -11,6 +11,7 @@ namespace App\Frontend\Controllers;
 use App\Frontend\Interfaces\NewsServiceInterface;
 use App\Frontend\Interfaces\StockRepositoryInterface;
 use App\Frontend\Services\AiService;
+use App\Frontend\Services\AiUsageService;
 use App\Frontend\Services\CompanyFinancialService;
 use App\Frontend\Services\ExchangeRateService;
 use App\Frontend\Services\HomeDashboardService;
@@ -20,11 +21,14 @@ use App\Frontend\Services\PortfolioService;
 use App\Frontend\Services\StockPriceFreshness;
 use App\Frontend\Services\StockService;
 use App\Frontend\Services\WatchlistService;
+use App\Models\AiRequest;
 use App\Models\HotIndustry;
 use App\Models\Stock;
 use App\Models\StockPrice;
 use App\Support\MarketBrief;
+use App\Support\SiteSettings;
 use App\Support\StockQuoteSummary;
+use App\Support\TransformerResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -67,10 +71,10 @@ class StockController extends Controller
      */
     public function home(Request $request, NewsServiceInterface $newsService, MarketOverviewService $marketService, WatchlistService $watchlistService, MarketHeatmapService $heatmapService, PortfolioService $portfolioService, HomeDashboardService $dashboard)
     {
-        $symbols = ['FPT', 'VNM', 'ACB'];
+        $symbols = SiteSettings::featuredSymbols();   // chosen in Admin > Giao diện & Cache (default FPT, VNM, ACB)
 
         // Cache featured stocks data for 10 minutes
-        $featured = Cache::remember('featured_stocks', 600, function () use ($symbols) {
+        $featured = Cache::remember(SiteSettings::featuredCacheKey(), 600, function () use ($symbols) {
             foreach ($symbols as $symbol) {
                 $stock = Stock::firstOrCreate(['symbol' => $symbol]);
                 $latestPrice = StockPrice::where('stock_id', $stock->id)
@@ -117,6 +121,7 @@ class StockController extends Controller
 
         // Market overview (indices, breadth, movers) + the signed-in user's watchlist. A failure here must never
         // take the home page down: the section then shows its own empty state.
+        $blocks = SiteSettings::homeBlocks();   // what an admin switched on (Admin > Giao diện & Cache)
         $market = ['has_data' => false];
         try {
             $market = $marketService->overview();
@@ -128,15 +133,17 @@ class StockController extends Controller
         $brief = null;
         if ($market['has_data'] ?? false) {
             try {
-                $heatmap = $heatmapService->heatmap();
+                $heatmap = $blocks['heatmap'] || $blocks['brief'] ? $heatmapService->heatmap() : null;
             } catch (Throwable $e) {
                 report($e);
             }
             try {
-                $brief = MarketBrief::build($market, $heatmap);
+                $brief = $blocks['brief'] ? MarketBrief::build($market, $heatmap) : null;
             } catch (Throwable $e) {
                 report($e);
             }
+            $heatmap = $blocks['heatmap'] ? $heatmap : null;
+            $market['foreign'] = $blocks['foreign'] ? ($market['foreign'] ?? null) : null;
         }
         // "Của tôi" (signed-in visitors only): their portfolios in one line, never able to take the page down
         $mine = null;
@@ -148,11 +155,11 @@ class StockController extends Controller
             }
         }
         // world strip, "Vàng · Tỷ giá · Quỹ", sentiment, signals and events: each part tolerates its own failure (null)
-        $extras = $dashboard->build($market, Auth::id());
+        $extras = $dashboard->build($market, Auth::id(), $blocks);
         $watchRows = Auth::check() ? $watchlistService->rows(Auth::id(), 8) : null;
         $watched = Auth::check() ? $watchlistService->symbols(Auth::id()) : [];
 
-        return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news', 'market', 'watchRows', 'watched', 'heatmap', 'brief', 'mine', 'extras'));
+        return view('index', compact('featured', 'exchangeRates', 'hotIndustries', 'news', 'market', 'watchRows', 'watched', 'heatmap', 'brief', 'mine', 'extras', 'blocks'));
     }
 
     /**
@@ -195,7 +202,7 @@ class StockController extends Controller
     public function index(Request $request)
     {
         $symbol = strtoupper(trim((string) $request->input('symbol', 'E1VFVN30')));
-        abort_unless(StockPriceFreshness::isValidSymbol($symbol), 404);
+        TransformerResponse::abortUnless(StockPriceFreshness::isValidSymbol($symbol), TransformerResponse::HTTP_NOT_FOUND);
 
         // Never wait on a data provider for a symbol that already has history: serve it, queue the missing sessions
         // in the background and paint the newest session from the market snapshot. Only a symbol with NO history
@@ -227,7 +234,7 @@ class StockController extends Controller
         $query = $request->input('q');
         $stocks = $this->stockRepo->searchSymbols($query);
 
-        return response()->json($stocks);
+        return TransformerResponse::json($stocks);
     }
 
     /**
@@ -287,7 +294,7 @@ class StockController extends Controller
             ];
         }
 
-        return response()->json($result);
+        return TransformerResponse::json($result);
     }
 
     /**
@@ -301,16 +308,16 @@ class StockController extends Controller
         $period = $request->input('period', 'quarter');
 
         if (! $symbol || ! preg_match('/^[A-Z0-9]{1,20}$/', $symbol)) {
-            return response()->json(['error' => 'Invalid symbol'], 400);
+            return TransformerResponse::badRequest('Invalid symbol', ['error' => 'Invalid symbol']);
         }
         if (! in_array($type, ['income', 'balance', 'cashflow', 'ratio'])) {
-            return response()->json(['error' => 'Invalid type'], 400);
+            return TransformerResponse::badRequest('Invalid type', ['error' => 'Invalid type']);
         }
         if (! in_array($period, ['quarter', 'year'])) {
-            return response()->json(['error' => 'Invalid period'], 400);
+            return TransformerResponse::badRequest('Invalid period', ['error' => 'Invalid period']);
         }
 
-        return response()->json(
+        return TransformerResponse::json(
             $this->financialService->getFinancialData($symbol, $type, $period)
         );
     }
@@ -329,7 +336,7 @@ class StockController extends Controller
         return view('stock.screener', compact('results', 'filters'));
     }
 
-    public function aiChat(Request $request, AiService $aiService)
+    public function aiChat(Request $request, AiService $aiService, AiUsageService $usage)
     {
         $request->validate([
             'message' => 'required|string|max:500',
@@ -343,15 +350,24 @@ class StockController extends Controller
         $question = trim($question);
 
         if (empty($question)) {
-            return response()->json(['answer' => $lang === 'en' ? 'Please enter a valid question.' : 'Vui lòng nhập câu hỏi hợp lệ.']);
+            return TransformerResponse::success(extra: ['answer' => $lang === 'en' ? 'Please enter a valid question.' : 'Vui lòng nhập câu hỏi hợp lệ.']);
+        }
+
+        $user = $request->user();
+        $startedAt = microtime(true);
+        if ($user && $refusal = $usage->refusal($user)) {
+            $usage->record($user, AiRequest::KIND_CHAT, AiRequest::STATUS_REFUSED, null, $startedAt, $question);
+
+            return TransformerResponse::failed($refusal['message'], $refusal['status'], extra: ['error' => true]);
         }
 
         $answer = $aiService->tryAsk($question, $lang);
+        $usage->record($user, AiRequest::KIND_CHAT, $answer === null ? AiRequest::STATUS_ERROR : AiRequest::STATUS_OK, $aiService->lastModel(), $startedAt, $question);
 
         if ($answer === null) {
-            return response()->json(['error' => true, 'message' => $aiService->unavailableMessage($lang)], 503);
+            return TransformerResponse::serviceUnavailable($aiService->unavailableMessage($lang), ['error' => true]);
         }
 
-        return response()->json(['answer' => $answer]);
+        return TransformerResponse::success(extra: ['answer' => $answer]);
     }
 }

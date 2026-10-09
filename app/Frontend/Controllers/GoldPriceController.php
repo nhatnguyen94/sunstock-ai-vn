@@ -3,6 +3,7 @@
 namespace App\Frontend\Controllers;
 
 use App\Frontend\Services\GoldPriceService;
+use App\Support\TransformerResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,27 +23,22 @@ class GoldPriceController extends Controller
     {
         $result = $this->service->history($id, (string) $request->query('range', '7D'));
 
-        return $result
-            ? response()->json(['success' => true] + $result)
-            : response()->json(['success' => false, 'message' => 'Không tìm thấy dữ liệu.'], 404);
+        return $result ? TransformerResponse::success(extra: $result) : TransformerResponse::notFound();
     }
 
     /** "Làm mới" button: fetch now (rate-limited). */
     public function refresh(): JsonResponse
     {
         if (! Auth::check()) {
-            return response()->json(['success' => false, 'message' => 'Vui lòng đăng nhập để làm mới giá.', 'login_url' => route('login')], 401);
+            return TransformerResponse::unauthorized('Vui lòng đăng nhập để làm mới giá.', ['login_url' => route('login')]);
         }
 
         $result = $this->service->refresh();
 
         if (isset($result['error'])) {
-            return response()->json(['success' => false, 'message' => $result['error']], ($result['cooldown'] ?? false) ? 429 : 502);
+            return TransformerResponse::failed($result['error'], ($result['cooldown'] ?? false) ? TransformerResponse::HTTP_TOO_MANY_REQUESTS : TransformerResponse::HTTP_BAD_GATEWAY);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => $result['count'] > 0 ? "Đã cập nhật {$result['count']} mức giá mới." : 'Giá chưa thay đổi so với lần cập nhật trước.',
-        ]);
+        return TransformerResponse::success($result['count'] > 0 ? "Đã cập nhật {$result['count']} mức giá mới." : 'Giá chưa thay đổi so với lần cập nhật trước.');
     }
 }

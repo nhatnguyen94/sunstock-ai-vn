@@ -6,6 +6,7 @@ use App\Models\Portfolio;
 use App\Models\PortfolioItem;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\TransformerResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -19,7 +20,7 @@ class PortfolioController extends Controller
     {
         // Kiểm tra quyền
         if (! Gate::allows('manage-features')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
+            return TransformerResponse::redirectError('admin.dashboard', TransformerResponse::NO_PERMISSION_MESSAGE);
         }
 
         $portfolios = Portfolio::with('user')
@@ -58,7 +59,7 @@ class PortfolioController extends Controller
     public function show(Portfolio $portfolio)
     {
         if (! Gate::allows('manage-features')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
+            return TransformerResponse::redirectError('admin.dashboard', TransformerResponse::NO_PERMISSION_MESSAGE);
         }
 
         $portfolio->load('user', 'items.stock');
@@ -72,7 +73,7 @@ class PortfolioController extends Controller
     public function toggleStatus(Portfolio $portfolio)
     {
         if (! Gate::allows('manage-features')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
+            return TransformerResponse::redirectError('admin.dashboard', TransformerResponse::NO_PERMISSION_MESSAGE);
         }
 
         $portfolio->update([
@@ -83,8 +84,7 @@ class PortfolioController extends Controller
 
         ActivityLogger::log('admin_action', "Portfolio #{$portfolio->id} đã được {$status}", ['portfolio_id' => $portfolio->id, 'owner_id' => $portfolio->user_id]);
 
-        return redirect()->route('admin.portfolios.index')
-            ->with('success', "Portfolio đã được {$status} thành công!");
+        return TransformerResponse::redirectSuccess('admin.portfolios.index', "Portfolio đã được {$status} thành công!");
     }
 
     /**
@@ -93,15 +93,14 @@ class PortfolioController extends Controller
     public function destroy(Portfolio $portfolio)
     {
         if (! Gate::allows('manage-features')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
+            return TransformerResponse::redirectError('admin.dashboard', TransformerResponse::NO_PERMISSION_MESSAGE);
         }
 
         ActivityLogger::log('admin_action', "Xóa portfolio #{$portfolio->id}", ['portfolio_id' => $portfolio->id, 'owner_id' => $portfolio->user_id, 'name' => $portfolio->name]);
 
         $portfolio->delete();
 
-        return redirect()->route('admin.portfolios.index')
-            ->with('success', 'Portfolio đã được xóa thành công!');
+        return TransformerResponse::redirectSuccess('admin.portfolios.index', TransformerResponse::deletedMessage('Portfolio'));
     }
 
     /**
@@ -110,7 +109,7 @@ class PortfolioController extends Controller
     public function stats()
     {
         if (! Gate::allows('manage-features')) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bạn không có quyền truy cập tính năng này.');
+            return TransformerResponse::redirectError('admin.dashboard', TransformerResponse::NO_PERMISSION_MESSAGE);
         }
 
         $value = (float) Portfolio::sum('current_value');

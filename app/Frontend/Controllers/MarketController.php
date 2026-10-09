@@ -7,6 +7,7 @@ use App\Frontend\Services\MarketOverviewService;
 use App\Frontend\Services\WatchlistService;
 use App\Support\MarketBrief;
 use App\Support\MarketSentiment;
+use App\Support\TransformerResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Throwable;
@@ -25,7 +26,7 @@ class MarketController extends Controller
         $o = $this->market->overview();
 
         if (! $o['has_data']) {
-            return response()->json(['success' => false, 'message' => $o['error'] ?? 'Chưa có dữ liệu thị trường.'], 503);
+            return TransformerResponse::serviceUnavailable($o['error'] ?? 'Chưa có dữ liệu thị trường.');
         }
 
         // the heat map is an extra: a failure there must not take the rest of the poll down
@@ -49,8 +50,7 @@ class MarketController extends Controller
             $sentiment = null;
         }
 
-        return response()->json([
-            'success' => true,
+        return TransformerResponse::success(extra: [
             'market_open' => $o['market_open'],
             'trade_date' => $o['trade_date']->toDateString(),
             'synced_at' => $o['synced_at']?->toIso8601String(),

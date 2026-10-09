@@ -3,6 +3,7 @@
 namespace App\Frontend\Controllers;
 
 use App\Frontend\Services\FundService;
+use App\Support\TransformerResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -23,15 +24,15 @@ class FundController extends Controller
         $codes = $this->service->parseCodes($request->query('codes'));
 
         return view('funds.compare', [
-            'funds'  => $this->service->compareFunds($codes),
+            'funds' => $this->service->compareFunds($codes),
             'picker' => $this->service->pickerList(),
-            'max'    => FundService::MAX_COMPARE,
+            'max' => FundService::MAX_COMPARE,
         ]);
     }
 
     public function show(string $code): View
     {
-        $fund = $this->service->find($code) ?? abort(404);
+        $fund = $this->service->find($code) ?? TransformerResponse::abortWith(TransformerResponse::HTTP_NOT_FOUND);
 
         return view('funds.show', ['fund' => $fund]);
     }
@@ -42,9 +43,9 @@ class FundController extends Controller
         $result = $this->service->detail($code);
 
         if (isset($result['error'])) {
-            return response()->json(['success' => false, 'error' => $result['error']], ($result['not_found'] ?? false) ? 404 : 502);
+            return TransformerResponse::failed($result['error'], ($result['not_found'] ?? false) ? TransformerResponse::HTTP_NOT_FOUND : TransformerResponse::HTTP_BAD_GATEWAY, extra: ['error' => $result['error']]);
         }
 
-        return response()->json(['success' => true] + $result);
+        return TransformerResponse::success(extra: $result);
     }
 }
