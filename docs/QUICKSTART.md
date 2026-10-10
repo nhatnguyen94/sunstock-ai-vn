@@ -151,4 +151,8 @@ Admin login URL: `/admin/login`
 ```bash
 php artisan db:seed --class=DemoAdminFeaturesSeeder          # local only; admin@sunstock.test / support@sunstock.test / webadmin@sunstock.test, shared demo password
 php artisan db:seed --class=DemoAdminFeaturesCleanupSeeder   # removes exactly what the seeder created
+
+# a few hundred realistic rows per feature (320 members, ~260 portfolios from real prices, watchlists, activity, sign-ins, AI calls, sync runs…)
+php artisan db:seed --class=DemoBulkDataSeeder               # ~4 minutes; local only; prints five accounts to log in with (shared demo password)
+php artisan db:seed --class=DemoBulkDataCleanupSeeder        # removes exactly what it created
 ```

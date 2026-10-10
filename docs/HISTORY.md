@@ -6,6 +6,29 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## DEMO_BULK_DATA - October 10, 2026
+
+### Summary
+The owner wanted the site to look alive and every feature to be testable with real volume ("vài trăm records", not a handful per feature). `DemoBulkDataSeeder` fills the whole site with a few hundred realistic rows per feature; `DemoBulkDataCleanupSeeder` removes exactly that.
+
+### What it creates (defaults; `DemoBulkDataSeeder::$members` scales it)
+- **320 members** with Vietnamese names (weighted surnames, male / female middle and given names), `@bulk.sunstock.test` addresses, sign-ups over 150 days with growth towards today, 86 % active / 8 % pending / 5 % inactive / 2 % blocked, profiles (username, optional 555-pattern mobile, birthday), role `user`, the shared demo password.
+- **~260 portfolios** in eight investing styles (banks, growth, real estate, brokers, ETF, dividend, day-trader, mixed), **~1,400 holdings and ~1,500 trades** made through `PortfolioLedgerService`: every buy and partial sell uses the **real closing price stored in `stock_prices` on a real trading day** (never before the member joined, never in the future), so profit / loss on the pages is real (on the dev data the median portfolio is −1.9 %, range −23 % … +16 %). Some positions have target / stop-loss prices.
+- **~2,000 watchlist rows** (Zipf-weighted towards the most traded stocks), **~7,000 activity events** (sign-up, login, portfolio created, trades, watchlist), **~3,500 sign-ins** (typos before a success, 45 scanner addresses, four past password-guessers, **three guessers active right now** so Admin > Bảo mật flags them), **~950 AI calls** from a few heavy users (three models, errors, three accounts blocked from the AI with refused attempts), **~1,900 sync runs** and **600 queue jobs** over the last week following the real schedule shape (weekday-only market jobs, 2–10 % failures), 12 blocked addresses.
+- Deterministic (`mt_srand(20261010)`) and idempotent: it first purges its own previous rows, so a second run gives the same data (checked by a test). Local / testing only. Takes about 4 minutes on the dev machine (the ledger writes ~1,500 trades one by one; the host was also busy).
+
+### Use
+```bash
+php artisan db:seed --class=DemoBulkDataSeeder          # prints a table of counts and five accounts with the largest portfolios
+php artisan db:seed --class=DemoBulkDataCleanupSeeder   # removes exactly what it created
+```
+Every page was rendered through the HTTP kernel for a member and for the admin after seeding: all answer 200.
+
+### Tests
+Group `demoBulkSeeder` (9 tests, a smaller crowd of 36): every feature gets rows, trades are at the stored close on a stored date, each holding equals its buys minus its sells and has a price, nothing before sign-up or in the future, exactly the three active guessers, blocked accounts only refused, repeatable, cleanup leaves unrelated rows alone, refuses outside local / testing.
+
+---
+
 ## TRANSFORMER_RESPONSE - October 9, 2026
 
 ### Summary
