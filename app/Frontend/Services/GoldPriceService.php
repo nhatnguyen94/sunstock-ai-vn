@@ -9,6 +9,7 @@ use App\Models\GoldPrice;
 use App\Support\PythonRunner;
 use App\Support\SingleFlight;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -26,6 +27,15 @@ class GoldPriceService
 
     /** Chart windows: key => hours back (null = everything we have). */
     public const RANGES = ['1D' => 24, '7D' => 168, '30D' => 720, 'ALL' => null];
+
+    /** Outcome of the last sync (when it ran, which source failed): rows are only written for NEW prices, so the table alone cannot tell a quiet source from a dead one. */
+    public const STATUS_CACHE_KEY = 'gold:source-status';
+
+    /** BTMC publishes several times a day on weekdays; a weekend plus a Monday morning stays under this, three days without a publication does not. */
+    public const BTMC_MAX_AGE_HOURS = 72;
+
+    /** The scheduler runs every 15 minutes, 07:00–19:00 Vietnam time, every day: no recorded run for a day means it is not running (PC off, Docker stopped). */
+    public const SYNC_MAX_AGE_HOURS = 24;
 
     public function __construct(
         private readonly GoldPriceRepositoryInterface $repo,
@@ -60,6 +70,7 @@ class GoldPriceService
         }
 
         $goldQuotes = $this->repo->latestQuotes('gold');
+        $silverQuotes = $this->repo->latestQuotes('silver');
         $sjc = $goldQuotes->where('source', GoldPrice::SOURCE_SJC);
         $btmc = $goldQuotes->where('source', GoldPrice::SOURCE_BTMC);
 
@@ -81,10 +92,59 @@ class GoldPriceService
             'sjc_branches' => $sjc->values(),
             'sjc_uniform' => $uniform,
             'btmc_gold' => $btmc->map(fn ($q) => $this->withChange($q))->values(),
-            'silver' => $this->repo->latestQuotes('silver')->map(fn ($q) => $this->withChange($q))->values(),
+            'silver' => $silverQuotes->map(fn ($q) => $this->withChange($q))->values(),
             'world' => $this->worldComparison($headlineData),
             'chart_options' => $this->chartOptions($goldQuotes),
+            'alerts' => $this->alerts($this->newest($sjc), $this->newest($btmc->concat($silverQuotes))),
         ];
+    }
+
+    private function newest(Collection $quotes): ?Carbon
+    {
+        return $quotes->sortByDesc('quoted_at')->first()?->quoted_at;
+    }
+
+    /**
+     * Warnings for a source that is not reaching us, so a stale price is never presented as today's (BTMC was dead for three weeks while the
+     * page kept showing its 20 September quotes). Three rules, none of them guesses at "the market is closed":
+     *  - the last recorded sync is older than SYNC_MAX_AGE_HOURS → the scheduler is not running;
+     *  - the last sync recorded a failure for a source → that source's prices are the stored ones;
+     *  - BTMC's newest publication is older than BTMC_MAX_AGE_HOURS → it is not publishing or not reaching us.
+     *
+     * @return array<int, array{source: string, message: string}>
+     */
+    private function alerts(?Carbon $sjcAt, ?Carbon $btmcAt): array
+    {
+        $status = Cache::get(self::STATUS_CACHE_KEY);
+        $checkedAt = isset($status['checked_at']) ? Carbon::parse($status['checked_at']) : null;
+        $fmt = fn (?Carbon $t) => $t ? $t->copy()->timezone(self::VN_TZ)->format('H:i d/m/Y') : null;
+        $alerts = [];
+
+        $syncStale = $checkedAt !== null && $checkedAt->diffInHours(now()) >= self::SYNC_MAX_AGE_HOURS;
+        if ($syncStale) {
+            $alerts[] = ['source' => 'sync', 'message' => 'Hệ thống chưa đồng bộ giá vàng từ '.$fmt($checkedAt).' (hơn '.self::SYNC_MAX_AGE_HOURS.' giờ), nên các giá bên dưới có thể đã cũ.'];
+        }
+
+        $errors = $syncStale ? [] : (array) ($status['errors'] ?? []);
+        $checked = $fmt($checkedAt);
+
+        if (isset($errors['sjc'])) {
+            $alerts[] = ['source' => 'sjc', 'message' => "Lần cập nhật gần nhất ({$checked}) không lấy được giá vàng SJC; đang hiển thị giá đã lưu".($sjcAt ? ' lúc '.$fmt($sjcAt) : '').'.'];
+        }
+
+        if (isset($errors['btmc'])) {
+            $alerts[] = ['source' => 'btmc', 'message' => "Lần cập nhật gần nhất ({$checked}) không lấy được giá Bảo Tín Minh Châu; bảng BTMC, bảng bạc và giá vàng thế giới ".($btmcAt ? 'đang là số đã lưu lúc '.$fmt($btmcAt) : 'chưa có số liệu nào được lưu').'.'];
+        } elseif ($btmcAt !== null && $btmcAt->diffInHours(now()) >= self::BTMC_MAX_AGE_HOURS) {
+            $alerts[] = ['source' => 'btmc', 'message' => 'Giá Bảo Tín Minh Châu lần cuối được ghi nhận lúc '.$fmt($btmcAt).', hơn '.intdiv(self::BTMC_MAX_AGE_HOURS, 24).' ngày chưa có giá mới: bảng BTMC, bảng bạc và giá vàng thế giới có thể đã cũ.'];
+        }
+
+        return $alerts;
+    }
+
+    /** @param array<string, string> $errors source => reason, empty when every source answered */
+    private function recordStatus(array $errors): void
+    {
+        Cache::forever(self::STATUS_CACHE_KEY, ['checked_at' => now()->toIso8601String(), 'errors' => $errors]);
     }
 
     /**
@@ -207,6 +267,9 @@ class GoldPriceService
 
             return ['error' => 'Không lấy được giá vàng (nguồn dữ liệu chậm hoặc lỗi kết nối).'];
         }
+        // Which source failed is only known here: remember it, otherwise a dead source looks exactly like a quiet one
+        $this->recordStatus(array_map('strval', (array) ($data['errors'] ?? [])));
+
         if (isset($data['error'])) {
             return ['error' => (string) $data['error']];
         }

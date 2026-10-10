@@ -67,6 +67,20 @@ class GoldPriceControllerTest extends TestCase
     }
 
     #[Group('goldPrice')]
+    public function test_page_warns_when_the_last_sync_could_not_reach_btmc_and_stays_quiet_otherwise(): void
+    {
+        $this->seedQuotes();
+        Queue::fake();
+        $this->get('/gold')->assertOk()->assertDontSee('gd-alert', false);
+
+        Cache::forever(GoldPriceService::STATUS_CACHE_KEY, ['checked_at' => now()->toIso8601String(), 'errors' => ['btmc' => 'connection timed out']]);
+
+        $this->get('/gold')->assertOk()
+            ->assertSee('class="gd-alert" role="alert" data-source="btmc"', false)
+            ->assertSee('không lấy được giá Bảo Tín Minh Châu');
+    }
+
+    #[Group('goldPrice')]
     public function test_page_shows_a_friendly_state_when_no_data_could_be_loaded(): void
     {
         $stub = Mockery::mock(GoldPriceService::class);

@@ -19,11 +19,18 @@ The owner saw no moving chart on `/gold` for the 7 / 30 / all-time filters and a
 ### Fixed
 `py/get_gold_price.py`: BTMC is requested over https (built from vnstock's own default address, so host/path/key are not copied) and `install_http_timeout()` gives every vnstock request a 20 s ceiling. vnstock 4.x `Retail().gold()` is only a wrapper over the same two functions, so nothing newer to adopt. After the fix: 154 BTMC rows stored (99 gold, 55 silver), world gold 4,190 USD/oz (MSN `XAUUSD`, an independent source, said 4,193.83 the same day), the script ends in ~6 s, and in Chrome the chart draws BTMC for every range with the world card and the domestic premium (+9.95 %) updated.
 
+### Added: the page now says when a source is not reaching us
+The sync used to **throw away** the per-source `errors` the script reports every run (it only counted new rows, and rows are written only for new prices, so a dead source looked exactly like a quiet one): that is how BTMC stayed dead for three weeks unnoticed. Now `GoldPriceService::sync()` keeps the outcome of the last run in the cache (`gold:source-status` = when it ran + which source failed, forever) and `page()` returns `alerts`, shown as an orange banner (`.gd-alert`, `role="alert"`, `data-source`) above the price cards. Three rules, none of them guesses at "the market is closed":
+1. last recorded sync older than 24 h (`SYNC_MAX_AGE_HOURS`) → "Hệ thống chưa đồng bộ giá vàng từ …" (scheduler not running, e.g. PC off); the failures of such an old run are then not repeated;
+2. the last sync recorded a failure for SJC or BTMC → "không lấy được giá …; đang hiển thị giá đã lưu lúc …" with the date of the numbers still on screen; the next successful sync clears it;
+3. BTMC's newest publication older than 72 h (`BTMC_MAX_AGE_HOURS`, so Friday evening → Monday morning stays quiet) with no recorded failure → "hơn 3 ngày chưa có giá mới".
+A run that returned nothing at all (killed, or refused by the web guard) records nothing, so it cannot cause a false alarm; a lasting problem is caught by rule 1. CSS: `.gd-alert ~ .gd-kpis` drops the cards' −2 rem overlap so the banner is not covered. Checked in Chrome with a simulated BTMC failure (banner shows the failed attempt and "đã lưu lúc 17:10"), then cleared by a real sync (status `errors: []`, no banner).
+
 ### Tests
-New `GetGoldPriceScriptTest` (group `goldPrice`, 4 tests): https URL with vnstock's own address and key, stored shape (per chi → per luong, Vietnam time → UTC, world price), default 20 s timeout that keeps an explicit one, a dead BTMC still returns SJC. Whole group 31 tests green.
+New `GetGoldPriceScriptTest` (group `goldPrice`, 4 tests): https URL with vnstock's own address and key, stored shape (per chi → per luong, Vietnam time → UTC, world price), default 20 s timeout that keeps an explicit one, a dead BTMC still returns SJC. New `GoldSourceAlertsTest` (10 tests: no alert when healthy, a failed BTMC/SJC announced with the stored date, a later good sync clears it, scheduler-stale wins over old errors, 23 h vs 25 h boundary, BTMC 3-day rule, a weekend of silence is not an alarm, a null run records nothing, the status is kept with its reasons) and one controller test that renders the banner. Whole `goldPrice` group: 42 tests green.
 
 ### Left open (decide with the owner)
-The page does not say when a source is old (it shows the SJC sync time as "Cập nhật" and "Hôm nay không đổi" for a quote that is weeks old); the scheduler stops with the PC; the chart opens on the first BTMC product whatever it has.
+The scheduler still stops with the PC (days with the machine off cannot be back-filled: no free history API); the chart opens on the first BTMC product whatever it has.
 
 ---
 

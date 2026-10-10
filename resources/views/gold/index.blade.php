@@ -11,7 +11,7 @@
 @php
     $tz = 'Asia/Ho_Chi_Minh';
     $headline ??= null; $synced_at ??= null; $stale ??= false; $world ??= null; $error ??= null; $sjc_uniform ??= false; $chart_options ??= [];
-    $sjc_branches ??= collect(); $btmc_gold ??= collect(); $silver ??= collect();
+    $sjc_branches ??= collect(); $btmc_gold ??= collect(); $silver ??= collect(); $alerts ??= [];
     $h = $headline['quote'] ?? null;
     $ring = $btmc_gold->first(fn ($r) => str_contains(mb_strtoupper($r['quote']->product), 'NHẪN TRÒN'));
     $delta = function (?int $v) {
@@ -62,6 +62,11 @@
         <a class="gd-btn gd-btn-solid" href="{{ route('gold.index') }}"><i class="bi bi-arrow-clockwise"></i> Thử lại</a>
     </div>
 @else
+
+    {{-- A source that is not reaching us: say so instead of showing its old price as today's --}}
+    @foreach($alerts as $alert)
+        <div class="gd-alert" role="alert" data-source="{{ $alert['source'] }}"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i><span>{{ $alert['message'] }}</span></div>
+    @endforeach
 
     {{-- ── Headline cards ── --}}
     <div class="gd-kpis">

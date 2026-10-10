@@ -8,6 +8,9 @@
 .gd-title { font-size: 2.3rem; font-weight: 800; margin: 0 0 .4rem; color: #fff; line-height: 1.2; }
 .gd-subtitle { opacity: .9; margin: 0; }
 .gd-stale { opacity: .8; font-style: italic; }
+.gd-alert { display: flex; align-items: flex-start; gap: .65rem; margin-top: 1.1rem; padding: .8rem 1.1rem; border-radius: 14px; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; font-size: .9rem; line-height: 1.5; }
+.gd-alert i { flex: 0 0 auto; margin-top: .2rem; color: #ea580c; }
+.gd-alert ~ .gd-kpis { margin-top: 1.1rem; }   /* the cards normally ride up over the header; with a warning above them they must not cover it */
 .gd-header-actions { position: relative; z-index: 2; display: flex; gap: .5rem; justify-content: flex-end; flex-wrap: wrap; }
 .gd-btn { background: rgba(255,255,255,.2); color: #fff; border: 1px solid rgba(255,255,255,.3); padding: .6rem 1.2rem; border-radius: 12px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: all .25s ease; cursor: pointer; }
 .gd-btn:hover { background: rgba(255,255,255,.32); color: #fff; text-decoration: none; transform: translateY(-2px); }
