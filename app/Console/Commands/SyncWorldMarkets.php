@@ -31,7 +31,7 @@ class SyncWorldMarkets extends Command
         foreach ($result['errors'] as $code => $why) {
             $this->warn("{$code}: {$why}");
         }
-        $this->info("World markets stored ({$result['markets']} indices).");
+        $this->info("World markets stored ({$result['markets']} markets).");
 
         return 0;
     }

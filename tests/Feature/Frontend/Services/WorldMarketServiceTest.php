@@ -119,7 +119,7 @@ class WorldMarketServiceTest extends TestCase
         $ok->shouldReceive('sync')->once()->andReturn(['markets' => 8, 'errors' => ['DAX' => 'no data']]);
         $this->app->instance(WorldMarketService::class, $ok);
 
-        $this->artisan('sync:world-markets')->expectsOutputToContain('World markets stored (8 indices).')->assertExitCode(0);
+        $this->artisan('sync:world-markets')->expectsOutputToContain('World markets stored (8 markets).')->assertExitCode(0);
     }
 
     #[Group('worldMarkets')]

@@ -111,6 +111,37 @@ PY;
     }
 
     #[Group('worldMarkets')]
+    public function test_gold_silver_and_the_dong_rate_carry_a_unit_and_decimals_but_indices_do_not(): void
+    {
+        $bars = [['2026-10-08', 4133.93], ['2026-10-09', 4193.83]];
+
+        $result = $this->runWorld(['INX' => $bars, 'XAUUSD' => $bars, 'USDVND' => [['2026-10-08', 25889.0], ['2026-10-09', 25879.0]]]);
+        $byCode = array_column($result['markets'], null, 'code');
+
+        $this->assertSame('USD/oz', $byCode['XAUUSD']['unit']);
+        $this->assertSame(2, $byCode['XAUUSD']['decimals']);
+        $this->assertSame('₫', $byCode['USDVND']['unit']);
+        $this->assertSame(0, $byCode['USDVND']['decimals']);
+        $this->assertSame(-10.0, $byCode['USDVND']['change']);
+        $this->assertArrayNotHasKey('unit', $byCode['INX']);
+        $this->assertArrayNotHasKey('decimals', $byCode['INX']);
+    }
+
+    #[Group('worldMarkets')]
+    public function test_only_codes_that_were_checked_against_the_vnstock_msn_maps_are_listed(): void
+    {
+        $source = file_get_contents(base_path('py/get_world_markets.py'));
+
+        foreach (['XAUUSD', 'XAGUSD', 'USDVND'] as $code) {
+            $this->assertStringContainsString("('{$code}',", $source);
+        }
+        // guessed codes answered something that is not the instrument (BZ 15.73, GC 5.3, SI 0.07) and Bitcoin returned no bars
+        foreach (['BZ', 'GC', 'SI', 'CL', 'BTC', 'ETH'] as $code) {
+            $this->assertStringNotContainsString("('{$code}',", $source);
+        }
+    }
+
+    #[Group('worldMarkets')]
     public function test_the_script_registers_the_eight_markets_the_strip_is_built_for(): void
     {
         $source = file_get_contents(base_path('py/get_world_markets.py'));

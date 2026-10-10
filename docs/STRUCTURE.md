@@ -274,7 +274,7 @@ This is a Laravel 12 stock application with strict separation between Frontend (
 - `get_exchange_rate.py` - Fetch VCB exchange rates by date or last N days
 - `get_etf_list.py` - Roster of ETFs and listed closed-end funds from the KBS listing (type `fund`)
 - `get_gold_price.py` - Fetch SJC + BTMC gold/silver prices and the world gold price (vnstock), cross-checking SJC against BTMC
-- `get_world_markets.py` - World stock indices (S&P 500, Nasdaq, Dow, FTSE, DAX, Nikkei, Hang Seng, Shanghai) from vnstock's MSN source
+- `get_world_markets.py` - World stock indices (S&P 500, Nasdaq, Dow, FTSE, DAX, Nikkei, Hang Seng, Shanghai) plus world gold / silver (XAUUSD, XAGUSD) and USD/VND from vnstock's MSN source
 - `get_market_overview.py` - Whole-market snapshot from KBS (also `foreign`: estimated foreign buy/sell value, net per exchange and the top net buyers/sellers, from the board's foreign volumes): indices, breadth, liquidity, movers, a quote per symbol (one board request)
 - *(quote shape)* `get_market_overview.py` writes each quote as `[price, reference, %, volume, value, ceiling, floor, open, high, low, exchange]` (whole VND; the 11th element is HOSE/HNX/UPCOM/null and is absent from snapshots stored before 2026-10-03)
 - `get_hot_industries.py` - Fetch hot industry stocks (Banking, Real Estate, IT)

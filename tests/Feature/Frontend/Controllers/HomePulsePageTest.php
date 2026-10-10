@@ -103,6 +103,31 @@ class HomePulsePageTest extends TestCase
     }
 
     #[Group('homePulse')]
+    #[Group('worldMarkets')]
+    public function test_world_gold_and_the_dong_rate_show_with_their_own_unit_and_decimals(): void
+    {
+        $this->seedAll();
+        Cache::put(WorldMarketService::CACHE_KEY, [
+            'markets' => [
+                ['code' => 'INX', 'name' => 'S&P 500', 'region' => 'Mỹ', 'close' => 7801.77, 'previous' => 7818.93, 'change' => -17.16, 'percent' => -0.22, 'date' => '2026-10-07', 'series' => [7700.0, 7801.77]],
+                ['code' => 'XAUUSD', 'name' => 'Vàng thế giới', 'region' => 'Hàng hóa', 'close' => 4193.83, 'previous' => 4133.93, 'change' => 59.9, 'percent' => 1.45, 'date' => '2026-10-09', 'series' => [4100.0, 4193.83], 'unit' => 'USD/oz', 'decimals' => 2],
+                ['code' => 'USDVND', 'name' => 'USD/VND', 'region' => 'Ngoại tệ', 'close' => 25879.0, 'previous' => 25889.0, 'change' => -10.0, 'percent' => -0.04, 'date' => '2026-10-09', 'series' => [25800.0, 25879.0], 'unit' => '₫', 'decimals' => 0],
+            ],
+            'synced_at' => now()->toIso8601String(),
+        ], now()->addDay());
+
+        $html = $this->get('/')->assertOk()->getContent();
+
+        $this->assertSame(3, $this->dom($html)->query("//*[@id='mkWorld']//*[contains(@class,'mk-w ')]")->length);
+        $this->assertStringContainsString('4.193,83', $html, 'gold keeps two decimals');
+        $this->assertStringContainsString('>25.879<', $html, 'the dong rate is a whole number');
+        $this->assertStringNotContainsString('25.879,00', $html);
+        $this->assertStringContainsString('Vàng thế giới (Hàng hóa, USD/oz)', $html);
+        $this->assertStringContainsString('USD/VND (Ngoại tệ, ₫)', $html);
+        $this->assertStringContainsString('S&amp;P 500 (Mỹ) ·', $html, 'an index still has no unit in its title');
+    }
+
+    #[Group('homePulse')]
     public function test_without_a_world_answer_the_strip_is_absent_and_one_refresh_is_queued(): void
     {
         $this->seedMarketSnapshot();

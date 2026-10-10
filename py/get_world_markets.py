@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """
-World stock indices for the home page "Thế giới" strip, from vnstock's MSN source (daily bars, no API key).
+World stock indices, world gold / silver and the USD/VND market rate for the home page "Thế giới" strip, from vnstock's MSN source
+(daily bars, no API key).
 
 Output: ONE JSON line (vnstock prints a promo box before it: the caller scans backwards for the JSON line)
 {
   "fetched_at": "2026-10-08T03:15:00Z",
-  "markets": [{"code","name","region","close","previous","change","percent","date","series":[close, ...]}],
+  "markets": [{"code","name","region","close","previous","change","percent","date","series":[close, ...], "unit"?, "decimals"?}],
   "errors": {"CODE": "message"}
 }
 `date` is the date of the last bar (the most recent finished session of that market); `series` holds up to 8 closes, oldest first.
+`unit` / `decimals` are only present for the non-index entries (see EXTRA): the unit to show beside the price and how many decimals it needs.
 A market that does not answer is reported in "errors" and left out: one failing index must not lose the rest.
+
+Only codes found in vnstock's own MSN maps (explorer/msn/const.py: currencies incl. XAUUSD / XAGUSD, global indices) are used. Crude oil has
+no code there and MSN's free-text search finds no oil future, and Bitcoin returned no daily bars, so neither is listed: never put a code
+here without checking that its value is the real instrument (a guessed BZ / GC / SI answered 15.73 / 5.3 / 0.07, which is not Brent, gold or silver).
 """
 
 import io
@@ -37,7 +43,16 @@ MARKETS = [
     ('N225', 'Nikkei 225', 'Nhật'),
     ('HSI', 'Hang Seng', 'Hồng Kông'),
     ('000001', 'Shanghai', 'Trung Quốc'),
+    ('XAUUSD', 'Vàng thế giới', 'Hàng hóa'),
+    ('XAGUSD', 'Bạc thế giới', 'Hàng hóa'),
+    ('USDVND', 'USD/VND', 'Ngoại tệ'),
 ]
+# unit shown beside the price and decimals needed, for the entries that are not an index
+EXTRA = {
+    'XAUUSD': {'unit': 'USD/oz', 'decimals': 2},
+    'XAGUSD': {'unit': 'USD/oz', 'decimals': 2},
+    'USDVND': {'unit': '₫', 'decimals': 0},
+}
 LOOKBACK_DAYS = 16
 SERIES_LEN = 8
 
@@ -60,6 +75,7 @@ def fetch(code, name, region):
         'percent': round(change / previous * 100, 2) if previous else 0.0,
         'date': last_time.strftime('%Y-%m-%d') if hasattr(last_time, 'strftime') else str(last_time)[:10],
         'series': [round(c, 2) for _, c in rows],
+        **EXTRA.get(code, {}),
     }
 
 

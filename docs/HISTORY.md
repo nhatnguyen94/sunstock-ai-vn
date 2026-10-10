@@ -6,6 +6,26 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## WORLD_STRIP_GOLD_SILVER_USDVND - October 10, 2026
+
+### Summary
+First of the new vnstock features the owner picked ("làm 1 trước"): widen the home "Thế giới" strip beyond the 8 stock indices. The proposal was commodities, the market USD/VND rate and Bitcoin; checking showed only part of it can be shown honestly.
+
+### Verified before building
+- Codes taken from vnstock's own MSN maps (`explorer/msn/const.py`): `XAUUSD` 4,193.83 USD/oz (+1.45 %), `XAGUSD` 60.81 USD/oz (+2.48 %), `USDVND` 25,879 (sits between Vietcombank's buy 25,690 and sell 26,070). Gold was not cross-checked against a same-day second source (the stored world price in `gold_prices` is from 20 Sep).
+- **Left out on purpose**: crude oil (`CL` answered 88.27 but nothing proves it is WTI, MSN search finds no oil future) and Bitcoin (`Quote(…,'BTC')` returns no daily bars). Guessed codes also proved dangerous: `BZ` 15.73, `GC` 5.3, `SI` 0.07 are not Brent, gold or silver. Rule added to GUIDELINES and VNSTOCK.md (never guess a code).
+
+### Modified
+- `py/get_world_markets.py`: three more `MARKETS` entries and an `EXTRA` map (`unit`, `decimals`) merged into those entries only; 11 vnstock calls per run, every 30 min, far below the 60/min Community limit.
+- `resources/views/partials/world-strip.blade.php`: price printed with the entry's `decimals` (2 by default, 0 for the dong), tooltip shows the unit, aria-label "Thị trường thế giới". The strip already scrolls sideways, so no CSS change.
+- `sync:world-markets` prints "markets" instead of "indices". Admin labels "Chỉ số thế giới" untouched.
+- Cache key and shape unchanged (`world:markets:v1`): an old cached answer simply lacks the new chips until the next sync.
+
+### Tests (groups `worldMarkets`, `homePulse`)
+Unit/decimals only on the three extras; the absent codes (BZ, GC, SI, CL, BTC, ETH) pinned; the home page prints `4.193,83`, `25.879` (no `,00`) and the unit titles. 18 + 15 tests green.
+
+---
+
 ## SECURITY_AUDIT_AND_VNAI_TELEMETRY_OFF - October 10, 2026
 
 ### Summary

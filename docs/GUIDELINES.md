@@ -110,6 +110,7 @@ Validate the input against what exists before it reaches Python/cache/queue (kno
 ### Python Integration
 - All Python calls must handle: empty output, JSON decode errors, non-zero exit codes
 - Python scripts write only JSON to stdout (no debug prints)
+- **Never guess a vnstock/MSN symbol code.** A guessed code answers with *some* instrument (`BZ` 15.73, `GC` 5.3, `SI` 0.07 instead of Brent, gold, silver) and the page would show it as fact. Take codes from vnstock's own maps and check the value against a second source — see `docs/VNSTOCK.md` rule 8.
 - See `docs/PYTHON_INTEGRATION.md` for the full calling pattern
 
 ### Caching

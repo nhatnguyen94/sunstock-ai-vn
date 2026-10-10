@@ -38,7 +38,7 @@ Per-script details are in [PYTHON_INTEGRATION.md](PYTHON_INTEGRATION.md); how th
 | Company profile | vnstock `Company` — KBS primary, VCI for valuation / events / shareholders | `get_company_profile.py` |
 | Financial statements | vnstock via KBS | `get_company_finance.py` |
 | Open-ended funds | vnstock `Fund` (Fmarket) | `get_fund_list.py`, `get_fund_detail.py` |
-| World indices | vnstock `Quote(source='MSN')` | `get_world_markets.py` |
+| World indices, world gold / silver (`XAUUSD`, `XAGUSD`), USD/VND | vnstock `Quote(source='MSN')` | `get_world_markets.py` |
 | Gold / silver | `vnstock.explorer.misc.gold_price` (SJC, BTMC) | `get_gold_price.py` |
 | Exchange rates | VCB through vnstock | `get_exchange_rate.py` |
 
@@ -55,6 +55,9 @@ Per-script details are in [PYTHON_INTEGRATION.md](PYTHON_INTEGRATION.md); how th
    symbols — web-triggered runs are already limited by `PythonWebGuard`.
 6. **Unknown tickers return an all-empty row, not an error.** Validate the symbol against the stored catalog before calling.
 7. **A failed or refused run is never cached**; "no data" is a real answer and may be.
+8. **Never guess an MSN code.** Take it from `vnstock/explorer/msn/const.py` (currencies incl. `XAUUSD`/`XAGUSD`, global indices, crypto) and sanity-check the
+   value against a second source. Guessed `BZ` / `GC` / `SI` answered 15.73 / 5.3 / 0.07 (not Brent, gold, silver); `CL` answered 88.27 with no way to prove it is WTI;
+   `Quote(..., 'BTC')` returned no daily bars (the `Market().crypto('BTC')` route returned a single row for a month). Oil and Bitcoin are therefore not used.
 
 ## 4. The API key
 
