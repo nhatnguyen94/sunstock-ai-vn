@@ -6,6 +6,19 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## DOCKER_OPTIMISATION - October 10, 2026
+
+### Summary
+The owner asked, as a "system dev ops", whether the Docker setup could be faster and lighter, then "làm tất cả" — after a backup, with the backup deleted only once everything is stable — and explicitly **excluded item 4** (`.wslconfig`, WSL limits, worker profile): not done.
+
+### Findings (measured)
+Project on the Windows disk is bind-mounted into three PHP containers: `stat` of 361 files 1.1 s vs 5 ms on the container's own disk; `opcache.revalidate_freq=0` re-stats ~150 scripts on every request (page 170–240 ms; with 2 s: 106–180 ms). MySQL ran with a 128 MB buffer pool on a 467 MB database, `performance_schema` on, a binary log (22 files, 283 MB) and an fsync per commit. Docker logs never rotated; the same Dockerfile was built three times.
+
+### Done
+php.ini (`revalidate_freq=2`, interned strings, realpath cache TTL, dev-only umask prepend); Laravel's compiled views and bootstrap caches moved to the container's own disk through env vars (`VIEW_COMPILED_PATH`, `APP_*_CACHE`, folder created at container start); MySQL dev tuning as server options (not a `my.cnf`: a file on the Windows mount looks world-writable and MySQL ignores it) — MySQL RAM 882 → ~540 MB, old binlogs purged; nginx gzip + open_file_cache; log rotation; one shared image for php / queue / scheduler. Details and the production caveats in docs/DOCKER.md §4b.
+
+---
+
 ## DEMO_BULK_DATA - October 10, 2026
 
 ### Summary

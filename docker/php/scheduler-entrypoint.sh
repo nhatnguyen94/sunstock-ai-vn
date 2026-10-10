@@ -5,6 +5,9 @@
 # still fresh (see docs/GUIDELINES.md "Scheduling"), so this is safe to re-run anytime.
 # After the startup pass, it hands off to the normal Laravel scheduler loop.
 
+# Laravel's compiled views / bootstrap caches live here (VIEW_COMPILED_PATH etc. in docker-compose.yml): the container's own disk, not the Windows mount
+mkdir -p /var/cache/laravel/views && chmod -R 777 /var/cache/laravel
+
 cd /var/www/html || exit 1
 
 # Safety net first: a weekly database backup OUTSIDE Docker storage (see docs/DOCKER.md "Backup database").

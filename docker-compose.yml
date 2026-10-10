@@ -1,3 +1,25 @@
+# ── Shared settings ───────────────────────────────────────────────────────────
+# Container logs rotate (10 MB x 3 files per service): Docker's default json-file driver never rotates and grows without limit.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# Environment of every container that runs the Laravel code (php-fpm, queue workers, scheduler).
+x-php-env: &php-env
+  PYTHONIOENCODING: utf-8
+  VNSTOCK_DISABLE_AGENT_SETUP: "1"             # vnai must not write instructions into AGENTS.md / ~/.claude/CLAUDE.md
+  PHP_DEV_UMASK: "1"                            # dev only: files PHP creates are writable by every user (see docker/php/dev-umask.php); remove in production
+  # Compiled views and Laravel's bootstrap caches live on the container's OWN disk, not on the slow Windows bind mount (a stat() over the
+  # mount costs milliseconds). They are caches: rebuilt on demand, safe to lose. `php artisan view:clear` / `optimize:clear` still work.
+  VIEW_COMPILED_PATH: /var/cache/laravel/views
+  APP_PACKAGES_CACHE: /var/cache/laravel/packages.php
+  APP_SERVICES_CACHE: /var/cache/laravel/services.php
+  APP_CONFIG_CACHE: /var/cache/laravel/config.php
+  APP_ROUTES_CACHE: /var/cache/laravel/routes-v7.php
+  APP_EVENTS_CACHE: /var/cache/laravel/events.php
+
 services:
 
   # ── Nginx: HTTPS reverse proxy ───────────────────────────────────────────────
@@ -14,16 +36,22 @@ services:
       - php
     networks:
       - stocknet
+    logging: *logging
     restart: unless-stopped
 
   # ── PHP-FPM: Laravel app + Python ───────────────────────────────────────────
+  # The ONE image of the stack: queue and scheduler below reuse it (they used to build the same Dockerfile three times).
   php:
+    image: stock-app-php:latest
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    # the cache folder is created at start (the image cannot be rebuilt today, see docs/DOCKER.md), then php-fpm runs as usual
+    command: ["sh", "-c", "mkdir -p /var/cache/laravel/views && chmod -R 777 /var/cache/laravel && exec php-fpm"]
     volumes:
       - .:/var/www/html                                          # code mount (dev)
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-custom.ini:ro
+      - ./docker/php/dev-umask.php:/usr/local/etc/php/dev-umask.php:ro
       - vendor_data:/var/www/html/vendor                        # vendor in named volume (faster on Windows)
       - ../database_backup:/backups                             # weekly DB backups live BESIDE the project, outside Docker storage
     depends_on:
@@ -32,16 +60,30 @@ services:
       redis:
         condition: service_started
     environment:
-      - PYTHONIOENCODING=utf-8
-      - VNSTOCK_DISABLE_AGENT_SETUP=1              # vnai must not write instructions into AGENTS.md / ~/.claude/CLAUDE.md
-      - DB_BACKUP_PATH=/backups
+      <<: *php-env
+      DB_BACKUP_PATH: /backups
     networks:
       - stocknet
+    logging: *logging
     restart: unless-stopped
 
   # ── MySQL 8.0 ────────────────────────────────────────────────────────────────
+  # Dev tuning, passed as server options (a mounted my.cnf would be ignored: the Windows mount reports it world-writable):
+  #   performance_schema=OFF  saves ~300 MB of RAM (nothing in the app reads it)
+  #   skip-log-bin            no binary log: it grew ~280 MB, doubled the fsyncs and serves no purpose on a single dev node
+  #   flush_log_at_trx_commit=2 / O_DIRECT  commit without an fsync each time: bulk writes (seeders, backfills) are 2-4x faster; the price is that
+  #                           a crash of the VM can lose the last second of commits — weekly db:backup exists. Use 1 in production.
+  #   innodb_buffer_pool_size=384M  was 128M for a 467 MB database (stock_prices alone is 419 MB)
   mysql:
     image: mysql:8.0
+    command:
+      - mysqld
+      - --performance-schema=OFF
+      - --skip-log-bin
+      - --innodb-flush-log-at-trx-commit=2
+      - --innodb-flush-method=O_DIRECT
+      - --innodb-buffer-pool-size=402653184
+      - --max-connections=100
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-stock_app}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set in .env — no insecure default}
@@ -56,6 +98,7 @@ services:
       retries: 5
     networks:
       - stocknet
+    logging: *logging
     restart: unless-stopped
 
   # ── Redis 7 ──────────────────────────────────────────────────────────────────
@@ -65,51 +108,58 @@ services:
       - redis_data:/data
     networks:
       - stocknet
+    logging: *logging
     restart: unless-stopped
 
   # ── Queue workers (6 parallel via Supervisor) ────────────────────────────────
   queue:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-    command: ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+    image: stock-app-php:latest
+    pull_policy: never          # built by the `php` service above
+    command: ["sh", "-c", "mkdir -p /var/cache/laravel/views && chmod -R 777 /var/cache/laravel && exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"]
     volumes:
       - .:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-custom.ini:ro
+      - ./docker/php/dev-umask.php:/usr/local/etc/php/dev-umask.php:ro
       - ./docker/php/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
       - vendor_data:/var/www/html/vendor
     depends_on:
+      php:
+        condition: service_started
       mysql:
         condition: service_healthy
       redis:
         condition: service_started
     environment:
-      - PYTHONIOENCODING=utf-8
-      - VNSTOCK_DISABLE_AGENT_SETUP=1              # vnai must not write instructions into AGENTS.md / ~/.claude/CLAUDE.md
+      <<: *php-env
     networks:
       - stocknet
+    logging: *logging
     restart: unless-stopped
 
   # ── Scheduler (startup sync + php artisan schedule:work) ─────────────────────
   scheduler:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
+    image: stock-app-php:latest
+    pull_policy: never          # built by the `php` service above
     command: ["sh", "/var/www/html/docker/php/scheduler-entrypoint.sh"]
     volumes:
       - .:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-custom.ini:ro
+      - ./docker/php/dev-umask.php:/usr/local/etc/php/dev-umask.php:ro
       - vendor_data:/var/www/html/vendor
       - ../database_backup:/backups                             # weekly DB backups (db:backup) — see docs/DOCKER.md
     depends_on:
+      php:
+        condition: service_started
       mysql:
         condition: service_healthy
       redis:
         condition: service_started
     environment:
-      - PYTHONIOENCODING=utf-8
-      - VNSTOCK_DISABLE_AGENT_SETUP=1              # vnai must not write instructions into AGENTS.md / ~/.claude/CLAUDE.md
-      - DB_BACKUP_PATH=/backups
+      <<: *php-env
+      DB_BACKUP_PATH: /backups
     networks:
       - stocknet
+    logging: *logging
     restart: unless-stopped
 
 # ── Volumes ───────────────────────────────────────────────────────────────────

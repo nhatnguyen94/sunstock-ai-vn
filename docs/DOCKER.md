@@ -233,6 +233,24 @@ Nếu sync vẫn chậm sau khi đã tăng worker + song song hoá, cân nhắc 
 
 ---
 
+## 4b. Tối ưu tốc độ và dung lượng (10/10/2026)
+
+Đo trên máy dev (project nằm ở ổ Windows, Docker Desktop WSL2): `stat` 361 file qua bind mount mất **1,1 giây** so với **5 ms** trên đĩa riêng của container, nên mọi thứ PHP đọc qua mount đều chậm. Đã áp dụng:
+
+| Thay đổi | Ở đâu | Kết quả đo được / lý do |
+|---|---|---|
+| `opcache.revalidate_freq = 2` (trước là 0), `interned_strings_buffer = 16`, `realpath_cache_ttl = 600` | `docker/php/php.ini` | Trang `/login` 170–240 ms → 106–180 ms (nhanh hơn 35–45%). Sửa code vẫn thấy sau tối đa 2 giây; cần thấy ngay thì đặt lại `0`. |
+| View đã compile + cache khởi động của Laravel (`packages.php`, `services.php`…) nằm ở `/var/cache/laravel` (đĩa của container) thay vì `storage/framework/views` và `bootstrap/cache` trên ổ Windows | `docker-compose.yml` (`x-php-env`: `VIEW_COMPILED_PATH`, `APP_*_CACHE`) | Không đọc 100+ file view qua mount. Thư mục được tạo lúc container khởi động. Chỉ là cache: mất khi tạo lại container thì tự dựng lại; `php artisan view:clear` vẫn đúng chỗ. |
+| `auto_prepend_file = dev-umask.php` + `PHP_DEV_UMASK=1` | `docker/php/dev-umask.php`, compose | File PHP tạo ra (view compile, log) ai cũng ghi được, nên `docker compose exec` (root) và php-fpm (www-data) không khóa nhau. **Dev only — bỏ biến `PHP_DEV_UMASK` khi deploy thật.** |
+| MySQL: `performance_schema=OFF`, `skip-log-bin`, `innodb_flush_log_at_trx_commit=2`, `innodb_flush_method=O_DIRECT`, `innodb_buffer_pool_size=384M`, `max_connections=100` | tham số `command:` của service `mysql` (không dùng `my.cnf` vì mount Windows báo file world-writable nên MySQL bỏ qua) | RAM MySQL 882 MB → ~540 MB; hết binlog (283 MB) và bớt fsync; ghi hàng loạt nhanh hơn. **Đánh đổi:** VM sập đột ngột có thể mất tối đa 1 giây commit cuối (đã có `db:backup` hằng tuần). Production: dùng lại `flush_log_at_trx_commit=1` và bật binlog nếu cần replica. |
+| nginx: `gzip on` (text/JSON/CSS/JS/SVG), `open_file_cache` | `docker/nginx/default.conf` | Nhỏ hơn khi truyền, bớt hỏi mount cho asset tĩnh. |
+| Log container xoay vòng 10 MB × 3 file / service | `x-logging` trong compose | Trước đó log json-file không bao giờ xoay vòng. |
+| Một image dùng chung `stock-app-php:latest` cho `php`, `queue`, `scheduler` | compose (`image:` + `pull_policy: never`) | Trước đây cùng một Dockerfile bị build 3 lần dưới 3 tên. |
+
+Không áp dụng (đã cân nhắc, chưa cần): giới hạn RAM/CPU của WSL bằng `.wslconfig`, đưa cả project vào ổ WSL, `docker compose watch`, hạ số worker queue. Chỉ cần nếu sau các thay đổi trên máy vẫn chậm.
+
+---
+
 ## 5. Khi code thay đổi
 
 ### Thay đổi PHP/Blade (tức thì)
@@ -442,10 +460,9 @@ docker compose exec php /opt/venv/bin/python3 py/get_stock.py VCB
 | File | Vai trò |
 |---|---|
 | `docker-compose.yml` | Định nghĩa toàn bộ stack (6 containers, volumes, networks) |
-| `docker/php/Dockerfile` | Build PHP image: PHP 8.2 + Python + extensions + vnstock |
 | `docker/nginx/default.conf` | Nginx config: HTTPS, HTTP redirect, PHP-FPM proxy |
 | `docker/php/supervisord.conf` | Chạy 6 process `queue:work redis --queue=high,default` (mục "Giám sát Queue" ở trên) |
-| `docker/php/php.ini` | Custom PHP settings |
+| `docker/php/php.ini` / `docker/php/dev-umask.php` | Custom PHP settings (opcache revalidate 2 s, realpath cache) và umask dev-only — xem mục 4b |
 | `docker/nginx/ssl/*.pem` | SSL cert (mkcert, trusted, expires 2028-08-30) |
 | `.env.docker` | Base để tạo `.env` khi chạy Docker (`cp .env.docker .env` — xem Bước 0) |
 | `.env.xampp` | Base để tạo `.env` khi rollback về XAMPP (xem mục 7) |
