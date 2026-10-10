@@ -282,6 +282,16 @@ npm run build
 - Tile size is **traded value**, not market cap (not available): keep that wording in the card text. Colours saturate at ±7 % (the HOSE daily limit); white text must stay readable on every tile (tested: lightness ≤ 52).
 - The exchange of each stock comes from the quote's 11th element (`stock_symbols.exchange` is not reliable). A snapshot without it makes the exchange chips show the "no data yet" message until the next sync.
 
+## Home motion layer (`css/home/home-fx.css`, `js/home/home-fx.js`)
+
+- Loaded after `index.css` / `market.css`, so it only overrides what it names; started by `initHomeFx()` from `js/index.js`. No dependency (the layout is Bootstrap 4; Tailwind is installed but not loaded here, Alpine is not installed).
+- **Rules**: every endless animation sits inside `@media (prefers-reduced-motion: no-preference)`; pointer effects also need `(hover: hover) and (pointer: fine)`; scroll-driven depth sits inside `@supports (animation-timeline: scroll())`. Pure helpers (`glowPosition`, `inkBox`, `lerp`, `magnetOffset`, `parseVi`, `rollDirection`) are unit-tested in `tests/js/homefx.test.mjs`.
+- **Use the independent `translate` property** for pointer / scroll offsets (blobs, magnetic buttons, parallax): `transform` already belongs to the keyframes, the tilt and the hover scale, and two writers on one property overwrite each other.
+- Cards get `.fx-glow` plus two inserted layers (`.fx-spot`, `.fx-ring`, `pointer-events: none`) on first hover; heat-map tiles only receive `--mx/--my`. A new card class goes into `CARDS` in `home-fx.js`.
+- Tablists (`#mkSideTabs`, `#mkViewTabs`, `#exploreTabs`, `#homeJump`) get a sliding `.fx-ink` that follows the `.active` class `tabs.js` / `fx.js` already toggle; do not add a second highlight.
+- The AI popup opens with `ai-spring` and closes with `.is-closing` (240 ms, added by `shared/ai-chat.js`); its inline `animation` is beaten with `!important`.
+- The hero pauses its animations off screen or in a hidden tab (`.is-paused`), so a screenshot taken from a background tab shows the first frame of every animation.
+
 ## Command palette (Ctrl+K)
 
 - `partials/command-palette.blade.php` (included by the layout) holds the page list as JSON (`#paletteData`, built server-side so it follows the visitor: guests get Đăng nhập/Đăng ký, users their account; links are site-relative via `route(..., [], false)`) and the closed dialog. `js/shared/palette.js` opens it on Ctrl/⌘+K, `/` outside a field, or any `[data-palette-open]` button (navbar: desktop pill with the shortcut, phone icon next to the menu button).

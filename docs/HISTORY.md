@@ -6,6 +6,27 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## HOME_PAGE_POLISH_LAYER - October 10, 2026
+
+### Summary
+Branch `feature/update-fe-homepage`. Tailwind 4 is installed but the frontend layout (Bootstrap 4) does not load it, and Alpine.js is not installed, so (as asked) nothing new was installed: a dedicated CSS layer + one vanilla JS module sit on top of the existing Blade, which keeps every hook the `homeLayout*` tests pin.
+
+### Added
+- `css/home/home-fx.css`: softer palette (hero blue-800 -> blue-500, slate tints instead of violet), `@keyframes blob` mesh gradient (4 morphing blurred blobs in the hero), spotlight + glowing border for cards and heat-map tiles (`scale 1.01`), brighter number flash, sliding tab ink with spring easing, AI chat box spring-out + staggered chips. All motion is inside `prefers-reduced-motion: no-preference`.
+- `js/home/home-fx.js` (`initSpotlight`, `initTabInk`, pure `glowPosition` / `inkBox`), started from `js/index.js`; hero markup gets `<i class="mesh m1..m4">`.
+- Number count-up / flash already existed (`shared/pricefx.js`); only the flash keyframes and tabular digits were strengthened.
+
+### Redesign pass (same day)
+Hero: eyebrow pill with live dot, gradient headline, glass search card, quick links (`.hero-feats`), stronger mesh blobs plus an SVG film-grain layer (`.noise`). Index cards: direction-tinted wash, pill change, `.mk-idx-orb` glow. The sticky jump bar (`#homeJump`) uses the same sliding ink. The AI popup now also animates closing (`shared/ai-chat.js` adds `.is-closing` for 240 ms before hiding; instant under reduced motion).
+
+### Motion pass (same day)
+Hero: blobs chase the pointer at different depths (`initHeroPointer`, CSS vars `--hx/--hy`), ten candles/sparks drift up (`.pt`), three layers of rolling water along the bottom (`.hero-wave`, front layer = page colour), title letters ride a wave (`initTitleWave`), buttons lean to the pointer (`initMagnetic`, `translate` property). Page: scroll-driven parallax with `animation-timeline: scroll(root)` on the hero decoration and the `.home-glow` blobs (only inside `@supports` + no-preference), springier section reveals, index figures roll in on change (`initRoll`, `rollDirection`). Fixes: darker blue kept longer under the hero so the white market title reads, stronger chip/eyebrow contrast, hero animations pause off screen / hidden tab (`initHeroPause`), lighter blur and no particles on phones. Not verified: a real phone (window resize did not change the viewport in the test browser).
+
+### Tests
+Group `homeFx` (3 PHP) + `tests/js/homefx.test.mjs`; `homeLayout`, `homeLayoutV2`, `homePulse`, `marketHeatmap`, `codeStyle` green. Checked in Chrome: hover glow, tab ink moves on click, chat animation `ai-spring`.
+
+---
+
 ## GOLD_PAGE_BTMC_OUTAGE_FIX - October 10, 2026
 
 ### Summary

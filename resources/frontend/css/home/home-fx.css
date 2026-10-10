@@ -1,0 +1,223 @@
+/* Home page polish layer (loaded after index.css / market.css, so it only overrides what it names).
+   Palette: the brand blue stays, but the hero goes from blue-800 to blue-500 instead of one flat bright blue and the page
+   background trades the violet for slate tints, so the eyes rest on the data. All motion is inside the no-preference guard. */
+
+/* ── Softer palette ─────────────────────────────────────────────────────────────────────────────── */
+.hero-search { background: linear-gradient(170deg, #1e3a8a 0%, #1d4ed8 38%, #2563eb 72%, #3b82f6 100%); }
+.hero-search::before { opacity: .6; }
+.home-body { background: linear-gradient(180deg,
+    #3b82f6 0, #3b82f6 150px, #5f95f5 270px, #a3c0f9 390px, #d2e0fa 540px, #e6edf9 780px, #eef2f9 1300px, #edf0f9 2000px, #f1f5f9 2700px, #eaeef8 3300px); }
+.home-body::before { background-image: radial-gradient(rgba(51, 65, 85, .09) 1px, transparent 1.5px); }
+.home-glow .g2 { background: radial-gradient(closest-side, rgba(99, 102, 241, .16), transparent); }
+.home-glow .g5 { opacity: .6; }
+.home-body .mk-card, .home-body .mk-idx, .home-body .info-section, .home-body .stock-card, .home-body .news-card {
+    background: rgba(255, 255, 255, .86); border-color: rgba(226, 232, 240, .9); }
+
+/* ── 1. Ambient mesh gradient in the hero ───────────────────────────────────────────────────────── */
+.hero-fx .mesh { position: absolute; width: 56vmax; height: 56vmax; max-width: 760px; max-height: 760px; filter: blur(46px); opacity: .85;
+    border-radius: 62% 38% 55% 45% / 48% 58% 42% 52%; will-change: transform, border-radius; }
+.hero-fx .m1 { top: -55%; left: -8%; background: radial-gradient(closest-side, rgba(129, 140, 248, 1), transparent); }
+.hero-fx .m2 { top: -30%; right: -10%; background: radial-gradient(closest-side, rgba(56, 189, 248, .95), transparent); }
+.hero-fx .m3 { bottom: -70%; left: 30%; background: radial-gradient(closest-side, rgba(147, 197, 253, .75), transparent); }
+.hero-fx .m4 { top: 10%; left: 45%; width: 30vmax; height: 30vmax; background: radial-gradient(closest-side, rgba(99, 102, 241, .6), transparent); }
+@keyframes blob {
+    0%   { transform: translate(0, 0) scale(1) rotate(0deg);        border-radius: 62% 38% 55% 45% / 48% 58% 42% 52%; }
+    25%  { transform: translate(6%, -9%) scale(1.14) rotate(35deg); border-radius: 40% 60% 38% 62% / 55% 40% 60% 45%; }
+    50%  { transform: translate(-5%, 7%) scale(.92) rotate(80deg);  border-radius: 55% 45% 62% 38% / 40% 62% 38% 60%; }
+    75%  { transform: translate(8%, 5%) scale(1.1) rotate(125deg);  border-radius: 46% 54% 44% 56% / 60% 44% 56% 40%; }
+    100% { transform: translate(0, 0) scale(1) rotate(180deg);      border-radius: 62% 38% 55% 45% / 48% 58% 42% 52%; }
+}
+
+/* ── 2. Spotlight + glowing border (js/home/home-fx.js sets --mx / --my and inserts the two layers) ── */
+:where(.mk-card, .stock-card, .news-card, .info-section) { position: relative; }
+.fx-glow { transition: transform .3s ease-out, box-shadow .3s ease-out, border-color .3s ease-out; }
+.fx-ring, .fx-spot { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s ease-out; z-index: 2; }
+.fx-spot { background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 50%), rgba(59, 130, 246, .12), transparent 65%); }
+.fx-ring { padding: 1.5px; background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(37, 99, 235, .95), rgba(99, 102, 241, .45) 45%, transparent 72%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+.fx-glow:hover > .fx-ring, .fx-glow:hover > .fx-spot { opacity: 1; }
+.fx-glow:hover { transform: scale(1.01); box-shadow: 0 18px 40px -12px rgba(30, 64, 175, .28); }
+.mk-card.fx-glow:hover { transform: scale(1.004); }
+.hm-tile::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .2s ease-out;
+    background: radial-gradient(110px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, .42), transparent 70%); }
+.hm-tile:hover::after { opacity: 1; }
+
+/* ── 3. Numbers: steady digits, brighter flash (the count-up itself is shared/pricefx.js) ─────────── */
+.mk-idx-close, .mk-idx-chg, [data-px], .mk-card td { font-variant-numeric: tabular-nums; }
+@keyframes mk-flash-up   { 0% { background: rgba(16, 185, 129, .38); text-shadow: 0 0 14px rgba(16, 185, 129, .85); } 100% { background: transparent; text-shadow: 0 0 0 transparent; } }
+@keyframes mk-flash-down { 0% { background: rgba(239, 68, 68, .34); text-shadow: 0 0 14px rgba(239, 68, 68, .8); } 100% { background: transparent; text-shadow: 0 0 0 transparent; } }
+
+/* ── 4a. Tabs: a pill (or underline) that glides to the active tab with a little overshoot ───────── */
+.has-ink, .has-ink-line { position: relative; }
+.fx-ink { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 0; opacity: 0;
+    transition: transform .5s cubic-bezier(.34, 1.45, .64, 1), width .5s cubic-bezier(.34, 1.45, .64, 1), height .5s cubic-bezier(.34, 1.45, .64, 1), opacity .2s ease; }
+.has-ink .fx-ink { background: #fff; border-radius: 9px; box-shadow: 0 1px 4px rgba(15, 23, 42, .16); }
+.has-ink button, .has-ink-line button { position: relative; z-index: 1; }
+.has-ink button.active { background: transparent; box-shadow: none; }
+.has-ink-line .fx-ink { background: var(--primary-blue); border-radius: 3px 3px 0 0; clip-path: inset(calc(100% - 3px) 0 0 0); }
+.has-ink-line button.active { border-bottom-color: transparent; }
+
+/* ── 4b. AI chat box: springs out of its button, the suggestion chips follow one by one ───────────── */
+@keyframes ai-spring { 0% { opacity: 0; transform: translateY(26px) scale(.86); } 60% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+@keyframes ai-chip { from { opacity: 0; transform: translateY(8px) scale(.94); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+    .hero-fx .mesh { animation: blob 22s ease-in-out infinite alternate; }
+    .hero-fx .m2 { animation-duration: 27s; animation-delay: -8s; }
+    .hero-fx .m3 { animation-duration: 31s; animation-delay: -15s; }
+    .hero-fx .m4 { animation-duration: 19s; animation-delay: -4s; }
+    #aiChatPopup { transform-origin: bottom right; animation: ai-spring .55s cubic-bezier(.34, 1.56, .64, 1) both !important; }
+    #aiChatPopup [data-ai-question] { animation: ai-chip .45s cubic-bezier(.34, 1.56, .64, 1) both; }
+    #aiChatPopup [data-ai-question]:nth-of-type(1) { animation-delay: .12s; }
+    #aiChatPopup [data-ai-question]:nth-of-type(2) { animation-delay: .2s; }
+    #aiChatPopup [data-ai-question]:nth-of-type(3) { animation-delay: .28s; }
+    #aiChatOpenBtn { transition: transform .45s cubic-bezier(.34, 1.56, .64, 1), box-shadow .3s ease !important; }
+    #aiChatOpenBtn:hover { transform: scale(1.1) rotate(-6deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fx-glow, .fx-glow:hover { transition: none; transform: none; }
+    .fx-ink { transition: none; }
+}
+
+/* ═══ Redesign pass ═════════════════════════════════════════════════════════════════════════════════ */
+
+/* Hero: eyebrow pill with a live dot, gradient headline, glass search card, quick links, film grain over the mesh */
+.hero-compact .hero-content { display: flex; flex-direction: column; align-items: center; }
+.hero-eyebrow { display: inline-flex; align-items: center; gap: .55rem; margin-bottom: .75rem; padding: .32rem .95rem; border-radius: 999px; font-size: .78rem; font-weight: 700; letter-spacing: .2px;
+    color: #e0ecff; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.live-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 0 rgba(52, 211, 153, .6); }
+.hero-compact .hero-title { font-size: 2.6rem; font-weight: 800; letter-spacing: -.8px; text-shadow: none;
+    background: linear-gradient(180deg, #fff 30%, #c7d9ff 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-compact .hero-title i { -webkit-text-fill-color: #fbbf24; }
+.hero-compact .hero-subtitle { color: #dbe8ff; opacity: 1; }
+.hero-compact .search-card { background: rgba(255, 255, 255, .92); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, .7); box-shadow: 0 30px 60px -22px rgba(15, 23, 42, .55), 0 0 0 6px rgba(255, 255, 255, .08); transition: box-shadow .3s ease, transform .3s ease; }
+.hero-compact .search-card:focus-within { box-shadow: 0 34px 70px -22px rgba(15, 23, 42, .6), 0 0 0 6px rgba(147, 197, 253, .35); transform: translateY(-2px); }
+.hero-feats { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: 1rem; }
+.hero-feats a { display: inline-flex; align-items: center; gap: .4rem; padding: .38rem .9rem; border-radius: 999px; color: #eaf2ff; font-size: .82rem; font-weight: 700; text-decoration: none;
+    background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .2); transition: background .25s ease, transform .35s cubic-bezier(.34, 1.56, .64, 1); }
+.hero-feats a:hover { color: #fff; text-decoration: none; background: rgba(255, 255, 255, .22); transform: translateY(-2px); }
+.hero-fx .noise { position: absolute; inset: 0; opacity: .16; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@media (max-width: 767.98px) { .hero-compact .hero-title { font-size: 1.8rem; } .hero-feats { display: none; } }
+
+/* Index cards: bigger figure, direction-tinted wash, change as a pill, a soft orb behind the sparkline */
+.home-body .mk-idx { border-radius: 18px; padding-left: 1.15rem; border: 1px solid rgba(255, 255, 255, .8); box-shadow: 0 10px 30px -14px rgba(30, 64, 175, .35); }
+.home-body .mk-idx::before { left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; }
+.home-body .mk-idx.up   { background: linear-gradient(135deg, rgba(236, 253, 245, .95), rgba(255, 255, 255, .85) 55%); }
+.home-body .mk-idx.down { background: linear-gradient(135deg, rgba(254, 242, 242, .95), rgba(255, 255, 255, .85) 55%); }
+.home-body .mk-idx-name { color: #64748b; letter-spacing: .8px; }
+.home-body .mk-idx-close { font-size: 1.5rem; letter-spacing: -.4px; color: #0f172a; }
+.home-body .mk-idx-chg { width: fit-content; padding: .05rem .5rem; border-radius: 999px; }
+.home-body .mk-idx-chg.up   { background: rgba(16, 185, 129, .14); }
+.home-body .mk-idx-chg.down { background: rgba(239, 68, 68, .12); }
+.mk-idx-orb { position: absolute; right: -18px; top: -18px; width: 110px; height: 110px; border-radius: 50%; pointer-events: none; opacity: .5;
+    background: radial-gradient(closest-side, rgba(148, 163, 184, .35), transparent); }
+.mk-idx.up .mk-idx-orb { background: radial-gradient(closest-side, rgba(16, 185, 129, .4), transparent); }
+.mk-idx.down .mk-idx-orb { background: radial-gradient(closest-side, rgba(239, 68, 68, .34), transparent); }
+
+/* Jump bar: the highlight is the sliding ink, links stay transparent */
+.home-jump.has-ink { background: rgba(255, 255, 255, .72); }
+.home-jump.has-ink a { position: relative; z-index: 1; }
+.home-jump.has-ink a.active { background: transparent; box-shadow: none; color: #fff; }
+.home-jump.has-ink .fx-ink { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-radius: 999px; box-shadow: 0 6px 16px rgba(37, 99, 235, .4); }
+
+/* Chat: closing animation (shared/ai-chat.js adds .is-closing for 240 ms before it hides the box) */
+@keyframes ai-out { to { opacity: 0; transform: translateY(18px) scale(.9); } }
+
+@media (prefers-reduced-motion: no-preference) {
+    .live-dot { animation: live-ping 1.8s ease-out infinite; }
+    .hero-eyebrow, .hero-compact .hero-title, .hero-compact .hero-subtitle, .hero-compact .search-card, .hero-feats { animation: hero-in .8s cubic-bezier(.22, 1, .36, 1) both; }
+    .hero-compact .hero-title { animation-delay: .08s; } .hero-compact .hero-subtitle { animation-delay: .16s; }
+    .hero-compact .search-card { animation-delay: .24s; } .hero-feats { animation-delay: .36s; }
+    #aiChatPopup.is-closing { animation: ai-out .22s cubic-bezier(.4, 0, 1, 1) both !important; }
+}
+@keyframes live-ping { 0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, .65); } 80%, 100% { box-shadow: 0 0 0 9px rgba(52, 211, 153, 0); } }
+@keyframes hero-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+/* ═══ Motion pass: things that float, flow and follow ════════════════════════════════════════════════ */
+
+/* Contrast fixes: quick links and the white market title sit on mid blues */
+.hero-eyebrow { color: #fff; background: rgba(255, 255, 255, .16); }
+.hero-feats a { color: #fff; background: rgba(255, 255, 255, .18); border-color: rgba(255, 255, 255, .32); text-shadow: 0 1px 6px rgba(15, 23, 42, .35); }
+.mk-head .mk-title, .mk-head .mk-meta, .mk-head .mk-status { text-shadow: 0 1px 10px rgba(30, 64, 175, .5); }
+.hero-search.hero-compact { padding-bottom: 3.4rem; }
+
+/* Title: every letter has its own gradient, so it can ride its own wave */
+.hero-compact .hero-title[data-waved] { background: none; -webkit-text-fill-color: #fff; }
+.ttl { display: inline-block; }
+.ch { display: inline-block; background: linear-gradient(180deg, #fff 25%, #bcd4ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* Blobs follow the pointer at different depths (--hx / --hy are set by initHeroPointer, -1 … 1) */
+.hero-fx .mesh { translate: calc(var(--hx, 0) * var(--k, 30) * 1px) calc(var(--hy, 0) * var(--k, 30) * 1px); }
+.hero-fx .m1 { --k: -46; } .hero-fx .m2 { --k: 58; } .hero-fx .m3 { --k: 34; } .hero-fx .m4 { --k: -76; }
+.hero-fx .orb { translate: calc(var(--hx, 0) * -22px) calc(var(--hy, 0) * -22px); }
+
+/* Candles and sparks drifting up through the hero */
+.hero-fx .pt { position: absolute; bottom: -16px; left: calc(var(--n) * 10% + 4%); width: 3px; height: 26px; border-radius: 2px; opacity: 0; background: rgba(251, 191, 36, .75); }
+.hero-fx .pt[style*="--n:0"], .hero-fx .pt[style*="--n:3"], .hero-fx .pt[style*="--n:6"], .hero-fx .pt[style*="--n:9"] { background: rgba(52, 211, 153, .75); }
+.hero-fx .pt[style*="--n:2"], .hero-fx .pt[style*="--n:5"], .hero-fx .pt[style*="--n:8"] { background: rgba(248, 113, 113, .7); }
+.hero-fx .pt::before { content: ''; position: absolute; left: 1px; top: -9px; bottom: -9px; width: 1px; background: inherit; opacity: .7; }   /* the wick */
+.hero-fx .pt:nth-child(odd) { height: 18px; width: 4px; }
+@keyframes pt-rise {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+    14%  { opacity: .85; }
+    85%  { opacity: .5; }
+    100% { transform: translateY(-300px) rotate(24deg); opacity: 0; }
+}
+
+/* Water along the bottom edge: three layers, the front one is the colour the page continues in */
+.hero-wave { position: absolute; left: 0; bottom: -1px; width: 200%; height: 66px; z-index: 1; pointer-events: none; }
+.hero-wave path { transform-box: fill-box; }
+.hero-wave .w1 { fill: rgba(255, 255, 255, .14); }
+.hero-wave .w2 { fill: rgba(191, 219, 254, .26); }
+.hero-wave .w3 { fill: #3b82f6; }
+@keyframes wave-x { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* A figure that changed rolls in from below / above */
+@keyframes roll-up   { from { transform: translateY(70%);  opacity: 0; filter: blur(3px); } to { transform: none; opacity: 1; filter: none; } }
+@keyframes roll-down { from { transform: translateY(-70%); opacity: 0; filter: blur(3px); } to { transform: none; opacity: 1; filter: none; } }
+@keyframes ch-wave { 0%, 60%, 100% { transform: translateY(0); } 28% { transform: translateY(-8px); } }
+
+@media (max-width: 767.98px) {
+    .hero-fx .mesh { filter: blur(30px); }
+    .hero-fx .pt { display: none; }
+    .hero-wave { height: 44px; }
+    .hero-search.hero-compact { padding-bottom: 2.4rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .hero-fx .pt { animation: pt-rise calc(7s + var(--n) * .9s) linear infinite; animation-delay: calc(var(--n) * -1.3s); }
+    .hero-wave path { animation: wave-x 20s linear infinite; }
+    .hero-wave .w2 { animation-duration: 28s; animation-direction: reverse; }
+    .hero-wave .w3 { animation-duration: 38s; }
+    .ch { animation: ch-wave 3.8s ease-in-out infinite; animation-delay: calc(var(--i) * .1s + 1.2s); }
+    .fx-roll-up   { animation: roll-up .6s cubic-bezier(.22, 1.25, .36, 1) both; }
+    .fx-roll-down { animation: roll-down .6s cubic-bezier(.22, 1.25, .36, 1) both; }
+    /* sections and cards land with a spring instead of a plain fade */
+    .fx-reveal { transform: translateY(46px) scale(.95); transition: opacity .7s ease var(--d, 0ms), transform 1.05s cubic-bezier(.34, 1.35, .64, 1) var(--d, 0ms); }
+    .fx-reveal.in { transform: none; }
+    /* nothing runs while the hero is off screen or the tab is hidden */
+    .hero-search.is-paused .hero-fx *, .hero-search.is-paused .hero-wave path, .hero-search.is-paused .ch, .hero-search.is-paused .live-dot { animation-play-state: paused !important; }
+}
+
+/* Depth while scrolling: the hero's decoration and the page glows move slower than the content (scroll-driven, no JS) */
+@keyframes fx-par { to { translate: 0 150px; } }
+@keyframes glow-par { to { translate: 0 calc(var(--par, 160) * -1px); } }
+@supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+        .hero-fx { animation: fx-par 1s linear both; animation-timeline: scroll(root); animation-range: 0px 720px; }
+        .home-glow i {
+            animation-name: home-drift, glow-par; animation-duration: var(--dur, 20s), 1s; animation-timing-function: ease-in-out, linear;
+            animation-iteration-count: infinite, 1; animation-direction: alternate, normal; animation-fill-mode: none, both;
+            animation-delay: var(--dl, 0s), 0s; animation-timeline: auto, scroll(root);
+        }
+        .home-glow .g1 { --par: 220; --dur: 20s; --dl: 0s; }
+        .home-glow .g2 { --par: 340; --dur: 26s; --dl: -7s; }
+        .home-glow .g3 { --par: 180; --dur: 23s; --dl: -12s; }
+        .home-glow .g4 { --par: 420; --dur: 29s; --dl: -4s; }
+        .home-glow .g5 { --par: 280; --dur: 17s; --dl: -9s; }
+    }
+}
+.hero-compact .hero-title .ttl { margin-left: .32em; }

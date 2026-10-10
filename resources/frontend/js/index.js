@@ -2,6 +2,7 @@ import { stockAutocomplete } from './shared/autocomplete.js';
 import { formatAiText } from './shared/ai-text.js';
 import { initTabs } from './shared/tabs.js';
 import { initJumpBar, initReveal, initTilt } from './shared/fx.js';
+import { initHomeFx } from './home/home-fx.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     const symbolInput = document.getElementById('symbol');
@@ -84,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initTilt('.mk-idx, .mk-pc, .stock-card, .ai-hero');
     initReveal('.home-sec-head, .home-section .mk-card:not(.mk-heat), .mk-indices, .info-section, .home-section .feature-card');
     initJumpBar(document.getElementById('homeJump'));
+    initHomeFx();   // pointer spotlight + glowing borders, sliding tab ink (js/home/home-fx.js)
 
     // Scroll to hot industries section when paginate is clicked
     document.addEventListener('click', function(e) {

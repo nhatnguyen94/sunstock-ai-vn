@@ -51,6 +51,7 @@
         @foreach($market['indices'] as $i)
             @php $d = $dir($i['change']); @endphp
             <div class="mk-idx {{ $d }}" data-idx="{{ $i['code'] }}">
+                <i class="mk-idx-orb" aria-hidden="true"></i>
                 <div class="mk-idx-name">{{ $i['name'] }}</div>
                 <div class="mk-idx-close">{{ F::number($i['close'], 2) }}</div>
                 <div class="mk-idx-chg {{ $d }}"><i class="bi {{ $icon($i['change']) }}"></i>
