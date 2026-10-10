@@ -49,12 +49,24 @@ export function initAiChat() {
 
     const t = () => TEXT[lang.value] || TEXT.vi;
     const scrollDown = () => { box.scrollTop = box.scrollHeight; };
-    const isOpen = () => popup.style.display !== 'none';
+    let closeTimer = 0;
+    const isOpen = () => popup.style.display !== 'none' && !popup.classList.contains('is-closing');
+    const calm = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     function setOpen(open) {
-        popup.style.display = open ? 'block' : 'none';
+        clearTimeout(closeTimer);
+        popup.classList.remove('is-closing');
         openBtn.setAttribute('aria-expanded', String(open));
-        if (open) setTimeout(() => input.focus(), 50);
+        if (open) {
+            popup.style.display = 'block';
+            setTimeout(() => input.focus(), 50);
+        } else if (calm() || popup.style.display === 'none') {
+            popup.style.display = 'none';
+        } else {
+            // let the closing animation (home-fx.css) play, then hide
+            popup.classList.add('is-closing');
+            closeTimer = setTimeout(() => { popup.style.display = 'none'; popup.classList.remove('is-closing'); }, 240);
+        }
     }
 
     function addUser(text) {

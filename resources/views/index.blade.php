@@ -15,13 +15,15 @@
 @endphp
 
 @section('head')
-@vite(['resources/frontend/css/index.css', 'resources/frontend/css/market/market.css', 'resources/frontend/css/shared/watchlist.css', 'resources/frontend/css/shared/charts.css'])
+@vite(['resources/frontend/css/index.css', 'resources/frontend/css/market/market.css', 'resources/frontend/css/shared/watchlist.css', 'resources/frontend/css/shared/charts.css', 'resources/frontend/css/home/home-fx.css'])
 @endsection
 
 @section('content')
 <!-- Hero: title + search in one compact band, the market comes right under it -->
 <section class="hero-search hero-compact">
     <div class="hero-fx" aria-hidden="true">
+        <i class="mesh m1"></i><i class="mesh m2"></i><i class="mesh m3"></i><i class="mesh m4"></i><i class="noise"></i>
+        @for($p = 0; $p < 10; $p++)<i class="pt" style="--n:{{ $p }}"></i>@endfor
         <i class="orb o1"></i><i class="orb o2"></i>
         <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span>
         <svg class="hero-line" viewBox="0 0 1200 120" preserveAspectRatio="none">
@@ -30,8 +32,15 @@
             <path d="M0,92 L50,86 L100,90 L150,78 L200,82 L250,70 L300,76 L350,64 L400,70 L450,58 L500,66 L550,54 L600,60 L650,48 L700,56 L750,44 L800,52 L850,40 L900,46 L950,34 L1000,42 L1050,30 L1100,36 L1150,24 L1200,30" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
         </svg>
     </div>
+    {{-- three layers of slowly rolling water along the bottom edge; the front one is the colour the page continues in --}}
+    <svg class="hero-wave" viewBox="0 0 2880 90" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path class="w1" d="M0,46 Q180,12 360,46 T720,46 T1080,46 T1440,46 T1800,46 T2160,46 T2520,46 T2880,46 V90 H0Z"/>
+        <path class="w2" d="M0,54 Q180,26 360,54 T720,54 T1080,54 T1440,54 T1800,54 T2160,54 T2520,54 T2880,54 V90 H0Z"/>
+        <path class="w3" d="M0,66 Q180,44 360,66 T720,66 T1080,66 T1440,66 T1800,66 T2160,66 T2520,66 T2880,66 V90 H0Z"/>
+    </svg>
     <div class="container">
         <div class="hero-content">
+            <span class="hero-eyebrow"><i class="live-dot" aria-hidden="true"></i> Dữ liệu thị trường trực tiếp · có AI hỗ trợ</span>
             <h1 class="hero-title">
                 <i class="bi bi-graph-up-arrow" style="color: #fbbf24;"></i>
                 Sun Stock AI
@@ -69,6 +78,12 @@
                     <a href="{{ url('/stock/compare') }}" class="tag tag-tool"><i class="bi bi-bar-chart-steps"></i> So sánh</a>
                     <kbd class="popular-kbd d-none d-md-inline" title="Phím tắt mở thanh tìm nhanh">Ctrl+K</kbd>
                 </div>
+            </div>
+            <div class="hero-feats">
+                <a href="#hpMarkets"><i class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></i> Bản đồ nhiệt</a>
+                <a href="#hpSignals"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i> Tín hiệu giá</a>
+                <a href="{{ url('/stock/screener') }}"><i class="bi bi-funnel-fill" aria-hidden="true"></i> Bộ lọc cổ phiếu</a>
+                <a href="{{ url('/gold') }}"><i class="bi bi-coin" aria-hidden="true"></i> Giá vàng</a>
             </div>
         </div>
     </div>
