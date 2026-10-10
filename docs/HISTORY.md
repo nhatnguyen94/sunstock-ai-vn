@@ -14,10 +14,12 @@ The owner asked for a check that no key from `.env` leaks and nothing else is un
 ### Findings
 - **No secret leaks**: none of the six key/password values in `.env` appears in any tracked or untracked file, any git commit, any container log, `laravel.log` or the image (no `.env` inside it, no secret in the build history). `.env`, `.env.docker*`, `.env.xampp` are git-ignored and answer 403 over the web; MySQL listens on 127.0.0.1 only, Redis is internal. Old copies of `.env` on disk (`.env.docker`, `.env.docker.bak`, `.env.xampp`) hold duplicates of keys — git-ignored, best deleted when unused.
 - **vnai reports usage** (function names, run times, errors, machine fingerprint, OS/Python version) to `hq.vnstocks.com`, and sends the API key to `vnstocks.com` for tier detection (expected).
-- Open items (decided with the owner, not changed): the site is reachable on the LAN (`0.0.0.0:80/443`) while 331 demo accounts incl. admin exist — owner is the only user of the machine; `composer audit` lists advisories in guzzle, league/commonmark, laravel/framework, symfony/* (handled separately); `database_backup` and the image tar sit inside XAMPP's web root (Apache not running); `SESSION_SECURE_COOKIE` unset (production setting).
+- Open items (decided with the owner, not changed): the site is reachable on the LAN (`0.0.0.0:80/443`) while 331 demo accounts incl. admin exist — owner is the only user of the machine; `composer audit` listed ~40 advisories in guzzle, psr7, league/commonmark, flysystem, laravel/framework and symfony/* (fixed, see below); `database_backup` and the image tar sit inside XAMPP's web root (Apache not running); `SESSION_SECURE_COOKIE` unset (production setting).
 
 ### Done
 `VNSTOCK_TELEMETRY=off` for php / queue / scheduler (`docker-compose.yml`) and for every script `PythonRunner` starts (`vnaiLockdownEnv()`, renamed from `noAgentSetupEnv()`); it stops the analytics call only, tier detection and quota keep working (checked: `telemetry_status()` → enabled False, syncs still store data). `tests/Fixtures/python/print_agent_env.py` and the `pythonRunner` test now assert the third switch. Docs: VNSTOCK.md §5b, PYTHON_INTEGRATION.md.
+
+**Dependencies** (branch `deps-security-update`): `composer update guzzlehttp/guzzle guzzlehttp/psr7 laravel/framework league/commonmark league/flysystem 'symfony/*' --with-all-dependencies` — 50 packages, patch/minor only, `composer.json` unchanged (Laravel 12.58.0 → 12.69.3, Guzzle 7.10 → 7.15, commonmark 2.8 → 2.10, symfony 7.4.8 → 7.4.20). `composer audit`: 0 advisories (was ~40, several high). Full PHP suite unchanged: 1246 tests, 6342 assertions, green. Rollback: restore the previous `composer.lock` from git and run `composer install`.
 
 ---
 
