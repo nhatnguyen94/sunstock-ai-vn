@@ -34,8 +34,7 @@ stock-app/
 │       └── php.ini               ← Custom PHP settings (memory, upload, opcache)
 ├── docker-compose.yml            ← Định nghĩa 6 containers
 ├── .dockerignore                 ← Loại trừ file không cần thiết khi build
-├── .env.docker                   ← .env đã được config cho Docker (DB_HOST=mysql, Redis, Python path)
-└── .env.xampp                    ← Backup .env cũ của XAMPP (để khôi phục nếu cần)
+└── .env.example                  ← Mẫu cấu hình (copy thành .env, đặt giá trị Docker theo bảng bên dưới); .env thật không commit
 ```
 
 ### 6 Containers
@@ -53,15 +52,21 @@ stock-app/
 
 ### .env thay đổi gì?
 
-| Setting | XAMPP (.env.xampp) | Docker (.env.docker → .env) |
+`.env.example` mang giá trị mặc định kiểu chạy thẳng trên máy (XAMPP / `php artisan serve`). Khi chạy bằng Docker, đặt các giá trị sau trong `.env`:
+
+| Setting | Mặc định trong `.env.example` (không Docker) | Docker (đặt trong `.env`) |
 |---|---|---|
 | `APP_URL` | `http://localhost` | `https://sunstock-local.dev` |
-| `DB_HOST` | `127.0.0.1` | `mysql` (tên container) |
-| `SESSION_DRIVER` | `file` | `redis` |
+| `DB_CONNECTION` | `sqlite` | `mysql` |
+| `DB_HOST` / `DB_PORT` | (đang comment) `127.0.0.1` / `3306` | `mysql` (tên container) / `3306` |
+| `DB_DATABASE` / `DB_USERNAME` | (đang comment) | `stock_app` / `root` |
+| `SESSION_DRIVER` | `database` | `redis` |
 | `QUEUE_CONNECTION` | `database` | `redis` |
 | `CACHE_STORE` | `database` | `redis` |
 | `REDIS_HOST` | `127.0.0.1` | `redis` (tên container) |
-| `PYTHON_PATH` | `C:/Users/<username>/AppData/.../python.exe` | `/opt/venv/bin/python3` |
+| `PYTHON_PATH` | `""` (rỗng) | `/opt/venv/bin/python3` |
+
+> Các file `.env.docker`, `.env.docker.bak`, `.env.xampp` (bản sao cũ từ lúc chuyển sang Docker, 30/5/2026) đã bị xóa ngày 10/10/2026: compose không đọc chúng, chúng còn chứa key cũ, và không file nào trong code tham chiếu tới chúng. `.env.example` là mẫu duy nhất.
 
 ---
 
@@ -70,10 +75,10 @@ stock-app/
 ### Bước 0: Cấu hình `.env`
 
 ```powershell
-cp .env.docker .env
+cp .env.example .env
 ```
 
-Sau đó chỉnh `.env`, set giá trị thật (không commit) cho:
+Sau đó chỉnh `.env`: đặt các giá trị Docker ở bảng "`.env` thay đổi gì?" phía trên (`APP_URL`, `DB_*`, `SESSION_DRIVER`, `QUEUE_CONNECTION`, `CACHE_STORE`, `REDIS_HOST`, `PYTHON_PATH`) và set giá trị thật (không commit) cho:
 - `DB_PASSWORD`, `DB_ROOT_PASSWORD` — **bắt buộc**, `docker-compose.yml` không có giá trị mặc định, thiếu là container `mysql` không start được
 - `GROQ_API_KEY` — cho tính năng AI chat (free tại [console.groq.com](https://console.groq.com))
 
@@ -369,8 +374,8 @@ docker compose exec -T -e MYSQL_PWD=<DB_PASSWORD> mysql mysql -u root stock_app 
 ```powershell
 cd C:\xampp\htdocs\stock-app
 
-# Restore .env cũ
-Copy-Item .env.xampp .env
+# Đưa .env về giá trị không-Docker: cột "Mặc định trong .env.example" ở bảng mục 2
+# (APP_URL, DB_*, SESSION_DRIVER, QUEUE_CONNECTION, CACHE_STORE, REDIS_HOST, PYTHON_PATH). File .env.xampp cũ đã bị xóa.
 
 # Stop Docker
 docker compose down
@@ -398,7 +403,7 @@ Database: stock_app
 ## 9. Khi deploy lên server thật
 
 1. Copy toàn bộ project (không cần `vendor/`, `node_modules/`, `docker/init.sql`)
-2. Tạo `.env` cho production (copy từ `.env.docker`, đổi `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://yourdomain.com`)
+2. Tạo `.env` cho production (copy từ `.env.example`, đặt các giá trị Docker như mục 2, đổi `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://yourdomain.com`)
 3. Thay SSL cert: dùng Let's Encrypt thay vì mkcert
 4. Trên server:
    ```bash
@@ -479,8 +484,7 @@ docker compose exec php /opt/venv/bin/python3 py/get_stock.py VCB
 | `docker/php/supervisord.conf` | Chạy 6 process `queue:work redis --queue=high,default` (mục "Giám sát Queue" ở trên) |
 | `docker/php/php.ini` / `docker/php/dev-umask.php` | Custom PHP settings (opcache revalidate 2 s, realpath cache) và umask dev-only — xem mục 4b |
 | `docker/nginx/ssl/*.pem` | SSL cert (mkcert, trusted, expires 2028-08-30) |
-| `.env.docker` | Base để tạo `.env` khi chạy Docker (`cp .env.docker .env` — xem Bước 0) |
-| `.env.xampp` | Base để tạo `.env` khi rollback về XAMPP (xem mục 7) |
+| `.env.example` | Mẫu duy nhất để tạo `.env` (`cp .env.example .env`, rồi đặt giá trị Docker — xem mục 2 và Bước 0) |
 | `docker/init.sql` | Database dump 459MB (gitignored) |
 
 ---

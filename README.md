@@ -101,7 +101,7 @@
 
 ## 🔐 Security & environment variables
 
-- **Never commit `.env`, `.env.docker`, or `.env.xampp`** — they hold real secrets and are already gitignored. Only `.env.example` is tracked in git, and it contains **placeholders only** (`your_groq_api_key`, empty passwords) — never replace those placeholders with real values before committing.
+- **Never commit `.env`** (or any copy of it) — it holds real secrets and is already gitignored. Only `.env.example` is tracked in git, and it contains **placeholders only** (`your_groq_api_key`, empty passwords) — never replace those placeholders with real values before committing.
 - `docker-compose.yml` requires `DB_PASSWORD` and `DB_ROOT_PASSWORD` to be set with **no insecure default** — the stack refuses to start rather than silently using a blank/weak MySQL password. Generate strong random values for both, e.g. `openssl rand -base64 24`.
 - `GROQ_API_KEY` (AI chat) and `VNSTOCK_API_KEY` (optional, sponsored vnstock tier) are personal API keys — get your own free key at [console.groq.com](https://console.groq.com) and keep it out of any file that gets committed or shared.
 - If a real secret is ever accidentally committed, rotating it (changing the password/regenerating the API key) is mandatory — removing it from a later commit does **not** remove it from git history.
@@ -118,8 +118,9 @@ cd stock-app
 ```
 
 ```bash
-# 2. Configure .env (copy from .env.docker as base — DB_HOST=mysql, REDIS_HOST=redis are already set for the Docker network)
-cp .env.docker .env
+# 2. Configure .env (copy .env.example, then use the Docker values from docs/DOCKER.md section 2:
+#    APP_URL=https://sunstock-local.dev, DB_CONNECTION=mysql, DB_HOST=mysql, REDIS_HOST=redis, SESSION_DRIVER/QUEUE_CONNECTION/CACHE_STORE=redis, PYTHON_PATH=/opt/venv/bin/python3)
+cp .env.example .env
 # Then edit .env and set your own real values for:
 #   DB_PASSWORD, DB_ROOT_PASSWORD   (required — no insecure default, see Security section above)
 #   GROQ_API_KEY                    (for the AI chat feature)
@@ -298,7 +299,7 @@ MIT License © 2025–2026
 
 ## 🔐 Bảo mật & biến môi trường
 
-- **Không bao giờ commit `.env`, `.env.docker`, `.env.xampp`** — các file này chứa secret thật và đã được đưa vào `.gitignore`. Chỉ `.env.example` được track trên git, và file này **chỉ chứa placeholder** (`your_groq_api_key`, mật khẩu để trống) — tuyệt đối không thay các placeholder đó bằng giá trị thật rồi commit.
+- **Không bao giờ commit `.env`** (hay bất kỳ bản sao nào của nó) — file này chứa secret thật và đã được đưa vào `.gitignore`. Chỉ `.env.example` được track trên git, và file này **chỉ chứa placeholder** (`your_groq_api_key`, mật khẩu để trống) — tuyệt đối không thay các placeholder đó bằng giá trị thật rồi commit.
 - `docker-compose.yml` bắt buộc phải set `DB_PASSWORD` và `DB_ROOT_PASSWORD`, **không có giá trị mặc định** — nếu thiếu, stack sẽ không khởi động được thay vì âm thầm dùng mật khẩu MySQL rỗng/yếu. Tạo giá trị ngẫu nhiên đủ mạnh cho cả hai, ví dụ `openssl rand -base64 24`.
 - `GROQ_API_KEY` (AI chat) và `VNSTOCK_API_KEY` (tuỳ chọn, tier vnstock tài trợ) là API key cá nhân — lấy key miễn phí tại [console.groq.com](https://console.groq.com) và không để lọt vào bất kỳ file nào được commit hoặc chia sẻ.
 - Nếu lỡ commit nhầm một secret thật, bắt buộc phải xoay vòng (đổi mật khẩu/tạo lại API key) — xoá nó ở một commit sau **không** xoá được khỏi lịch sử git.
@@ -311,8 +312,9 @@ MIT License © 2025–2026
 ```bash
 git clone https://github.com/nhatnguyen94/sunstock-ai-vn.git
 cd stock-app
-# Copy .env.docker làm nền (đã có sẵn DB_HOST=mysql, REDIS_HOST=redis đúng cho mạng Docker)
-cp .env.docker .env
+# Copy .env.example rồi đặt giá trị Docker theo docs/DOCKER.md mục 2:
+#   APP_URL=https://sunstock-local.dev, DB_CONNECTION=mysql, DB_HOST=mysql, REDIS_HOST=redis, SESSION_DRIVER/QUEUE_CONNECTION/CACHE_STORE=redis, PYTHON_PATH=/opt/venv/bin/python3
+cp .env.example .env
 # Sau đó chỉnh .env: đặt DB_PASSWORD, DB_ROOT_PASSWORD (bắt buộc), GROQ_API_KEY=...
 docker compose up -d
 docker exec stock-app-php-1 composer install
