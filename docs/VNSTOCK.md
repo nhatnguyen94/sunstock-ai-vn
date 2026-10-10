@@ -58,6 +58,7 @@ Per-script details are in [PYTHON_INTEGRATION.md](PYTHON_INTEGRATION.md); how th
 8. **Never guess an MSN code.** Take it from `vnstock/explorer/msn/const.py` (currencies incl. `XAUUSD`/`XAGUSD`, global indices, crypto) and sanity-check the
    value against a second source. Guessed `BZ` / `GC` / `SI` answered 15.73 / 5.3 / 0.07 (not Brent, gold, silver); `CL` answered 88.27 with no way to prove it is WTI;
    `Quote(..., 'BTC')` returned no daily bars (the `Market().crypto('BTC')` route returned a single row for a month). Oil and Bitcoin are therefore not used.
+9. **vnstock's own HTTP calls have no timeout and some use plain `http://`.** `btmc_goldprice()` defaulted to `http://api.btmc.vn` and silently lost BTMC for weeks once port 80 stopped answering; pass an https `url=` where the function allows it and put a timeout on `requests` (see `install_http_timeout()` in `py/get_gold_price.py`). The unified `Retail().gold()` is just a wrapper over `sjc_gold_price` / `btmc_goldprice`, nothing newer.
 
 ## 4. The API key
 

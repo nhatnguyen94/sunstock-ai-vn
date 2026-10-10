@@ -6,6 +6,27 @@ The **latest two days** are kept here in full, newest first. Everything older li
 
 ---
 
+## GOLD_PAGE_BTMC_OUTAGE_FIX - October 10, 2026
+
+### Summary
+The owner saw no moving chart on `/gold` for the 7 / 30 / all-time filters and asked whether the feature still works and syncs by itself. Checked end to end in Chrome, the database, the scheduler log and the source hosts.
+
+### What was wrong
+- **BTMC had been dead since 2026-09-20.** vnstock's `btmc_goldprice()` calls `http://api.btmc.vn/...` (port 80); from this network that port times out (the same address over https answers 200). So no BTMC gold/silver row and **no world gold price** were stored for 20 days, the BTMC table and the "Vàng thế giới 4.378 USD/oz" card still showed the 20 Sept numbers as "today", and the chart (which opens on the first BTMC product) had no point in the last 7 days.
+- vnstock sends its requests **without a timeout**: a source that does not answer blocked until `PythonRunner` killed the script at 60 s (one run lasted 61 s) and the healthy source (SJC) was lost with it.
+- Not a bug but the reason the chart looks thin: the scheduler container only runs while Docker Desktop is up (07:00–19:00 Vietnam time, every 15 min), and SJC rows are stored only when the price changed, so a few days is a handful of steps. Days with the machine off cannot be back-filled (no free history API). SJC's chart did draw correctly for 24 h / 7 d / 30 d / all.
+
+### Fixed
+`py/get_gold_price.py`: BTMC is requested over https (built from vnstock's own default address, so host/path/key are not copied) and `install_http_timeout()` gives every vnstock request a 20 s ceiling. vnstock 4.x `Retail().gold()` is only a wrapper over the same two functions, so nothing newer to adopt. After the fix: 154 BTMC rows stored (99 gold, 55 silver), world gold 4,190 USD/oz (MSN `XAUUSD`, an independent source, said 4,193.83 the same day), the script ends in ~6 s, and in Chrome the chart draws BTMC for every range with the world card and the domestic premium (+9.95 %) updated.
+
+### Tests
+New `GetGoldPriceScriptTest` (group `goldPrice`, 4 tests): https URL with vnstock's own address and key, stored shape (per chi → per luong, Vietnam time → UTC, world price), default 20 s timeout that keeps an explicit one, a dead BTMC still returns SJC. Whole group 31 tests green.
+
+### Left open (decide with the owner)
+The page does not say when a source is old (it shows the SJC sync time as "Cập nhật" and "Hôm nay không đổi" for a quote that is weeks old); the scheduler stops with the PC; the chart opens on the first BTMC product whatever it has.
+
+---
+
 ## WORLD_STRIP_GOLD_SILVER_USDVND - October 10, 2026
 
 ### Summary

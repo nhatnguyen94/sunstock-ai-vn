@@ -24,10 +24,12 @@ with BTMC's own "VANG MIENG SJC" line within 4%; otherwise it is dropped with a 
 
 import sys
 import io
+import inspect
 import json
 import math
 import re
 import warnings
+import requests
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
@@ -40,6 +42,20 @@ if hasattr(sys.stderr, 'buffer'):
 
 SJC_CROSSCHECK_TOLERANCE = 0.04
 VN_OFFSET = timedelta(hours=7)
+HTTP_TIMEOUT = 20
+
+
+def install_http_timeout():
+    """vnstock calls requests.get / requests.post WITHOUT a timeout, so a source that accepts the connection and never answers (or a port that
+    is silently dropped) blocks until PythonRunner kills the whole script at 60 s and BOTH sources are lost. Give every call a ceiling."""
+    for name in ('get', 'post'):
+        original = getattr(requests, name)
+
+        def with_timeout(*args, __original=original, **kwargs):
+            kwargs.setdefault('timeout', HTTP_TIMEOUT)
+            return __original(*args, **kwargs)
+
+        setattr(requests, name, with_timeout)
 
 
 def money(v):
@@ -68,7 +84,10 @@ def fetch_sjc():
 
 def fetch_btmc():
     from vnstock.explorer.misc.gold_price import btmc_goldprice
-    df = btmc_goldprice()
+    # vnstock's default address is http://api.btmc.vn/... : port 80 stopped answering from here on 2026-09-20 (connection timeout) while
+    # https answers, so every BTMC row and the world gold price (it rides on the same answer) were lost for weeks. Same address, https.
+    default_url = inspect.signature(btmc_goldprice).parameters['url'].default
+    df = btmc_goldprice(url=default_url.replace('http://', 'https://', 1))
     if df is None or df.empty:
         raise RuntimeError('BTMC returned no data')
     rows, world = [], []
@@ -104,6 +123,7 @@ def fetch_btmc():
 
 
 def main():
+    install_http_timeout()
     result = {'fetched_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
               'sjc': [], 'btmc': [], 'world_usd_oz': None, 'errors': {}, 'warnings': []}
 
