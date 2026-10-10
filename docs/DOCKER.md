@@ -247,6 +247,19 @@ Nếu sync vẫn chậm sau khi đã tăng worker + song song hoá, cân nhắc 
 | Log container xoay vòng 10 MB × 3 file / service | `x-logging` trong compose | Trước đó log json-file không bao giờ xoay vòng. |
 | Một image dùng chung `stock-app-php:latest` cho `php`, `queue`, `scheduler` | compose (`image:` + `pull_policy: never`) | Trước đây cùng một Dockerfile bị build 3 lần dưới 3 tên. |
 
+### 4c. Python / vnstock: image build lại được (10/10/2026)
+
+**Chuyện gì đã xảy ra:** vnstock đã rời PyPI (`pypi.org/pypi/vnstock` trả 404) và giờ phát hành ở index riêng `https://vnstocks.com/api/simple` (`pip install -U --extra-index-url https://vnstocks.com/api/simple vnstock vnai`, theo README của `thinh-vu/vnstock`). Index chỉ giữ 2 bản mới nhất mỗi gói, nên `pip install vnstock` cũ trong Dockerfile hỏng và image không build lại được; thêm nữa tag `php:8.2-fpm` tự nhảy sang Debian 13 / Python 3.13.
+
+**Cách đang dùng (đã build và kiểm tra):**
+- Base image ghim theo **digest** trong `docker/php/Dockerfile` (PHP 8.2.34, Debian 13, Python 3.13). Nâng cấp có chủ đích: pull tag mới → chép digest mới → build → chạy test.
+- `docker/python/requirements.txt` ghim đúng phiên bản mọi gói Python (cài từ PyPI).
+- **vnstock 4.0.9 và vnai 2.6.3 cài từ wheel local** `docker/python/wheelhouse/*.whl` với `--no-index` (không phụ thuộc index ngoài lúc build, không dùng `--extra-index-url` nên không có rủi ro dependency confusion). Wheel **không commit vào git** (gitignore): vnstock có giấy phép "Custom (Personal Use)", vnai là "proprietary". Trên máy mới: `sh docker/python/fetch-wheels.sh` trước khi `docker compose build`. Thiếu wheel, build dừng với thông báo rõ ràng.
+- Đã chuyển stack sang image này (10/10/2026); image cũ giữ lại với tag `stock-app-php:before-vnstock4` để quay lui (`docker tag stock-app-php:before-vnstock4 stock-app-php:latest && docker compose up -d`). Sau mỗi lần `docker compose up -d` tạo lại container `php`, nếu site trả 502 thì `docker compose restart nginx` (nginx giữ địa chỉ IP cũ của php).
+- Khi tự chạy `docker run` với image này để test, phải gắn `docker/php/php.ini` và `dev-umask.php` như trong compose, không thì PHP dùng `memory_limit` 128M và bộ test chết giữa chừng.
+- Nâng phiên bản vnstock sau này: sửa `VNSTOCK` / `VNAI` trong `fetch-wheels.sh`, chạy lại script, build, chạy các script `py/*.py` và test.
+- `VNSTOCK_DISABLE_AGENT_SETUP=1` vẫn để trong compose (bản < 4.0.9 ghi file vào cấu hình công cụ AI mỗi lần import; 4.0.9 đã sửa).
+- Tài liệu `docs/vnstock-agent/` (bản sao hướng dẫn của bên thứ ba, dừng ở vnstock_data 3.0.0) đã bị xóa vì lỗi thời; API key vẫn đọc từ `.env` (`VNSTOCK_API_KEY`) như cũ.
 Không áp dụng (đã cân nhắc, chưa cần): giới hạn RAM/CPU của WSL bằng `.wslconfig`, đưa cả project vào ổ WSL, `docker compose watch`, hạ số worker queue. Chỉ cần nếu sau các thay đổi trên máy vẫn chậm.
 
 ---
@@ -460,6 +473,8 @@ docker compose exec php /opt/venv/bin/python3 py/get_stock.py VCB
 | File | Vai trò |
 |---|---|
 | `docker-compose.yml` | Định nghĩa toàn bộ stack (6 containers, volumes, networks) |
+| `docker/php/Dockerfile` | Build PHP image: PHP 8.2 (base ghim theo digest) + Python 3.13 + extensions + vnstock từ wheel local (mục 4c) |
+| `docker/python/requirements.txt`, `fetch-wheels.sh`, `wheelhouse/` | Gói Python ghim phiên bản; script tải wheel vnstock/vnai (wheel không commit) |
 | `docker/nginx/default.conf` | Nginx config: HTTPS, HTTP redirect, PHP-FPM proxy |
 | `docker/php/supervisord.conf` | Chạy 6 process `queue:work redis --queue=high,default` (mục "Giám sát Queue" ở trên) |
 | `docker/php/php.ini` / `docker/php/dev-umask.php` | Custom PHP settings (opcache revalidate 2 s, realpath cache) và umask dev-only — xem mục 4b |

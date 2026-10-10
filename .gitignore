@@ -33,3 +33,6 @@ composer.lock
 py/__pycache__/
 # Claude Code: personal overrides stay local, shared .claude/settings.json is committed
 .claude/settings.local.json
+
+# vnstock / vnai wheels (personal-use / proprietary licences): fetched locally by docker/python/fetch-wheels.sh, never committed
+docker/python/wheelhouse/*.whl

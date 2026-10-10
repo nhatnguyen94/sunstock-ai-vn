@@ -1,5 +1,7 @@
 # Python Integration Guide
 
+> What vnstock version the image has, where each script's data comes from, API-key rules and why vnstock's AI-agent feature stays off: [VNSTOCK.md](VNSTOCK.md).
+
 ## Overview
 
 Python scripts in `py/` are called from Laravel Service classes via **`App\Support\PythonRunner`** — never call `exec()` directly, see "Calling Pattern" below for why. All scripts output **pure JSON** to stdout.

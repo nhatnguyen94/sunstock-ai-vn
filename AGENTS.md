@@ -22,7 +22,7 @@
 
 | Task involves | Read these additional files |
 |---|---|
-| Python scripts / vnstock | **[docs/PYTHON_INTEGRATION.md](docs/PYTHON_INTEGRATION.md)** |
+| Python scripts / vnstock | **[docs/PYTHON_INTEGRATION.md](docs/PYTHON_INTEGRATION.md)** + **[docs/VNSTOCK.md](docs/VNSTOCK.md)** (installed version, data sources, API-key rules, why vnstock's AI-agent feature is off) |
 | Permissions / roles / Gates | **[docs/RBAC.md](docs/RBAC.md)** |
 | Frontend JS/CSS/Blade assets | **[docs/FRONTEND_VIEWS.md](docs/FRONTEND_VIEWS.md)** |
 | Docker / infrastructure / env | **[docs/DOCKER.md](docs/DOCKER.md)** |
@@ -148,6 +148,7 @@ throw new RuntimeException('x');
 ### 🟡 Task-Conditional (Step 2)
 
 5. **[docs/PYTHON_INTEGRATION.md](docs/PYTHON_INTEGRATION.md)** — `proc_open()` pattern, error handling, stdout rules, adding scripts
+5b. **[docs/VNSTOCK.md](docs/VNSTOCK.md)** — vnstock 4.x in the image: packages, data sources per script, API-key handling, AI-agent opt-in left off
 6. **[docs/RBAC.md](docs/RBAC.md)** — Role constants, Gate definitions, permission matrix, middleware
 7. **[docs/FRONTEND_VIEWS.md](docs/FRONTEND_VIEWS.md)** — CSS/JS file locations, Blade → asset mapping, data-init pattern, CDN deps
 8. **[docs/DOCKER.md](docs/DOCKER.md)** — 6-container stack, daily commands, troubleshooting, production notes
@@ -175,13 +176,6 @@ throw new RuntimeException('x');
 7. **Commit message format — MANDATORY**: `[branch-name] <short summary> (<optional extra detail>)`. `branch-name` is the actual branch you're committing to — this repo currently only has `master`, so it's always `[master]` unless a feature branch exists. Example: `[master] Update feature (fix portfolio price sync)`.
 
 > Full QA checklist (code quality, RBAC, migrations, testing) → **[docs/GUIDELINES.md](docs/GUIDELINES.md)**
-
----
-
-## 🤖 VNStock Agent
-
-External VNStock AI docs live in `docs/vnstock-agent/AGENTS.md`.
-Rules there are **supplemental only** — project architecture always takes priority.
 
 ---
 

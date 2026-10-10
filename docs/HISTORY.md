@@ -17,6 +17,12 @@ Project on the Windows disk is bind-mounted into three PHP containers: `stat` of
 ### Done
 php.ini (`revalidate_freq=2`, interned strings, realpath cache TTL, dev-only umask prepend); Laravel's compiled views and bootstrap caches moved to the container's own disk through env vars (`VIEW_COMPILED_PATH`, `APP_*_CACHE`, folder created at container start); MySQL dev tuning as server options (not a `my.cnf`: a file on the Windows mount looks world-writable and MySQL ignores it) — MySQL RAM 882 → ~540 MB, old binlogs purged; nginx gzip + open_file_cache; log rotation; one shared image for php / queue / scheduler. Details and the production caveats in docs/DOCKER.md §4b.
 
+### Follow-up the same day: the image is rebuildable again, vnstock 4.0.9
+Read the vnstock repository: vnstock left PyPI and is published on its own index (`vnstocks.com/api/simple`, only the two newest versions kept). Built a pinned image (digest-pinned base, `docker/python/requirements.txt`, vnstock 4.0.9 / vnai 2.6.3 from local wheels installed with `--no-index`; the wheels are git-ignored because of their personal-use / proprietary licences), checked it (`pip check` clean; the four real data scripts return identical JSON to the old image; full PHP suite on the new image: 1246 tests, 6342 assertions, green) and moved the stack onto it (the old image stays as `stock-app-php:before-vnstock4` for a rollback; nginx had to be restarted once because it cached the old php container's address and answered 502). The outdated third-party docs folder `docs/vnstock-agent/` (stopped at vnstock_data 3.0.0) and its pointer in AGENTS.md were deleted; the vnstock API key in `.env` is unaffected. Replaced by one maintained page, `docs/VNSTOCK.md` (installed version, data source per script, API-key rules, why vnstock's opt-in AI-agent file writing stays off — tried once in a throwaway folder: it writes a 4.6 KB generic block, nothing project-specific), linked from AGENTS.md and PYTHON_INTEGRATION.md. Details: docs/DOCKER.md §4c.
+
+### Found on the way (before the fix)
+**The PHP image could not be rebuilt**: `pip install vnstock` fails (PyPI no longer serves the package to that pip) and the unpinned base image moved to Python 3.13. The running image (vnstock 4.0.8, pandas 2.3.3) is fine, so the start-up commands create the cache folder instead of a Dockerfile change, and a `docker save` copy of the image was kept. Before any rebuild: pin vnstock / pandas and the base image tag.
+
 ---
 
 ## DEMO_BULK_DATA - October 10, 2026
