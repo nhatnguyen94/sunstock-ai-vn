@@ -202,7 +202,7 @@ Caching pattern for the new pages: DB-first (`company_profiles`, `funds`) or `Ca
 
 ## vnai must not edit AGENTS.md
 
-The `vnai` package (a vnstock dependency) rewrites `AGENTS.md` in the working directory — and `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md` — with a "Dynamic Skill Router" prompt for AI assistants whenever Python runs. It contains no secrets, but it is third-party instructions injected into a file AI tools trust, including a step that sends an API key to an external URL. `PythonRunner` therefore exports `VNSTOCK_DISABLE_AGENT_SETUP=1 VNSTOCK_AGENT_TARGETS=none` for every script, and `docker-compose.yml` sets `VNSTOCK_DISABLE_AGENT_SETUP=1` on php/queue/scheduler. If `git diff AGENTS.md` ever shows a `vnai-bootstrap` block again, something is running vnstock outside the runner.
+The `vnai` package (a vnstock dependency) rewrites `AGENTS.md` in the working directory — and `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md` — with a "Dynamic Skill Router" prompt for AI assistants whenever Python runs. It contains no secrets, but it is third-party instructions injected into a file AI tools trust, including a step that sends an API key to an external URL. `PythonRunner` therefore exports `VNSTOCK_DISABLE_AGENT_SETUP=1 VNSTOCK_AGENT_TARGETS=none VNSTOCK_TELEMETRY=off` for every script (the last one stops vnai's usage reporting to `hq.vnstocks.com`, see [VNSTOCK.md](VNSTOCK.md) §5b), and `docker-compose.yml` sets `VNSTOCK_DISABLE_AGENT_SETUP=1` and `VNSTOCK_TELEMETRY=off` on php/queue/scheduler. If `git diff AGENTS.md` ever shows a `vnai-bootstrap` block again, something is running vnstock outside the runner.
 
 ## Sync speed — two levers, tuned together
 

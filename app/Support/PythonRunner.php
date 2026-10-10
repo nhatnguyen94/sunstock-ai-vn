@@ -67,7 +67,7 @@ class PythonRunner
 
         $command = PHP_OS_FAMILY === 'Windows'
             ? self::buildCommand($pythonPath, $scriptPath, $args)
-            : self::homeOverride().self::apiKeyEnv().self::noAgentSetupEnv().'timeout '.escapeshellarg((string) $timeoutSeconds).' '.self::buildCommand($pythonPath, $scriptPath, $args);
+            : self::homeOverride().self::apiKeyEnv().self::vnaiLockdownEnv().'timeout '.escapeshellarg((string) $timeoutSeconds).' '.self::buildCommand($pythonPath, $scriptPath, $args);
 
         if ($suppressStderr) {
             $command .= PHP_OS_FAMILY === 'Windows' ? ' 2>NUL' : ' 2>/dev/null';
@@ -162,10 +162,12 @@ class PythonRunner
      * vnstock's `vnai` dependency rewrites AGENTS.md in the working directory (and ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md,
      * ~/.gemini/GEMINI.md) with instructions for AI coding assistants every time Python runs — including a step that sends an
      * API key to a third-party URL. A data library must not edit instruction files, so switch it off for every script we run.
+     * It also reports usage (function names, run times, errors, a machine fingerprint, OS and Python version) to hq.vnstocks.com;
+     * VNSTOCK_TELEMETRY=off stops that and nothing else — tier detection and quota checks use separate code and keep working.
      */
-    private static function noAgentSetupEnv(): string
+    private static function vnaiLockdownEnv(): string
     {
-        return 'VNSTOCK_DISABLE_AGENT_SETUP=1 VNSTOCK_AGENT_TARGETS=none ';
+        return 'VNSTOCK_DISABLE_AGENT_SETUP=1 VNSTOCK_AGENT_TARGETS=none VNSTOCK_TELEMETRY=off ';
     }
 
     private static function buildCommand(string $pythonPath, string $scriptPath, array $args): string

@@ -10,6 +10,7 @@ x-logging: &logging
 x-php-env: &php-env
   PYTHONIOENCODING: utf-8
   VNSTOCK_DISABLE_AGENT_SETUP: "1"             # vnai must not write instructions into AGENTS.md / ~/.claude/CLAUDE.md
+  VNSTOCK_TELEMETRY: "off"                      # vnai must not report usage (functions, run times, machine id, OS) to hq.vnstocks.com
   PHP_DEV_UMASK: "1"                            # dev only: files PHP creates are writable by every user (see docker/php/dev-umask.php); remove in production
   # Compiled views and Laravel's bootstrap caches live on the container's OWN disk, not on the slow Windows bind mount (a stat() over the
   # mount costs milliseconds). They are caches: rebuilt on demand, safe to lose. `php artisan view:clear` / `optimize:clear` still work.

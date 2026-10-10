@@ -74,7 +74,7 @@ class PythonRunnerTest extends TestCase
 
         $decoded = PythonRunner::runAndDecodeJson(base_path('tests/Fixtures/python/print_agent_env.py'), [], 5);
 
-        $this->assertSame(['disable' => '1', 'targets' => 'none'], $decoded);
+        $this->assertSame(['disable' => '1', 'targets' => 'none', 'telemetry' => 'off'], $decoded);
     }
 
     #[Group('pythonRunner')]
